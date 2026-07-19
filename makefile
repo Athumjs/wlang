@@ -1,7 +1,7 @@
 TARGET = wl
 
 CC = gcc
-CFLAGS = -Iinclude -fsanitize=address -g -O3
+CFLAGS = -Iinclude -fsanitize=address -g
 LDFLAGS = -lm
 
 SRC = $(shell find src -name "*.c")

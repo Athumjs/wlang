@@ -1,3 +1,11 @@
+import "lib.w";
+
+// comment line;
+
+/*
+   comment block;
+*/
+
 enum CalcKind {
   Add,
   Sub
@@ -25,5 +33,6 @@ set main(): int {
   };
 
   if (calc.kind == CalcKind.Add) return calc.add();
-  return calc.sub();
+  else return calc.sub();
+  return func();
 }
