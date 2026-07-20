@@ -23,7 +23,7 @@ struct Type {
 
     struct {
       struct Type *retType;
-      struct Type *params;
+      struct Type **params;
       size_t params_len;
       size_t params_cap;
     } type_function;

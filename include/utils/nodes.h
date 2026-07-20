@@ -2,7 +2,6 @@
 
 #include <utils/tokens.h>
 #include <utils/types.h>
-#include <stdbool.h>
 
 struct Property {
   struct String name;
@@ -21,15 +20,27 @@ struct Label {
 struct Element {
   struct String name;
   struct Expr *expr;
+  int line;
+  int column;
 };
 
-struct Function {
+struct Method {
   struct String name;
   struct Type *retType;
   struct Label *params;
   size_t params_len;
   size_t params_cap;
   struct Node *body;
+  int line;
+  int column;
+};
+
+struct Var {
+  struct String name;
+  struct Type *type;
+  struct Expr *expr;
+  int line;
+  int column;
 };
 
 enum ExprKind {
@@ -67,7 +78,7 @@ struct Expr {
     struct {
       struct Expr *arg;
       enum TokenType op;
-      bool prefix;
+      uint8_t prefix;
     } expr_unary;
 
     struct {
@@ -127,11 +138,20 @@ struct Node {
 
   union {
     struct {
-      struct String name;
-      struct Type *type;
-      struct Expr *expr;
-      bool isConst;
+      struct Var *vars;
+      size_t vars_len;
+      size_t vars_cap;
+      uint8_t isConst;
     } node_variable;
+
+    struct {
+      struct String name;
+      struct Type *retType;
+      struct Label *params;
+      size_t params_len;
+      size_t params_cap;
+      struct Node *body;
+    } node_function;
 
     struct {
       struct Expr *condition;
@@ -142,7 +162,7 @@ struct Node {
     struct {
       struct Expr *condition;
       struct Node *body;
-      bool doWhile;
+      uint8_t doWhile;
     } node_loopWhile;
 
     struct {
@@ -153,16 +173,18 @@ struct Node {
     } node_loopFor;
 
     struct {
+      struct String name;
       struct Element *elements;
       size_t elements_len;
       size_t elements_cap;
     } node_enum;
 
     struct {
+      struct String name;
       struct Label *properties;
       size_t properties_len;
       size_t properties_cap;
-      struct Function *methods;
+      struct Method *methods;
       size_t methods_len;
       size_t methods_cap;
     } node_struct;
@@ -174,8 +196,7 @@ struct Node {
     } node_block;
 
     struct Expr *node_import;
-    struct Node *node_export;
-    struct Function node_function;
+    struct Node *node_public;
     struct Expr *node_return;
     struct Expr *node_expr;
   };

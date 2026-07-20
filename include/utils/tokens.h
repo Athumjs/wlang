@@ -10,6 +10,7 @@
   X(TOKEN_SET, "set") \
   X(TOKEN_IF, "if") \
   X(TOKEN_ELSE, "else") \
+  X(TOKEN_DO, "do") \
   X(TOKEN_WHILE, "while") \
   X(TOKEN_FOR, "for") \
   X(TOKEN_RETURN, "return") \
@@ -53,6 +54,8 @@
   X(TOKEN_SHIFT_RIGHT, ">>") \
   X(TOKEN_OR, "||") \
   X(TOKEN_AND, "&&") \
+  X(TOKEN_INCREMENT, "++") \
+  X(TOKEN_DECREMENT, "--")
 
 #define SYMBOLS \
   X(TOKEN_COMMA, ",") \

@@ -32,8 +32,9 @@ int main(int argc, char **argv) {
   program.length = 0;
 
   lexer(args->input_file, code, &tokens, &arena);
-  parser(&tokens, &program);
   if (args->debugTokens) showTokens(&tokens);
+  parser(&tokens, &program);
+  if (args->debugAst) showAst(&program);
   arena_destroy(&arena);
   return 0;
 }

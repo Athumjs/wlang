@@ -194,7 +194,7 @@ void lexer(const char *filename, const char *code, struct Tokens *tokens, struct
           isNum(code[index], 10)) NEXT();
 
 #define X(name, str) \
-      if (memcmp(code + start, str, strlen(str)) == 0) { \
+      if (index - start == strlen(str) && memcmp(code + start, str, index - start) == 0) { \
         addTokenString(tokens, arena, name, code + start, index - start, line, col - (index - start)); \
         continue; \
       }
@@ -263,16 +263,26 @@ void lexer(const char *filename, const char *code, struct Tokens *tokens, struct
       continue;
     }
 
+    const char *best = NULL;
+    enum TokenType bestType;
+    size_t bestLen = 0;
+
 #define X(name, str) \
-    if (strncmp(code + index, str, strlen(str)) == 0) { \
-      addTokenString(tokens, arena, name, code + index, strlen(str), line, col); \
-      for (int i = 0; i < strlen(str); i++) NEXT(); \
-      continue; \
+    if (sizeof(str) - 1 > bestLen && memcmp(code + index, str, sizeof(str) - 1) == 0) { \
+      best = str; \
+      bestType = name; \
+      bestLen = sizeof(str) - 1; \
     }
     ASSIGNMENTS
     OPERATORS
     SYMBOLS
 #undef X
+
+    if (best) {
+      addTokenString(tokens, arena, bestType, code + index, bestLen, line, col);
+      for (int i = 0; i < bestLen; i++) NEXT();
+      continue;
+    }
 
     if (isspace(code[index])) {
       NEXT();
