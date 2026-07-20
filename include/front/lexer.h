@@ -1,7 +1,7 @@
 #pragma once
 
 #include <utils/arena.h>
-#include <front/utils/tokens.h>
+#include <utils/tokens.h>
 #include <stddef.h>
 
 struct Tokens {

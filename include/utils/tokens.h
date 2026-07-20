@@ -1,6 +1,6 @@
 #pragma once
 
-#include <utils/string.h>
+#include <utils/literal.h>
 
 #define KEYWORDS \
   X(TOKEN_IMPORT, "import") \
@@ -10,13 +10,15 @@
   X(TOKEN_SET, "set") \
   X(TOKEN_IF, "if") \
   X(TOKEN_ELSE, "else") \
+  X(TOKEN_DO, "do") \
   X(TOKEN_WHILE, "while") \
   X(TOKEN_FOR, "for") \
   X(TOKEN_RETURN, "return") \
   X(TOKEN_CONTINUE, "continue") \
   X(TOKEN_BREAK, "break") \
   X(TOKEN_ENUM, "enum") \
-  X(TOKEN_STRUCT, "struct")
+  X(TOKEN_STRUCT, "struct") \
+  X(TOKEN_AS, "as")
 
 #define ASSIGNMENTS \
   X(TOKEN_ASSIGN, "=") \
@@ -52,6 +54,8 @@
   X(TOKEN_SHIFT_RIGHT, ">>") \
   X(TOKEN_OR, "||") \
   X(TOKEN_AND, "&&") \
+  X(TOKEN_INCREMENT, "++") \
+  X(TOKEN_DECREMENT, "--")
 
 #define SYMBOLS \
   X(TOKEN_COMMA, ",") \
@@ -68,7 +72,9 @@
 
 #define OTHERS \
   X(LITERAL_INTEGER, "literal") \
+  X(LITERAL_UINTEGER, "literal") \
   X(LITERAL_FLOAT, "literal") \
+  X(LITERAL_DOUBLE, "literal") \
   X(LITERAL_CHAR, "literal") \
   X(LITERAL_STRING, "literal") \
   X(LITERAL_BOOLEAN, "literal") \
@@ -100,7 +106,7 @@ static const char *tk_names[] = {
 
 struct Token {
   enum TokenType type;
-  struct String string;
+  union Literal literal;
   int line;
   int column;
 };
