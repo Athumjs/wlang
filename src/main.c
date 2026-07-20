@@ -1,7 +1,5 @@
-#include "utils/args.h"
-#include <front/lexer.h>
+#include <front/parser.h>
 #include <utils/error.h>
-#include <stdint.h>
 #include <stdio.h>
 
 int main(int argc, char **argv) {
@@ -26,7 +24,15 @@ int main(int argc, char **argv) {
   tokens.token = arena_alloc(&arena, tokens.capacity * sizeof(struct Token));
   tokens.length = 0;
 
+  struct Program program;
+  program.args = args;
+  program.arena = &arena;
+  program.capacity = 256;
+  program.nodes = arena_alloc(&arena, program.capacity * sizeof(struct Node *));
+  program.length = 0;
+
   lexer(args->input_file, code, &tokens, &arena);
+  parser(&tokens, &program);
   if (args->debugTokens) showTokens(&tokens);
   arena_destroy(&arena);
   return 0;

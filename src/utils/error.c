@@ -19,7 +19,7 @@ int getNumCase(int num) {
   return (int)log10(num) + 1;
 }
 
-void errorLang(const char *filename, int line, int column, const char *error, ...) {
+_Noreturn void errorLang(const char *filename, int line, int column, const char *error, ...) {
   va_list args;
   va_start(args, error);
   printf("\033[31m[ERROR]\033[0m %s:%d:%d\n ", filename, line, column);
