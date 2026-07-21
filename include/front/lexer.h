@@ -10,5 +10,5 @@ struct Tokens {
   size_t capacity;
 };
 
-void lexer(const char *filename, const char *code, struct Tokens *tokens, struct Arena *arena);
+void lexer(const char *filename, const char *code, struct Tokens *tokens);
 void showTokens(struct Tokens *tokens);

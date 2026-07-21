@@ -1,5 +1,6 @@
 #include <front/parser.h>
 #include <utils/error.h>
+#include <stdlib.h>
 #include <stdio.h>
 
 int main(int argc, char **argv) {
@@ -12,29 +13,37 @@ int main(int argc, char **argv) {
 
   fseek(file, 0, SEEK_END);
   long size = ftell(file);
-  fseek(file, 0, SEEK_SET);
+  rewind(file);
   
   char *code = arena_alloc(&arena, size + 1);
-  fread(code, 1, size, file);
   code[size] = '\0';
+  fread(code, 1, size, file);
   fclose(file);
 
-  struct Tokens tokens;
-  tokens.capacity = 256;
-  tokens.token = arena_alloc(&arena, tokens.capacity * sizeof(struct Token));
-  tokens.length = 0;
+  const int CAP = 256;
+  struct Tokens tokens = (struct Tokens) {
+    .capacity = CAP,
+    .token = calloc(1, CAP * sizeof(struct Token)),
+    .length = 0
+  };
 
-  struct Program program;
-  program.args = args;
-  program.arena = &arena;
-  program.capacity = 256;
-  program.nodes = arena_alloc(&arena, program.capacity * sizeof(struct Node *));
-  program.length = 0;
+  struct Program program = (struct Program) {
+    .args = args,
+    .arena = &arena,
+    .capacity = CAP,
+    .nodes = arena_alloc(&arena, CAP * sizeof(struct Node *)),
+    .length = 0
+  };
 
-  lexer(args->input_file, code, &tokens, &arena);
-  if (args->debugTokens) showTokens(&tokens);
+  lexer(args->input_file, code, &tokens);
+  if (args->debugTokens) 
+    showTokens(&tokens);
+  
   parser(&tokens, &program);
-  if (args->debugAst) showAst(&program);
+  if (args->debugAst) 
+    showAst(&program);
+
+  free(tokens.token);
   arena_destroy(&arena);
   return 0;
 }

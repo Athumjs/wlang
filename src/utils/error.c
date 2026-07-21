@@ -15,8 +15,7 @@ void errorGeneric(const char *error, ...) {
 }
 
 int getNumCase(int num) {
-  if (num <= 0) return 1;
-  return (int)log10(num) + 1;
+  return num <= 0 ? 1 : (int)log10(num) + 1;
 }
 
 _Noreturn void errorLang(const char *filename, int line, int column, const char *error, ...) {

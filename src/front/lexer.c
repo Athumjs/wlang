@@ -6,33 +6,35 @@
 #include <ctype.h>
 #include <errno.h>
 
-void addToken(struct Tokens *tokens, struct Arena *arena, enum TokenType t, union Literal v, int l, int c) {
+void addToken(struct Tokens *tokens, enum TokenType t, union Literal v, int l, int c) {
   if (tokens->length == tokens->capacity) {
-    size_t oldCap = tokens->capacity;
-    tokens->capacity *= 2;
-    struct Token *temp = arena_alloc(arena, tokens->capacity * sizeof(struct Token));
-    memcpy(temp, tokens->token, oldCap * sizeof(struct Token));
-    tokens->token = temp;
+    size_t newCap = tokens->capacity * 2;
+    struct Token *tmp = realloc(tokens->token, newCap * sizeof(struct Token));
+    if (!tmp) {
+      fprintf(stderr, "realloc failed\n");
+      exit(1);
+    }
+    tokens->token = tmp;
+    tokens->capacity = newCap;
   }
 
-  struct Token token;
-  token.type = t;
-  token.literal = v;
-  token.line = l;
-  token.column = c;
-
-  tokens->token[tokens->length++] = token;
+  tokens->token[tokens->length++] = (struct Token) {
+    .type = t,
+    .literal = v,
+    .line = l,
+    .column = c,
+  };
 }
 
-void addTokenString(struct Tokens *tokens, struct Arena *arena, enum TokenType t, const char *v, size_t s, int l, int c) {
+void addTokenString(struct Tokens *tokens, enum TokenType t, const char *v, size_t s, int l, int c) {
   union Literal literal = {
     .string.start = v,
     .string.length = s
   };
-  addToken(tokens, arena, t, literal, l, c);
+  addToken(tokens, t, literal, l, c);
 }
 
-void addTokenNum(struct Tokens *tokens, struct Arena *arena, enum TokenType t, const char *v, size_t s, int b, int l, int c) {
+void addTokenNum(struct Tokens *tokens, enum TokenType t, const char *v, size_t s, int b, int l, int c) {
   union Literal literal;
   if (t == LITERAL_DOUBLE) literal.numDouble = strtod(v, NULL);
 
@@ -57,7 +59,7 @@ void addTokenNum(struct Tokens *tokens, struct Arena *arena, enum TokenType t, c
   }
 
   else if (t == LITERAL_UINTEGER) literal.numUint = strtoull(v, NULL, b);
-  addToken(tokens, arena, t, literal, l, c);
+  addToken(tokens, t, literal, l, c);
 }
 
 void next(int *i, int *l, int *c, char ch) {
@@ -84,7 +86,7 @@ uint8_t isNum(char ch, int base) {
   return ch >= '0' && ch <= '9';
 }
 
-void lexer(const char *filename, const char *code, struct Tokens *tokens, struct Arena *arena) {
+void lexer(const char *filename, const char *code, struct Tokens *tokens) {
   int index = 0, line = 1, col = 1, len = strlen(code);
 
   while (index < len) {
@@ -104,10 +106,10 @@ void lexer(const char *filename, const char *code, struct Tokens *tokens, struct
         errorLang(filename, line, col, "missing terminating '\"' character");
       }
 
-      addTokenString(tokens, arena, LITERAL_STRING, code + start, index - start, line, col - (index - start));
+      addTokenString(tokens, LITERAL_STRING, code + start, index - start, line, col - (index - start));
       if (code[index] == '"') {
         mode = Mode_Normal;
-        addTokenString(tokens, arena, TEMPLATE_END, "", 0, line, col - (index - start));
+        addTokenString(tokens, TEMPLATE_END, "", 0, line, col - (index - start));
       }
 
       NEXT();
@@ -139,7 +141,7 @@ void lexer(const char *filename, const char *code, struct Tokens *tokens, struct
 
     if (code[index] == '$' && code[index + 1] == '"') {
       mode = Mode_Text;
-      addTokenString(tokens, arena, TEMPLATE_START, "", 0, line, col);
+      addTokenString(tokens, TEMPLATE_START, "", 0, line, col);
       NEXT(); NEXT();
       continue;
     }
@@ -156,7 +158,7 @@ void lexer(const char *filename, const char *code, struct Tokens *tokens, struct
         errorLang(filename, line, col, "missing terminating '\"' character");
       }
 
-      addTokenString(tokens, arena, LITERAL_STRING, code + start, index - start, line, col - (index - start));
+      addTokenString(tokens, LITERAL_STRING, code + start, index - start, line, col - (index - start));
       NEXT();
       continue;
     }
@@ -183,7 +185,7 @@ void lexer(const char *filename, const char *code, struct Tokens *tokens, struct
         errorLang(filename, line, col, "Multi-character character constant");
       }
 
-      addTokenString(tokens, arena, LITERAL_CHAR, code + start, index - start, line, col - (index - start));
+      addTokenString(tokens, LITERAL_CHAR, code + start, index - start, line, col - (index - start));
       NEXT();
       continue;
     }
@@ -195,13 +197,13 @@ void lexer(const char *filename, const char *code, struct Tokens *tokens, struct
 
 #define X(name, str) \
       if (index - start == strlen(str) && memcmp(code + start, str, index - start) == 0) { \
-        addTokenString(tokens, arena, name, code + start, index - start, line, col - (index - start)); \
+        addTokenString(tokens, name, code + start, index - start, line, col - (index - start)); \
         continue; \
       }
       KEYWORDS
 #undef X
 
-      addTokenString(tokens, arena, IDENTIFIER, code + start, index - start, line, col - (index - start));
+      addTokenString(tokens, IDENTIFIER, code + start, index - start, line, col - (index - start));
       continue;
     }
 
@@ -259,7 +261,7 @@ void lexer(const char *filename, const char *code, struct Tokens *tokens, struct
       }
 
       buffer[i] = '\0';
-      addTokenNum(tokens, arena, type, buffer, i, base, line, col - (index - start));
+      addTokenNum(tokens, type, buffer, i, base, line, col - (index - start));
       continue;
     }
 
@@ -279,7 +281,7 @@ void lexer(const char *filename, const char *code, struct Tokens *tokens, struct
 #undef X
 
     if (best) {
-      addTokenString(tokens, arena, bestType, code + index, bestLen, line, col);
+      addTokenString(tokens, bestType, code + index, bestLen, line, col);
       for (int i = 0; i < bestLen; i++) NEXT();
       continue;
     }
@@ -292,7 +294,7 @@ void lexer(const char *filename, const char *code, struct Tokens *tokens, struct
     errorLang(filename, line, col, "invalid character '%c'", code[index]);
   }
 
-  addTokenString(tokens, arena, TOKEN_EOF, "", 0, line, col);
+  addTokenString(tokens, TOKEN_EOF, "", 0, line, col);
 }
 
 void showTokens(struct Tokens *tokens) {

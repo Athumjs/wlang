@@ -4,6 +4,7 @@
 struct ArenaBlock *arenaBlock_create(size_t size) {
   struct ArenaBlock *block = malloc(sizeof(struct ArenaBlock));
 
+  size = alignUp(size);
   block->memory = malloc(size);
   block->size = size;
   block->used = 0;
@@ -13,9 +14,10 @@ struct ArenaBlock *arenaBlock_create(size_t size) {
 }
 
 void *arena_alloc(struct Arena *arena, size_t size) {
-  if (arena->current->used + size > arena->current->size) {
-    size_t newSize = arena->current->size * 2;
-    while (newSize < size) newSize *= 2;
+  size = alignUp(size);
+  
+  if ((arena->current->used + size) > arena->current->size) {
+    size_t newSize = (arena->current->size + size) * 2; // garante que haverá espaço sempre
     struct ArenaBlock *block = arenaBlock_create(newSize);
     block->prev = arena->current;
     arena->current = block;

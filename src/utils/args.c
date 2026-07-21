@@ -19,7 +19,6 @@ struct Args *resolveArgs(int argc, char **argv, struct Arena *arena) {
         printf("      \033[32m%s\033[0m\n", desc);
         FLAGS_LIST
 #undef X
-
         exit(0);
       }
 
