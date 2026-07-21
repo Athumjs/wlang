@@ -1,5 +1,6 @@
 #pragma once
 
+#include <utils/arena.h>
 #include <utils/literal.h>
 
 enum TypeKind {
@@ -29,3 +30,6 @@ struct Type {
     } type_function;
   };
 };
+
+struct String getType(struct Type *type, struct Arena *arena);
+uint8_t cmpType(struct Type *t1, struct Type *t2);

@@ -129,7 +129,7 @@ void lexer(const char *filename, const char *code, struct Tokens *tokens, struct
       NEXT(); NEXT();
       while (code[index] && (code[index] != '*' || code[index + 1] != '/')) NEXT();
 
-      if (code[index] != '*' && code[index + 1] != '/') {
+      if (code[index] != '*' || code[index + 1] != '/') {
         errorLang(filename, line, col, "unterminated /* comment");
       }
 
@@ -231,7 +231,7 @@ void lexer(const char *filename, const char *code, struct Tokens *tokens, struct
       }
 
       while (code[index]) {
-        if (i == 30) errorLang(filename, line, col, "the number constant too large");
+        if (i == 29) errorLang(filename, line, col, "the number constant too large");
         if (code[index] == '_') NEXT();
         if (type != LITERAL_DOUBLE && code[index] == '.') {
           NEXT();
@@ -305,7 +305,7 @@ void showTokens(struct Tokens *tokens) {
     else if (tokens->token[i].type == LITERAL_FLOAT) printf("  value: %f\n", tokens->token[i].literal.numFloat);
     else if (tokens->token[i].type == LITERAL_INTEGER) printf("  value: %ld\n", tokens->token[i].literal.numInt);
     else if (tokens->token[i].type == LITERAL_UINTEGER) printf("  value: %lu\n", tokens->token[i].literal.numUint);
-    else printf("  value: %.*s\n", tokens->token[i].literal.string.length, tokens->token[i].literal.string.start);
+    else printf("  value: %.*s\n", (int)tokens->token[i].literal.string.length, tokens->token[i].literal.string.start);
 
     printf("  line: %d\n", tokens->token[i].line);
     printf("  column: %d\n", tokens->token[i].column);

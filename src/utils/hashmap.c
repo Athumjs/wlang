@@ -1,57 +1,97 @@
 #include <utils/hashmap.h>
 #include <string.h>
 
-struct Hash *hash_create(char *key, void *value, struct Arena *arena) {
-  struct Hash *hash = arena_alloc(arena, sizeof(struct Hash));
+struct Hashmap *hashmap_new(struct Arena *arena, size_t size) {
+  struct Hashmap *hmap = arena_alloc(arena, sizeof(struct Hashmap));
 
-  hash->key = key;
-  hash->value = value;
-  hash->next = NULL;
+  hmap->capacity = size;
+  hmap->buckets = arena_alloc(arena, size * sizeof(struct Entry));
+  hmap->length = 0;
+  memset(hmap->buckets, 0, size * sizeof(struct Entry));
+
+  return hmap;
+}
+
+struct Entry hashmap_entry(uint32_t hash, struct String *key, void *value) {
+  struct Entry entry = {
+    .hash = hash,
+    .key = *key,
+    .value = value,
+    .distance = 0,
+    .occupied = 1
+  };
+  return entry;
+}
+
+uint32_t hashmap_hash(struct String *key) {
+  uint32_t hash = 2166136261u;
+
+  for (size_t i = 0; i < key->length; i++) {
+    hash ^= (uint8_t)key->start[i];
+    hash *= 16777619u;
+  }
 
   return hash;
 }
 
-struct Hashmap hashmap_create(size_t size, struct Arena *arena) {
-  struct Hashmap hashmap = {0};
+void hashmap_set(struct Hashmap *hmap, struct String *key, void *value, struct Arena *arena) {
+  if (hmap->length * 100 >= hmap->capacity * 75) {
+    size_t oldCap = hmap->capacity;
+    struct Entry *oldBuckets = hmap->buckets;
+    hmap->capacity *= 2;
+    hmap->buckets = arena_alloc(arena, hmap->capacity * sizeof(struct Entry));
+    memset(hmap->buckets, 0, hmap->capacity * sizeof(struct Entry));
+    size_t oldLen = hmap->length;
+    hmap->length = 0;
+    for (size_t i = 0; i < oldCap; i++) {
+      if (!oldBuckets[i].occupied) continue;
+      hashmap_set(hmap, &oldBuckets[i].key, oldBuckets[i].value, arena);
+    }
+    hmap->length = oldLen;
+  }
 
-  hashmap.capacity = size;
-  hashmap.buckets = arena_alloc(arena, size * sizeof(struct Hash *));
-  for (int i = 0; i < size; i++) hashmap.buckets[i] = NULL;
+  uint32_t hash = hashmap_hash(key);
+  uint32_t index = hash & (hmap->capacity - 1);
+  struct Entry entry = hashmap_entry(hash, key, value);
 
-  return hashmap;
-}
+  while (hmap->buckets[index].occupied) {
+    struct Entry *slot = &hmap->buckets[index];
 
-uint32_t bucket_index(struct Hashmap *hashmap, char *key) {
-  uint32_t hash = 0;
-  while (*key) hash = hash * 31 + *key++;
-  return hash % hashmap->capacity;
-}
-
-void hashmap_set(struct Hashmap *hashmap, char *key, void *value, struct Arena *arena) {
-  uint32_t index = bucket_index(hashmap, key);
-  struct Hash *hash = hashmap->buckets[index];
-
-  while (hash != NULL) {
-    if (strcmp(hash->key, key) == 0) {
-      hash->value = value;
+    if (slot->hash == entry.hash && slot->key.length == entry.key.length &&
+        memcmp(slot->key.start, entry.key.start, entry.key.length) == 0) {
+      slot->value = value;
       return;
     }
 
-    hash = hash->next;
+    if (entry.distance > slot->distance) {
+      struct Entry temp = *slot;
+      hmap->buckets[index] = entry;
+      entry = temp;
+    }
+
+    index = (index + 1) & (hmap->capacity - 1);
+    entry.distance++;
   }
 
-  struct Hash *newHash = hash_create(key, value, arena);
-  hashmap->buckets[index] = newHash;
-  hashmap->length++;
+  hmap->buckets[index] = entry;
+  hmap->length++;
 }
 
-void *hashmap_get(struct Hashmap *hashmap, char *key, struct Arena *arena) {
-  uint32_t index = bucket_index(hashmap, key);
-  struct Hash *hash = hashmap->buckets[index];
+void *hashmap_get(struct Hashmap *hmap, struct String *key) {
+  uint32_t hash = hashmap_hash(key);
+  uint32_t index = hash & (hmap->capacity - 1);
+  int distance = 0;
 
-  while (hash != NULL) {
-    if (strcmp(hash->key, key) == 0) return hash->value;
-    hash = hash->next;
+  while (hmap->buckets[index].occupied) {
+    struct Entry *slot = &hmap->buckets[index];
+    if (distance > slot->distance) return NULL;
+
+    if (slot->hash == hash && slot->key.length == key->length && memcmp(slot->key.start, key->start, key->length) == 0) {
+      return slot->value;
+    }
+
+    index = (index + 1) & (hmap->capacity - 1);
+    distance++;
   }
 
   return NULL;

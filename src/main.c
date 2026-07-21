@@ -1,4 +1,5 @@
-#include <front/parser.h>
+#include <front/semantic.h>
+#include <utils/hashmap.h>
 #include <utils/error.h>
 #include <stdio.h>
 
@@ -31,10 +32,20 @@ int main(int argc, char **argv) {
   program.nodes = arena_alloc(&arena, program.capacity * sizeof(struct Node *));
   program.length = 0;
 
+  struct SymbolTable table;
+  table.scope = arena_alloc(&arena, sizeof(struct Scope));
+  table.scope->symbols = hashmap_new(&arena, 128);
+  table.scope->prev = NULL;
+  table.scope->expectType = NULL;
+  table.scope->retType = NULL;
+  table.scope->onLoop = 0;
+  table.program = &program;
+
   lexer(args->input_file, code, &tokens, &arena);
   if (args->debugTokens) showTokens(&tokens);
   parser(&tokens, &program);
   if (args->debugAst) showAst(&program);
+  semantic(&table);
   arena_destroy(&arena);
   return 0;
 }
