@@ -51,10 +51,12 @@ enum ExprKind {
   Expr_Cast,
   Expr_Unary,
   Expr_Member,
+  Expr_Index,
   Expr_Call,
   Expr_Struct,
   Expr_Array,
   Expr_Literal,
+  Expr_This,
   Expr_Identifier
 };
 
@@ -87,6 +89,11 @@ struct Expr {
     } expr_member;
 
     struct {
+      struct Expr *base;
+      struct Expr *index;
+    } expr_index;
+
+    struct {
       struct Expr *callee;
       struct Expr **args;
       size_t args_len;
@@ -110,6 +117,7 @@ struct Expr {
       union Literal literal;
     } expr_literal;
 
+    struct String expr_this;
     struct String expr_identifier;
   };
 };

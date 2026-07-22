@@ -1,3 +1,4 @@
+#include "utils/types.h"
 #include <front/parser.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -36,18 +37,30 @@ struct Type *parseType(int *i, struct Tokens *tokens, struct Program *program) {
   struct Type *type = arena_alloc(program->arena, sizeof(struct Type));
 
   if (PEEK() == IDENTIFIER) {
-    type->kind = Type_User;
-    type->type_user.name = CONSUME(IDENTIFIER).string;
+    type->kind = Type_Named;
+    type->type_named.name = CONSUME(IDENTIFIER).string;
 
-    if (PEEK() == TOKEN_LBRACKET) {
-      struct Type *temp = arena_alloc(program->arena, sizeof(struct Type));
-      temp->kind = Type_Array;
-      temp->type_array.base = type;
-      CONSUME(TOKEN_LBRACKET);
-      temp->type_array.expr = parseExpr(i, tokens, program);
-      CONSUME(TOKEN_RBRACKET);
-      type = temp;
-    }
+    while (1) {
+      if (PEEK() == TOKEN_LBRACKET) {
+        struct Type *temp = arena_alloc(program->arena, sizeof(struct Type));
+        temp->kind = Type_Array;
+        temp->type_array.base = type;
+        CONSUME(TOKEN_LBRACKET);
+        temp->type_array.expr = parseExpr(i, tokens, program);
+        CONSUME(TOKEN_RBRACKET);
+        type = temp;
+      }
+
+      else if (PEEK() == TOKEN_ASTERISK) {
+        struct Type *temp = arena_alloc(program->arena, sizeof(struct Type));
+        temp->kind = Type_Pointer;
+        temp->type_pointer.base = type;
+        CONSUME(TOKEN_ASTERISK);
+        type = temp;
+      }
+
+      else break;
+    } 
   }
 
   else if (PEEK() == TOKEN_LPAREN) {
@@ -162,6 +175,14 @@ struct Expr *parsePrimary(int *i, struct Tokens *tokens, struct Program *program
     return expr;
   }
 
+  else if (PEEK() == TOKEN_THIS) {
+    struct Expr *expr = newExpr(i, tokens, program, Expr_This);
+    CONSUME(TOKEN_THIS);
+    CONSUME(TOKEN_DOT);
+    expr->expr_this = CONSUME(IDENTIFIER).string;
+    return expr;
+  }
+
   else if (PEEK() == IDENTIFIER) {
     struct Expr *expr = newExpr(i, tokens, program, Expr_Identifier);
     expr->expr_identifier = CONSUME(IDENTIFIER).string;
@@ -171,65 +192,76 @@ struct Expr *parsePrimary(int *i, struct Tokens *tokens, struct Program *program
   errorLang(program->args->input_file, tokens->token[*i].line, tokens->token[*i].column, "expected expression");
 }
 
-struct Expr *parseCall(int *i, struct Tokens *tokens, struct Program *program) {
-  struct Expr *expr = parsePrimary(i, tokens, program);
+void parseCall(int *i, struct Tokens *tokens, struct Program *program, struct Expr **expr) {
+  struct Expr *temp = newExpr(i, tokens, program, Expr_Call);
+  temp->expr_call.callee = *expr;
+  CONSUME(TOKEN_LPAREN);
 
-  while (PEEK() == TOKEN_LPAREN) {
-    struct Expr *temp = newExpr(i, tokens, program, Expr_Call);
-    temp->expr_call.callee = expr;
-    CONSUME(TOKEN_LPAREN);
+  if (PEEK() != TOKEN_RPAREN) {
+    temp->expr_call.args_cap = 2;
+    temp->expr_call.args = arena_alloc(program->arena, temp->expr_call.args_cap * sizeof(struct Expr *));
 
-    if (PEEK() != TOKEN_RPAREN) {
-      temp->expr_call.args_cap = 2;
-      temp->expr_call.args = arena_alloc(program->arena, temp->expr_call.args_cap * sizeof(struct Expr *));
-
-      while (1) {
-        if (expr->expr_call.args_len == expr->expr_call.args_cap) {
-          size_t oldCap = expr->expr_call.args_cap;
-          expr->expr_call.args_cap *= 2;
-          struct Expr **temp = arena_alloc(program->arena, expr->expr_call.args_cap * sizeof(struct Expr *));
-          memcpy(temp, expr->expr_call.args, oldCap * sizeof(struct Expr *));
-          expr->expr_call.args = temp;
-        }
-
-        expr->expr_call.args[expr->expr_call.args_len++] = parseExpr(i, tokens, program);
-        if (PEEK() == TOKEN_COMMA) CONSUME(TOKEN_COMMA);
-        else break;
+    while (1) {
+      if (temp->expr_call.args_len == temp->expr_call.args_cap) {
+        size_t oldCap = temp->expr_call.args_cap;
+        temp->expr_call.args_cap *= 2;
+        struct Expr **t = arena_alloc(program->arena, temp->expr_call.args_cap * sizeof(struct Expr *));
+        memcpy(t, temp->expr_call.args, oldCap * sizeof(struct Expr *));
+        temp->expr_call.args = t;
       }
-    }
 
-    CONSUME(TOKEN_RPAREN);
-    expr = temp;
+      temp->expr_call.args[temp->expr_call.args_len++] = parseExpr(i, tokens, program);
+      if (PEEK() == TOKEN_COMMA) CONSUME(TOKEN_COMMA);
+      else break;
+    }
   }
 
-  return expr;
+  CONSUME(TOKEN_RPAREN);
+  *expr = temp;
 }
 
-struct Expr *parseMember(int *i, struct Tokens *tokens, struct Program *program) {
-  struct Expr *expr = parseCall(i, tokens, program);
+void parseIndex(int *i, struct Tokens *tokens, struct Program *program, struct Expr **expr) {
+  struct Expr *temp = newExpr(i, tokens, program, Expr_Index);
+  temp->expr_index.base = *expr;
+  CONSUME(TOKEN_LBRACKET);
+  temp->expr_index.index = parseExpr(i, tokens, program);
+  CONSUME(TOKEN_RBRACKET);
+  *expr = temp;
+}
 
-  while (PEEK() == TOKEN_DOT) {
-    struct Expr *temp = newExpr(i, tokens, program, Expr_Member);
-    CONSUME(TOKEN_DOT);
-    temp->expr_member.obj = expr;
-    temp->expr_member.member = parseCall(i, tokens, program);
-    expr = temp;
+void parseMember(int *i, struct Tokens *tokens, struct Program *program, struct Expr **expr) {
+  struct Expr *temp = newExpr(i, tokens, program, Expr_Member);
+  CONSUME(TOKEN_DOT);
+  temp->expr_member.obj = *expr;
+  temp->expr_member.member = parsePrimary(i, tokens, program);
+  *expr = temp;
+}
+
+struct Expr *parsePostfix(int *i, struct Tokens *tokens, struct Program *program) {
+  struct Expr *expr = parsePrimary(i, tokens, program);
+
+  while (1) {
+    if (PEEK() == TOKEN_LPAREN) parseCall(i, tokens, program, &expr);
+    else if (PEEK() == TOKEN_LBRACKET) parseIndex(i, tokens, program, &expr);
+    else if (PEEK() == TOKEN_DOT) parseMember(i, tokens, program, &expr);
+    else break;
   }
-  
+
   return expr;
 }
 
 struct Expr *parseUnary(int *i, struct Tokens *tokens, struct Program *program) {
-  if (PEEK() == TOKEN_NOT || PEEK() == TOKEN_BIT_NOT || PEEK() == TOKEN_MINUS || PEEK() == TOKEN_INCREMENT || PEEK() == TOKEN_DECREMENT) {
+  if (PEEK() == TOKEN_NOT || PEEK() == TOKEN_BIT_NOT || PEEK() == TOKEN_MINUS ||
+      PEEK() == TOKEN_INCREMENT || PEEK() == TOKEN_DECREMENT || PEEK() == TOKEN_BIT_AND) {
     struct Expr *expr = newExpr(i, tokens, program, Expr_Unary);
     expr->expr_unary.op = PEEK();
     expr->expr_unary.prefix = 1;
     CONSUME(PEEK());
-    expr->expr_unary.arg = parseMember(i, tokens, program);
+    expr->expr_unary.arg = parsePrimary(i, tokens, program);
     return expr;
   }
 
-  struct Expr *expr = parseMember(i, tokens, program);
+  struct Expr *expr = parsePostfix(i, tokens, program);
 
   if (PEEK() == TOKEN_INCREMENT || PEEK() == TOKEN_DECREMENT) {
     struct Expr *temp = newExpr(i, tokens, program, Expr_Unary);
@@ -775,10 +807,8 @@ void resolveStructProperties(int *i, struct Tokens *tokens, struct Program *prog
   property.type = parseType(i, tokens, program);
 	
 	node->node_struct.properties[node->node_struct.properties_len++] = property;
-	if (PEEK() == TOKEN_SEMICOLON) {
-    CONSUME(TOKEN_SEMICOLON);
-    resolveStructProperties(i, tokens, program, node);
-  }
+  CONSUME(TOKEN_SEMICOLON);
+	if (PEEK() != TOKEN_RBRACE) resolveStructProperties(i, tokens, program, node);
 }
 
 struct Node *parseStruct(int *i, struct Tokens *tokens, struct Program *program) {
@@ -850,9 +880,9 @@ void printTab(int tab, const char *msg, ...) {
 void showType(struct Type *type, int tab) {
   if (type == NULL) return printTab(tab, "(null)\n");
 
-  else if (type->kind == Type_User) {
+  else if (type->kind == Type_Named) {
     printTab(tab, "Type\n");
-    printTab(tab, "value: %.*s\n", type->type_user.name.length, type->type_user.name.start);
+    printTab(tab, "value: %.*s\n", type->type_named.name.length, type->type_named.name.start);
   }
 
   else if (type->kind == Type_Array) {

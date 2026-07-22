@@ -38,6 +38,7 @@ int main(int argc, char **argv) {
   table.scope->prev = NULL;
   table.scope->expectType = NULL;
   table.scope->retType = NULL;
+  table.scope->currentStruct = NULL;
   table.scope->onLoop = 0;
   table.program = &program;
 

@@ -10,7 +10,10 @@ enum SymbolKind {
   Symbol_Variable,
   Symbol_Function,
   Symbol_Enum,
-  Symbol_Struct
+  Symbol_EnumValue,
+  Symbol_Struct,
+  Symbol_Property,
+  Symbol_Method
 };
 
 struct Symbol {
@@ -28,19 +31,14 @@ struct Symbol {
     struct {
       struct Label *params;
       size_t params_len;
-      size_t params_cap;
     } symbol_function;
 
     struct {
       struct Hashmap *items;
-      size_t length;
-      size_t capacity;
     } symbol_enum;
 
     struct {
       struct Hashmap *items;
-      size_t length;
-      size_t capacity;
     } symbol_struct;
   };
 };
@@ -50,6 +48,7 @@ struct Scope {
   struct Scope *prev;
   struct Type *retType;
   struct Type *expectType;
+  struct Symbol *currentStruct;
   uint8_t onLoop;
 };
 

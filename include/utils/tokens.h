@@ -18,6 +18,7 @@
   X(TOKEN_BREAK, "break") \
   X(TOKEN_ENUM, "enum") \
   X(TOKEN_STRUCT, "struct") \
+  X(TOKEN_THIS, "this") \
   X(TOKEN_AS, "as")
 
 #define ASSIGNMENTS \
