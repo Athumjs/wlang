@@ -24,7 +24,7 @@ _Noreturn void errorLang(const char *filename, int line, int column, const char 
   va_start(args, error);
   printf("\033[31m[ERROR]\033[0m %s:%d:%d\n ", filename, line, column);
   vprintf(error, args);
-  putchar('\n');
+  printf("\n  ");
   va_end(args);
 
   FILE *file = fopen(filename, "r");
@@ -35,7 +35,7 @@ _Noreturn void errorLang(const char *filename, int line, int column, const char 
     l++;
     if (l != line) continue;
     printf(" \033[32m%d | %s  ", line, buffer);
-    for (int i = 0; i < getNumCase(line); i++) putchar(' ');
+    for (int i = 0; i < getNumCase(line) + 2; i++) putchar(' ');
     putchar('|');
     for (int i = 0; i < column; i++) putchar(' ');
     puts("^~~\033[0m");

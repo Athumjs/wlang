@@ -1,4 +1,5 @@
 TARGET = wl
+TARGET-DEBUG = wl-debug
 
 CC = gcc
 CFLAGS = -Iinclude -fsanitize=address -g
@@ -12,6 +13,7 @@ all: $(TARGET)
 $(TARGET): $(OBJ)
 	mkdir -p build
 	$(CC) $(LDFLAGS) $(CFLAGS) -o build/$(TARGET) $(OBJ)
+	$(CC) $(LDFLAGS) $(CFLAGS) -pg -o build/$(TARGET-DEBUG) $(OBJ)
 
 build/obj/%.o: src/%.c
 	mkdir -p $(dir $@)
@@ -19,3 +21,7 @@ build/obj/%.o: src/%.c
 
 clean:
 	rm -rf build
+
+debug:
+	gprof ./build/$(TARGET-DEBUG) gmon.out > build/logs.txt
+	rm gmon.out

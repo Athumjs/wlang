@@ -22,7 +22,8 @@ void *arena_alloc(struct Arena *arena, size_t size) {
   }
 
   void *ptr = arena->current->memory + arena->current->used;
-  arena->current->used += size;
+  size_t align = _Alignof(max_align_t);
+  arena->current->used += (size + align - 1) & ~(align - 1);
 
   return ptr;
 }

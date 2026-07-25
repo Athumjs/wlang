@@ -1,4 +1,4 @@
-import "lib.w";
+import "lib";
 
 // comment line;
 
