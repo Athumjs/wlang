@@ -1,16 +1,40 @@
 #pragma once
 
+#include <stdint.h>
 #include <utils/tokens.h>
-#include <utils/types.h>
 
-struct Property {
+struct Field {
   struct String name;
+  int line;
+  int column;
+
+  union {
+    struct Expr *expr;
+    struct Type *type;
+  };
+};
+
+struct Method {
+  struct String name;
+  struct Type *retType;
+  struct Param *params;
+  size_t params_len;
+  size_t params_cap;
+  struct Stmt *body;
+  struct Scope *scope;
+  int line;
+  int column;
+};
+
+struct Var {
+  struct String name;
+  struct Type *type;
   struct Expr *expr;
   int line;
   int column;
 };
 
-struct Label {
+struct Param {
   struct String name;
   struct Type *type;
   int line;
@@ -24,23 +48,18 @@ struct Element {
   int column;
 };
 
-struct Method {
-  struct String name;
-  struct Type *retType;
-  struct Label *params;
-  size_t params_len;
-  size_t params_cap;
-  struct Node *body;
-  int line;
-  int column;
+enum ItemKind {
+  Item_Stmt,
+  Item_Decl
 };
 
-struct Var {
-  struct String name;
-  struct Type *type;
-  struct Expr *expr;
-  int line;
-  int column;
+struct Item {
+  enum ItemKind kind;
+
+  union {
+    struct Stmt *item_stmt;
+    struct Decl *item_decl;
+  };
 };
 
 enum ExprKind {
@@ -62,6 +81,7 @@ enum ExprKind {
 
 struct Expr {
   enum ExprKind kind;
+  struct Type *type;
   int line;
   int column;
 
@@ -101,9 +121,9 @@ struct Expr {
     } expr_call;
 
     struct {
-      struct Property *properties;
-      size_t properties_len;
-      size_t properties_cap;
+      struct Field *fields;
+      size_t fields_len;
+      size_t fields_cap;
     } expr_struct;
 
     struct {
@@ -122,25 +142,17 @@ struct Expr {
   };
 };
 
-enum NodeKind {
-  Node_Import,
-  Node_Public,
-  Node_Variable,
-  Node_Function,
-  Node_Condition,
-  Node_LoopWhile,
-  Node_LoopFor,
-  Node_Return,
-  Node_Continue,
-  Node_Break,
-  Node_Enum,
-  Node_Struct,
-  Node_Block,
-  Node_Expr
+enum DeclKind {
+  Decl_Import,
+  Decl_Public,
+  Decl_Variable,
+  Decl_Function,
+  Decl_Enum,
+  Decl_Struct
 };
 
-struct Node {
-  enum NodeKind kind;
+struct Decl {
+  enum DeclKind kind;
   int line;
   int column;
 
@@ -150,62 +162,83 @@ struct Node {
       size_t vars_len;
       size_t vars_cap;
       uint8_t isConst;
-    } node_variable;
+    } decl_variable;
 
     struct {
       struct String name;
       struct Type *retType;
-      struct Label *params;
+      struct Param *params;
       size_t params_len;
       size_t params_cap;
-      struct Node *body;
-    } node_function;
-
-    struct {
-      struct Expr *condition;
-      struct Node *trueBody;
-      struct Node *falseBody;
-    } node_condition;
-
-    struct {
-      struct Expr *condition;
-      struct Node *body;
-      uint8_t doWhile;
-    } node_loopWhile;
-
-    struct {
-      struct Node *init;
-      struct Expr *condition;
-      struct Expr *uptade;
-      struct Node *body;
-    } node_loopFor;
+      struct Stmt *body;
+      struct Scope *scope;
+    } decl_function;
 
     struct {
       struct String name;
-      struct Element *elements;
-      size_t elements_len;
-      size_t elements_cap;
-    } node_enum;
+      struct Element *elems;
+      size_t elems_len;
+      size_t elems_cap;
+    } decl_enum;
 
     struct {
       struct String name;
-      struct Label *properties;
-      size_t properties_len;
-      size_t properties_cap;
+      struct Field *fields;
+      size_t fields_len;
+      size_t fields_cap;
       struct Method *methods;
       size_t methods_len;
       size_t methods_cap;
-    } node_struct;
+    } decl_struct;
+
+    struct Expr *decl_import;
+    struct Decl *decl_public;
+  };
+};
+
+enum StmtKind {
+  Stmt_If,
+  Stmt_While,
+  Stmt_For,
+  Stmt_Return,
+  Stmt_Continue,
+  Stmt_Break,
+  Stmt_Block,
+  Stmt_Expr
+};
+
+struct Stmt {
+  enum StmtKind kind;
+  int line;
+  int column;
+
+  union {
+    struct {
+      struct Expr *condition;
+      struct Stmt *trueBody;
+      struct Stmt *falseBody;
+    } stmt_if;
 
     struct {
-      struct Node **nodes;
-      size_t nodes_len;
-      size_t nodes_cap;
-    } node_block;
+      struct Expr *condition;
+      struct Stmt *body;
+      uint8_t doWhile;
+    } stmt_while;
 
-    struct Expr *node_import;
-    struct Node *node_public;
-    struct Expr *node_return;
-    struct Expr *node_expr;
+    struct {
+      struct Decl *init;
+      struct Expr *condition;
+      struct Expr *update;
+      struct Stmt *body;
+    } stmt_for;
+
+    struct {
+      struct Item *items;
+      size_t items_len;
+      size_t items_cap;
+    } stmt_block;
+
+    struct Expr *stmt_return;
+    struct Expr *stmt_expr;
   };
 };

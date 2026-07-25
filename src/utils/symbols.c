@@ -8,6 +8,7 @@ void enterScope(struct SymbolTable *table) {
   memset(temp, 0, sizeof(struct Scope));
   temp->symbols = hashmap_new(table->program->arena, 64 * sizeof(struct Symbol *));
   temp->prev = table->scope;
+  temp->expectType = table->scope->expectType;
   table->scope = temp;
 }
 

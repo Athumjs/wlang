@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
   program.args = args;
   program.arena = &arena;
   program.capacity = 256;
-  program.nodes = arena_alloc(&arena, program.capacity * sizeof(struct Node *));
+  program.decls = arena_alloc(&arena, program.capacity * sizeof(struct Decl *));
   program.length = 0;
 
   struct SymbolTable table;
@@ -43,9 +43,7 @@ int main(int argc, char **argv) {
   table.program = &program;
 
   lexer(args->input_file, code, &tokens, &arena);
-  if (args->debugTokens) showTokens(&tokens);
   parser(&tokens, &program);
-  if (args->debugAst) showAst(&program);
   semantic(&table);
   arena_destroy(&arena);
   return 0;

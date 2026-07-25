@@ -11,9 +11,7 @@ enum SymbolKind {
   Symbol_Function,
   Symbol_Enum,
   Symbol_EnumValue,
-  Symbol_Struct,
-  Symbol_Property,
-  Symbol_Method
+  Symbol_Struct
 };
 
 struct Symbol {
@@ -29,7 +27,7 @@ struct Symbol {
     } symbol_variable;
 
     struct {
-      struct Label *params;
+      struct Param *params;
       size_t params_len;
     } symbol_function;
 
@@ -48,6 +46,7 @@ struct Scope {
   struct Scope *prev;
   struct Type *retType;
   struct Type *expectType;
+  struct Type *varType;
   struct Symbol *currentStruct;
   uint8_t onLoop;
 };

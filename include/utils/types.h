@@ -51,7 +51,6 @@ struct Type {
     struct {
       struct Type *base;
       struct Expr *expr;
-      size_t length;
     } type_array;
     
     struct {
@@ -69,5 +68,6 @@ struct Type {
 
 struct String getType(struct Type *type, struct Arena *arena);
 uint8_t arrayIsConstant(struct SymbolTable *table, struct Expr *expr, size_t *value);
-uint8_t cmpType(struct SymbolTable *table, struct Type *t1, struct Type *t2);
+uint8_t cmpTT(struct SymbolTable *table, struct Type *t1, struct Type *t2);
+uint8_t cmpTP(struct Type *t1, enum PrimitiveType t2);
 void resolveType(struct SymbolTable *table, struct Type **type);

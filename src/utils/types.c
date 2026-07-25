@@ -185,7 +185,7 @@ uint8_t arrayIsConstant(struct SymbolTable *table, struct Expr *expr, size_t *va
   return 0;
 }
 
-uint8_t cmpType(struct SymbolTable *table, struct Type *t1, struct Type *t2) {
+uint8_t cmpTT(struct SymbolTable *table, struct Type *t1, struct Type *t2) {
   if (t1->kind == Type_Auto || t2->kind == Type_Auto) return 1;
 
   if (t1->kind != t2->kind) return 0;
@@ -200,23 +200,28 @@ uint8_t cmpType(struct SymbolTable *table, struct Type *t1, struct Type *t2) {
     arrayIsConstant(table, t1->type_array.expr, &l1);
     arrayIsConstant(table, t2->type_array.expr, &l2);
     if (l1 && l2 && l1 != l2) return 0;
-    return cmpType(table, t1->type_array.base, t2->type_array.base);
+    return cmpTT(table, t1->type_array.base, t2->type_array.base);
   }
 
   if (t1->kind == Type_Pointer) {
-    return cmpType(table, t1->type_pointer.base, t2->type_pointer.base);
+    return cmpTT(table, t1->type_pointer.base, t2->type_pointer.base);
   }
 
   if (t1->kind == Type_Function) {
-    if (!cmpType(table, t1->type_function.retType, t2->type_function.retType)) return 0;
+    if (!cmpTT(table, t1->type_function.retType, t2->type_function.retType)) return 0;
     if (t1->type_function.params_len != t2->type_function.params_len) return 0;
     for (int i = 0; i < t1->type_function.params_len; i++) {
-      if (!cmpType(table, t1->type_function.params[i], t2->type_function.params[i])) return 0;
+      if (!cmpTT(table, t1->type_function.params[i], t2->type_function.params[i])) return 0;
     }
     return 1;
   }
 
   return 0;
+}
+
+uint8_t cmpTP(struct Type *t1, enum PrimitiveType t2) {
+  if (t1->kind != Type_Primitive) return 0;
+  return t1->type_primitive.type == t2;
 }
 
 void resolveType(struct SymbolTable *table, struct Type **type) {
