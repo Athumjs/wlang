@@ -74,6 +74,53 @@ struct Expr *exprPrimary(int *i, struct Tokens *tokens, struct Program *program)
     return expr;
   }
 
+  else if (PEEK() == TOKEN_COLON) {
+    struct Expr *expr = newExpr(i, tokens, program, Expr_Callback);
+    CONSUME(TOKEN_COLON);
+    CONSUME(TOKEN_LPAREN);
+
+    if (PEEK() != TOKEN_RPAREN) {
+      expr->expr_callback.params_cap = 2;
+      expr->expr_callback.params = arena_alloc(program->arena, expr->expr_callback.params_cap * sizeof(struct Param));
+
+      while (1) {
+        if (expr->expr_callback.params_len == expr->expr_callback.params_cap) {
+          size_t oldCap = expr->expr_callback.params_cap;
+          expr->expr_callback.params_cap *= 2;
+          struct Param *temp = arena_alloc(program->arena, expr->expr_callback.params_cap * sizeof(struct Param));
+          memcpy(temp, expr->expr_callback.params, oldCap * sizeof(struct Param));
+          expr->expr_callback.params = temp;
+        }
+
+        struct Param param = {
+          .line = tokens->token[*i].line,
+          .column = tokens->token[*i].column,
+          .name = CONSUME(IDENTIFIER).string,
+          .type = NULL
+        };
+
+        if (PEEK() == TOKEN_COLON) {
+          CONSUME(TOKEN_COLON);
+          param.type = parseType(i, tokens, program);
+        }
+
+        expr->expr_callback.params[expr->expr_callback.params_len++] = param;
+        if (PEEK() == TOKEN_COMMA) CONSUME(TOKEN_COMMA);
+        else break;
+      }
+    }
+
+    CONSUME(TOKEN_RPAREN);
+
+    if (PEEK() == TOKEN_COLON) {
+      CONSUME(TOKEN_COLON);
+      expr->expr_callback.retType = parseType(i, tokens, program);
+    }
+
+    expr->expr_callback.body = parseStmt(i, tokens, program);
+    return expr;
+  }
+
   else if (PEEK() == TOKEN_LBRACE) {
     struct Expr *expr = newExpr(i, tokens, program, Expr_Struct);
     CONSUME(TOKEN_LBRACE);
@@ -158,7 +205,7 @@ struct Expr *exprPrimary(int *i, struct Tokens *tokens, struct Program *program)
     return expr;
   }
 
-  errorLang(program->args->input_file, tokens->token[*i].line, tokens->token[*i].column, "expected expression");
+  errorLang(program->filename, tokens->token[*i].line, tokens->token[*i].column, "expected expression");
 }
 
 void exprCall(int *i, struct Tokens *tokens, struct Program *program, struct Expr **expr) {
@@ -221,7 +268,7 @@ struct Expr *exprPostfix(int *i, struct Tokens *tokens, struct Program *program)
 
 struct Expr *exprUnary(int *i, struct Tokens *tokens, struct Program *program) {
   if (PEEK() == TOKEN_NOT || PEEK() == TOKEN_BIT_NOT || PEEK() == TOKEN_MINUS ||
-      PEEK() == TOKEN_INCREMENT || PEEK() == TOKEN_DECREMENT || PEEK() == TOKEN_BIT_AND) {
+      PEEK() == TOKEN_INCREMENT || PEEK() == TOKEN_DECREMENT || PEEK() == TOKEN_ASTERISK || PEEK() == TOKEN_BIT_AND) {
     struct Expr *expr = newExpr(i, tokens, program, Expr_Unary);
     expr->expr_unary.op = PEEK();
     expr->expr_unary.prefix = 1;

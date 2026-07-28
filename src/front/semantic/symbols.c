@@ -12,44 +12,45 @@ struct Symbol *newSymbol(struct SymbolTable *table, enum SymbolKind k, int l, in
   return symbol;
 }
 
-void addSymbolVar(struct SymbolTable *table, struct Var *var, uint8_t isConst) {
+void addSymbolVar(struct SymbolTable *table, struct Var *var, uint8_t isConst, uint8_t isPublic) {
   resolveType(table, &var->type);
   struct Symbol *symbol = newSymbol(table, Symbol_Variable, var->line, var->column, var->name, var->type);
   symbol->symbol_variable.isConst = isConst;
   addSymbol(table, symbol);
+  if (isPublic) hashmap_set(table->exports, &var->name, symbol, table->program->arena);
 }
 
-void varSymbol(struct SymbolTable *table, struct Decl *decl) {
+void varSymbol(struct SymbolTable *table, struct Decl *decl, uint8_t isPublic) {
   for (int i = 0; i < decl->decl_variable.vars_len; i++) {
     struct Var *var = &decl->decl_variable.vars[i];
-    addSymbolVar(table, var, decl->decl_variable.isConst);
+    addSymbolVar(table, var, decl->decl_variable.isConst, isPublic);
     table->scope->varType = var->type;
-    resolveExpr(table, var->expr);
+    if (var->expr != NULL) resolveExpr(table, var->expr);
   }
 }
 
-struct Type *newTypeFunc(struct SymbolTable *table, struct Type **t, int pc, int pl, struct Param *ps) {
+struct Type *newTypeFunc(struct SymbolTable *table, struct Type **t, int pl, struct Param *ps) {
   struct Type *type = arena_alloc(table->program->arena, sizeof(struct Type));
   type->kind = Type_Function;
   resolveType(table, t);
   type->type_function.retType = *t;
-  type->type_function.params_cap = pc;
-  type->type_function.params = arena_alloc(table->program->arena, type->type_function.params_cap * sizeof(struct Param));
   type->type_function.params_len = pl;
-  for (int i = 0; type->type_function.params_len; i++) {
+  type->type_function.params = arena_alloc(table->program->arena, type->type_function.params_len * sizeof(struct Type *));
+  for (int i = 0; i < type->type_function.params_len; i++) {
     resolveType(table, &ps[i].type);
     type->type_function.params[i] = ps[i].type;
   }
   return type;
 }
 
-void funcSymbol(struct SymbolTable *table, struct Decl *decl) {
-  struct Type *type = newTypeFunc(table, &decl->decl_function.retType, decl->decl_function.params_cap, decl->decl_function.params_len,
+void funcSymbol(struct SymbolTable *table, struct Decl *decl, uint8_t isPublic) {
+  struct Type *type = newTypeFunc(table, &decl->decl_function.retType, decl->decl_function.params_len,
       decl->decl_function.params);
   struct Symbol *symbol = newSymbol(table, Symbol_Function, decl->line, decl->column, decl->decl_function.name, type);
   symbol->symbol_function.params = decl->decl_function.params;
   symbol->symbol_function.params_len = decl->decl_function.params_len;
   addSymbol(table, symbol);
+  if (isPublic) hashmap_set(table->exports, &decl->decl_function.name, symbol, table->program->arena);
 }
 
 struct Type *newTypeNamed(struct SymbolTable *table, struct String name) {
@@ -59,7 +60,7 @@ struct Type *newTypeNamed(struct SymbolTable *table, struct String name) {
   return type;
 }
 
-void enumSymbol(struct SymbolTable *table, struct Decl *decl) {
+void enumSymbol(struct SymbolTable *table, struct Decl *decl, uint8_t isPublic) {
   struct Type *type = newTypeNamed(table, decl->decl_enum.name);
   struct Symbol *symbol = newSymbol(table, Symbol_Enum, decl->line, decl->column, decl->decl_enum.name, type);
   symbol->symbol_enum.items = hashmap_new(table->program->arena, 8);
@@ -69,9 +70,10 @@ void enumSymbol(struct SymbolTable *table, struct Decl *decl) {
     hashmap_set(symbol->symbol_enum.items, &elem->name, eSymbol, table->program->arena);
   }
   addSymbol(table, symbol);
+  if (isPublic) hashmap_set(table->exports, &decl->decl_enum.name, symbol, table->program->arena);
 }
 
-void structSymbol(struct SymbolTable *table, struct Decl *decl) {
+void structSymbol(struct SymbolTable *table, struct Decl *decl, uint8_t isPublic) {
   struct Type *type = newTypeNamed(table, decl->decl_struct.name);
   struct Symbol *symbol = newSymbol(table, Symbol_Struct, decl->line, decl->column, decl->decl_struct.name, type);
   symbol->symbol_struct.items = hashmap_new(table->program->arena, 8);
@@ -84,30 +86,39 @@ void structSymbol(struct SymbolTable *table, struct Decl *decl) {
   }
   for (int i = 0; i < decl->decl_struct.methods_len; i++) {
     struct Method *method = &decl->decl_struct.methods[i];
-    struct Type *type = newTypeFunc(table, &method->retType, method->params_cap, method->params_len, method->params);
+    struct Type *type = newTypeFunc(table, &method->retType, method->params_len, method->params);
     struct Symbol *mSymbol = newSymbol(table, Symbol_Function, method->line, method->column, method->name, type);
     mSymbol->symbol_function.params = method->params;
     mSymbol->symbol_function.params_len = method->params_len;
     hashmap_set(symbol->symbol_struct.items, &method->name, mSymbol, table->program->arena);
   }
   addSymbol(table, symbol);
+  if (isPublic) hashmap_set(table->exports, &decl->decl_struct.name, symbol, table->program->arena);
 }
 
 void resolveSymbols(struct SymbolTable *table) {
   for (int i = 0; i < table->program->length; i++) {
     struct Decl *decl = table->program->decls[i];
-    if (decl->kind == Decl_Variable) varSymbol(table, decl);
-    else if (decl->kind == Decl_Function) funcSymbol(table, decl);
-    else if (decl->kind == Decl_Enum) enumSymbol(table, decl);
-    else if (decl->kind == Decl_Struct) structSymbol(table, decl);
+    if (decl->kind == Decl_Public) {
+      decl = decl->decl_public;
+      if (decl->kind == Decl_Variable) varSymbol(table, decl, 1);
+      else if (decl->kind == Decl_Function) funcSymbol(table, decl, 1);
+      else if (decl->kind == Decl_Enum) enumSymbol(table, decl, 1);
+      else if (decl->kind == Decl_Struct) structSymbol(table, decl, 1);
+    }
+
+    else if (decl->kind == Decl_Variable) varSymbol(table, decl, 0);
+    else if (decl->kind == Decl_Function) funcSymbol(table, decl, 0);
+    else if (decl->kind == Decl_Enum) enumSymbol(table, decl, 0);
+    else if (decl->kind == Decl_Struct) structSymbol(table, decl, 0);
     continue;
   }
 }
 
 void resolveDecl(struct SymbolTable *table, struct Decl *decl) {
-  if (decl->kind == Decl_Variable) varSymbol(table, decl);
-  else if (decl->kind == Decl_Function) funcSymbol(table, decl);
-  else if (decl->kind == Decl_Enum) enumSymbol(table, decl);
-  else if (decl->kind == Decl_Struct) structSymbol(table, decl);
-  else errorLang(table->program->args->input_file, decl->line, decl->column, "this declaration is not allowed in this scope");
+  if (decl->kind == Decl_Variable) varSymbol(table, decl, 0);
+  else if (decl->kind == Decl_Function) funcSymbol(table, decl, 0);
+  else if (decl->kind == Decl_Enum) enumSymbol(table, decl, 0);
+  else if (decl->kind == Decl_Struct) structSymbol(table, decl, 0);
+  else errorLang(table->program->filename, decl->line, decl->column, "this declaration is not allowed in this scope");
 }

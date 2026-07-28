@@ -9,11 +9,11 @@ struct Symbol *resolveExprAssign(struct SymbolTable *table, struct Expr *expr) {
   struct Symbol *left = resolveExpr(table, expr->expr_binary.left);
 
   if (!isAssignable(left)) {
-    errorLang(table->program->args->input_file, expr->line, expr->column, "expression is not assignable");
+    errorLang(table->program->filename, expr->line, expr->column, "expression is not assignable");
   }
 
   if (left->symbol_variable.isConst) {
-    errorLang(table->program->args->input_file, expr->line, expr->column, "cannot assign to '%.*s' because it is a constant",
+    errorLang(table->program->filename, expr->line, expr->column, "cannot assign to '%.*s' because it is a constant",
         left->name.length, left->name.start);
   }
 

@@ -15,7 +15,7 @@ struct Type *typeExprAssign(struct SymbolTable *table, struct Expr *expr) {
   if (!canImplicitConvert(table, right, left)) {
     struct String s1 = getType(right, table->program->arena);
     struct String s2 = getType(left, table->program->arena);
-    errorLang(table->program->args->input_file, expr->line, expr->column, "type '%.*s' is not assignable to type '%.*s'",
+    errorLang(table->program->filename, expr->line, expr->column, "type '%.*s' is not assignable to type '%.*s'",
         s1.length, s1.start, s2.length, s2.start);
   }
 
@@ -31,7 +31,7 @@ struct Type *typeExprLogical(struct SymbolTable *table, struct Expr *expr) {
   if (!isBoolean(left) || !isBoolean(right)) {
     struct String s1 = getType(left, table->program->arena);
     struct String s2 = getType(right, table->program->arena);
-    errorLang(table->program->args->input_file, expr->line, expr->column, "operator '%s' cannot be applied to types '%.*s' and '%.*s'",
+    errorLang(table->program->filename, expr->line, expr->column, "operator '%s' cannot be applied to types '%.*s' and '%.*s'",
         tk_names[expr->expr_binary.op], s1.length, s1.start, s2.length, s2.start);
   }
 
@@ -56,7 +56,7 @@ struct Type *typeExprCompare(struct SymbolTable *table, struct Expr *expr) {
     if (!canImplicitConvert(table, left, right) && !canImplicitConvert(table, right, left)) {
       struct String s1 = getType(left, table->program->arena);
       struct String s2 = getType(right, table->program->arena);
-      errorLang(table->program->args->input_file, expr->line, expr->column, "operator '%s' cannot be applied to types '%.*s' and '%.*s'",
+      errorLang(table->program->filename, expr->line, expr->column, "operator '%s' cannot be applied to types '%.*s' and '%.*s'",
           tk_names[expr->expr_binary.op], s1.length, s1.start, s2.length, s2.start);
     }
 
@@ -69,7 +69,7 @@ struct Type *typeExprCompare(struct SymbolTable *table, struct Expr *expr) {
     if (!canEquality(table, left, right)) {
       struct String s1 = getType(left, table->program->arena);
       struct String s2 = getType(right, table->program->arena);
-      errorLang(table->program->args->input_file, expr->line, expr->column, "operator '%s' cannot be applied to types '%.*s' and '%.*s'",
+      errorLang(table->program->filename, expr->line, expr->column, "operator '%s' cannot be applied to types '%.*s' and '%.*s'",
           tk_names[expr->expr_binary.op], s1.length, s1.start, s2.length, s2.start);
     }
   }
@@ -85,7 +85,7 @@ struct Type *typeExprBinary(struct SymbolTable *table, struct Expr *expr) {
   if (!canImplicitConvert(table, left, right) && !canImplicitConvert(table, right, left)) {
       struct String s1 = getType(left, table->program->arena);
       struct String s2 = getType(right, table->program->arena);
-      errorLang(table->program->args->input_file, expr->line, expr->column, "operator '%s' cannot be applied to types '%.*s' and '%.*s'",
+      errorLang(table->program->filename, expr->line, expr->column, "operator '%s' cannot be applied to types '%.*s' and '%.*s'",
           tk_names[expr->expr_binary.op], s1.length, s1.start, s2.length, s2.start);
   }
 

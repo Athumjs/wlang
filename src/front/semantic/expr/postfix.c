@@ -10,12 +10,7 @@ struct Symbol *resolveExprCall(struct SymbolTable *table, struct Expr *expr) {
   struct Symbol *callee = resolveExpr(table, expr->expr_call.callee);
 
   if (!isCallable(callee)) {
-    errorLang(table->program->args->input_file, expr->line, expr->column, "this expression is not callable");
-  }
-
-  if (callee->type->type_function.params_len != expr->expr_call.args_len) {
-      errorLang(table->program->args->input_file, expr->line, expr->column, "expected %d arguments, but got %d",
-          callee->type->type_function.params_len, expr->expr_call.args_len);
+    errorLang(table->program->filename, expr->line, expr->column, "this expression is not callable");
   }
 
   for (int i = 0; i < expr->expr_call.args_len; i++) {
@@ -33,7 +28,7 @@ struct Symbol *resolveExprMember(struct SymbolTable *table, struct Expr *expr) {
   struct Symbol *obj = resolveExpr(table, expr->expr_member.obj);
 
   if (!isMemberAcessible(obj)) {
-    errorLang(table->program->args->input_file, expr->line, expr->column, "member reference base type is not a structure");
+    errorLang(table->program->filename, expr->line, expr->column, "member reference base type is not a structure");
   }
 
   struct Symbol *member = NULL;
@@ -43,7 +38,7 @@ struct Symbol *resolveExprMember(struct SymbolTable *table, struct Expr *expr) {
   } else member = hashmap_get(obj->symbol_enum.items, &expr->expr_member.member->expr_identifier);
 
   if (member == NULL) {
-    errorLang(table->program->args->input_file, expr->line, expr->column, "no member named '%.*s' in '%.*s'",
+    errorLang(table->program->filename, expr->line, expr->column, "no member named '%.*s' in '%.*s'",
         expr->expr_member.member->expr_identifier.length, expr->expr_member.member->expr_identifier.start, obj->name.length, obj->name.start);
   }
 
@@ -58,7 +53,7 @@ struct Symbol *resolveExprIndex(struct SymbolTable *table, struct Expr *expr) {
   struct Symbol *base = resolveExpr(table, expr->expr_index.base);
 
   if (!isArray_or_Pointer(base->type)) {
-    errorLang(table->program->args->input_file, expr->line, expr->column, "subscripted value is not an array or pointer");
+    errorLang(table->program->filename, expr->line, expr->column, "subscripted value is not an array or pointer");
   }
 
   resolveExpr(table, expr->expr_index.index);

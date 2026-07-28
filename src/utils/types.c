@@ -3,6 +3,11 @@
 #include <string.h>
 
 struct String getType(struct Type *type, struct Arena *arena) {
+  if (type->kind == Type_Auto) return (struct String) {
+    .start = "auto",
+    .length = 4
+  };
+
   if (type->kind == Type_Primitive) {
     struct String str = {0};
     if (type->type_primitive.type == Primitive_Byte) {
@@ -76,14 +81,15 @@ struct String getType(struct Type *type, struct Arena *arena) {
   if (type->kind == Type_Named) return type->type_named.name;
   if (type->kind == Type_Array) {
     struct String str = getType(type->type_array.base, arena);
-    int i = 0;
-    while (*str.start != ']') {
-      i++;
-      str.start++;
-    }
-    str.start -= i;
-    str.length += i - 2;
-    return str;
+    char *start = arena_alloc(arena, str.length + 3);
+    memcpy(start, str.start, str.length);
+    start[str.length] = '[';
+    start[str.length + 1] = ']';
+    start[str.length + 2] = '\0';
+    return (struct String) {
+      .start = start,
+      .length = str.length + 2
+    };
   }
 
   if (type->kind == Type_Pointer) {
@@ -133,58 +139,6 @@ struct String getType(struct Type *type, struct Arena *arena) {
   };
 }
 
-uint8_t arrayIsConstant(struct SymbolTable *table, struct Expr *expr, size_t *value) {
-  if (expr->kind == Expr_Binary) {
-    uint64_t left, right;
-    int64_t result;
-    if (!arrayIsConstant(table, expr->expr_binary.left, &left) || !arrayIsConstant(table, expr->expr_binary.right, &right)) return 0;
-    if (expr->expr_binary.op == TOKEN_PLUS) result = left + right; 
-    else if (expr->expr_binary.op == TOKEN_MINUS) result = left - right; 
-    else if (expr->expr_binary.op == TOKEN_ASTERISK) result = left * right; 
-
-    else if (expr->expr_binary.op == TOKEN_SLASH) {
-      if (right == 0) {
-        errorLang(table->program->args->input_file, expr->line, expr->column, "division by zero in array size");
-      }
-
-      result = left / right;
-    }
-
-    else if (expr->expr_binary.op == TOKEN_MOD) result = left % right; 
-    else if (expr->expr_binary.op == TOKEN_BIT_AND) result = left & right; 
-    else if (expr->expr_binary.op == TOKEN_BIT_XOR) result = left ^ right; 
-    else if (expr->expr_binary.op == TOKEN_BIT_OR) result = left | right; 
-    else if (expr->expr_binary.op == TOKEN_SHIFT_LEFT) result = left << right; 
-    else if (expr->expr_binary.op == TOKEN_SHIFT_RIGHT) result = left >> right; 
-
-    if (result < 0) {
-      errorLang(table->program->args->input_file, expr->line, expr->column, "array size cannot be negative");
-    } else if (result == 0) {
-      errorLang(table->program->args->input_file, expr->line, expr->column, "array size must be greater than zero");
-    }
-
-    *value = (size_t)result;
-    return 1;
-  }
-
-  else if (expr->kind == Expr_Literal) {
-    if (expr->expr_literal.kind == LITERAL_INTEGER) {
-      if (expr->expr_literal.literal.numInt < 0) {
-        errorLang(table->program->args->input_file, expr->line, expr->column, "array size cannot be negative");
-      } else if (expr->expr_literal.literal.numInt == 0) {
-        errorLang(table->program->args->input_file, expr->line, expr->column, "array size must be greater than zero");
-      }
-
-      return (size_t)expr->expr_literal.literal.numInt;
-    }
-
-    else if (expr->expr_literal.kind == LITERAL_UINTEGER) return expr->expr_literal.literal.numUint;
-    errorLang(table->program->args->input_file, expr->line, expr->column, "array size cannot be of a non-integer type");
-  }
-
-  return 0;
-}
-
 uint8_t cmpTT(struct SymbolTable *table, struct Type *t1, struct Type *t2) {
   if (t1->kind == Type_Auto || t2->kind == Type_Auto) return 1;
 
@@ -196,10 +150,6 @@ uint8_t cmpTT(struct SymbolTable *table, struct Type *t1, struct Type *t2) {
         memcmp(t1->type_named.name.start, t2->type_named.name.start, t2->type_named.name.length) == 0) return 1;
 
   if (t1->kind == Type_Array) {
-    size_t l1, l2;
-    arrayIsConstant(table, t1->type_array.expr, &l1);
-    arrayIsConstant(table, t2->type_array.expr, &l2);
-    if (l1 && l2 && l1 != l2) return 0;
     return cmpTT(table, t1->type_array.base, t2->type_array.base);
   }
 

@@ -72,6 +72,7 @@ enum ExprKind {
   Expr_Member,
   Expr_Index,
   Expr_Call,
+  Expr_Callback,
   Expr_Struct,
   Expr_Array,
   Expr_Literal,
@@ -121,6 +122,15 @@ struct Expr {
     } expr_call;
 
     struct {
+      struct Type *retType;
+      struct Param *params;
+      size_t params_len;
+      size_t params_cap;
+      struct Stmt *body;
+      struct Scope *scope;
+    } expr_callback;
+
+    struct {
       struct Field *fields;
       size_t fields_len;
       size_t fields_cap;
@@ -158,6 +168,20 @@ struct Decl {
 
   union {
     struct {
+      uint8_t local;
+
+      union {
+        struct String import_local;
+
+        struct {
+          struct String *parts;
+          size_t parts_len;
+          size_t parts_cap;
+        } import_std;
+      };
+    } decl_Import;
+
+    struct {
       struct Var *vars;
       size_t vars_len;
       size_t vars_cap;
@@ -191,7 +215,6 @@ struct Decl {
       size_t methods_cap;
     } decl_struct;
 
-    struct Expr *decl_import;
     struct Decl *decl_public;
   };
 };

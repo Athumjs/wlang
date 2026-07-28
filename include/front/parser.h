@@ -6,7 +6,7 @@
 #include <utils/nodes.h>
 
 struct Program {
-  struct Args *args;
+  char *filename;
   struct Arena *arena;
   struct Decl **decls;
   size_t length;

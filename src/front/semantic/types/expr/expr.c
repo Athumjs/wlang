@@ -10,6 +10,7 @@ struct Type *typeExpr(struct SymbolTable *table, struct Expr *expr) {
   else if (expr->kind == Expr_Member) return typeExprMember(table, expr);
   else if (expr->kind == Expr_Index) return typeExprIndex(table, expr);
   else if (expr->kind == Expr_Call) return typeExprCall(table, expr);
+  else if (expr->kind == Expr_Callback) return typeExprCallback(table, expr);
   else if (expr->kind == Expr_Struct) return typeExprStruct(table, expr);
   else if (expr->kind == Expr_Array) return typeExprArray(table, expr);
   else if (expr->kind == Expr_Literal) return typeExprLiteral(table, expr);

@@ -41,13 +41,13 @@ static void stmtReturn(struct SymbolTable *table, struct Stmt *stmt) {
 
 static void stmtContinue(struct SymbolTable *table, struct Stmt *stmt) {
   if (!table->scope->onLoop) {
-    errorLang(table->program->args->input_file, stmt->line, stmt->column, "'continue' can only be used in loops");
+    errorLang(table->program->filename, stmt->line, stmt->column, "'continue' can only be used in loops");
   }
 }
 
 static void stmtBreak(struct SymbolTable *table, struct Stmt *stmt) {
   if (!table->scope->onLoop) {
-    errorLang(table->program->args->input_file, stmt->line, stmt->column, "'break' can only be used in loops");
+    errorLang(table->program->filename, stmt->line, stmt->column, "'break' can only be used in loops");
   }
 }
 

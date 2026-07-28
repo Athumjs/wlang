@@ -9,7 +9,7 @@ enum TokenType peek(int i, struct Tokens *tokens) {
 
 union Literal consume(int *i, struct Tokens *tokens, struct Program *program, enum TokenType type) {
   if (PEEK() != type) {
-    errorLang(program->args->input_file, tokens->token[*i - 1].line, tokens->token[*i - 1].column, "expected '%s'", tk_names[type]);
+    errorLang(program->filename, tokens->token[*i - 1].line, tokens->token[*i - 1].column, "expected '%s'", tk_names[type]);
   }
 
   (*i)++;
@@ -31,7 +31,7 @@ void parser(struct Tokens *tokens, struct Program *program) {
     struct Decl *decl = parseDecl(&index, tokens, program);
 
     if (decl == NULL) {
-      errorLang(program->args->input_file, tokens->token[index].line, tokens->token[index].column, "'%s' is not a declaration", tk_names[peek(index, tokens)]);
+      errorLang(program->filename, tokens->token[index].line, tokens->token[index].column, "'%s' is not a declaration", tk_names[peek(index, tokens)]);
     }
 
     program->decls[program->length++] = decl;
