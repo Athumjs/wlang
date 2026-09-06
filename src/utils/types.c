@@ -1,4 +1,5 @@
 #include <utils/types.h>
+#include <front/semantic.h>
 #include <utils/error.h>
 #include <string.h>
 

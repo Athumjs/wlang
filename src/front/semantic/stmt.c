@@ -52,11 +52,20 @@ static void stmtBreak(struct SymbolTable *table, struct Stmt *stmt) {
 }
 
 static void stmtBlock(struct SymbolTable *table, struct Stmt *stmt) {
+  if (stmt->stmt_block.scope != NULL) {
+    table->scope = stmt->stmt_block.scope;
+    table->scope->expectType = stmt->stmt_block.expectType;
+  } else
+    enterScope(table);
+
   for (int i = 0; i < stmt->stmt_block.items_len; i++) {
     struct Item *item = &stmt->stmt_block.items[i];
     if (item->kind == Item_Decl) resolveDecl(table, item->item_decl);
     else resolveStmt(table, item->item_stmt);
   }
+
+  stmt->stmt_block.scope = table->scope;
+  exitScope(table);
 }
 
 static void stmtExpr(struct SymbolTable *table, struct Stmt *stmt) {

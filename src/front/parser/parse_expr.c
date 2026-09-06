@@ -201,7 +201,8 @@ struct Expr *exprPrimary(int *i, struct Tokens *tokens, struct Program *program)
 
   else if (PEEK() == IDENTIFIER) {
     struct Expr *expr = newExpr(i, tokens, program, Expr_Identifier);
-    expr->expr_identifier = CONSUME(IDENTIFIER).string;
+    expr->expr_identifier.name = CONSUME(IDENTIFIER).string;
+    expr->expr_identifier.symbol = NULL;
     return expr;
   }
 

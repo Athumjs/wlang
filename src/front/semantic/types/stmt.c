@@ -4,32 +4,24 @@
 
 static void stmtIf(struct SymbolTable *table, struct Stmt *stmt) {
   typeExpr(table, stmt->stmt_if.condition);
-  enterScope(table);
   typeStmt(table, stmt->stmt_if.trueBody);
-  exitScope(table);
   if (stmt->stmt_if.falseBody != NULL) {
-    enterScope(table);
     typeStmt(table, stmt->stmt_if.falseBody);
-    exitScope(table);
   }
 }
 
 static void stmtWhile(struct SymbolTable *table, struct Stmt *stmt) {
   typeExpr(table, stmt->stmt_while.condition);
-  enterScope(table);
   table->scope->onLoop = 1;
   typeStmt(table, stmt->stmt_while.body);
-  exitScope(table);
 }
 
 static void stmtFor(struct SymbolTable *table, struct Stmt *stmt) {
-  enterScope(table);
   table->scope->onLoop = 1;
   resolveDecl(table, stmt->stmt_for.init);
   typeExpr(table, stmt->stmt_for.condition);
   typeExpr(table, stmt->stmt_for.update);
   typeStmt(table, stmt->stmt_for.body);
-  exitScope(table);
 }
 
 static void stmtReturn(struct SymbolTable *table, struct Stmt *stmt) {
@@ -63,6 +55,7 @@ static void stmtBreak(struct SymbolTable *table, struct Stmt *stmt) {
 }
 
 static void stmtBlock(struct SymbolTable *table, struct Stmt *stmt) {
+  table->scope = stmt->stmt_block.scope;
   for (int i = 0; i < stmt->stmt_block.items_len; i++) {
     struct Item *item = &stmt->stmt_block.items[i];
     if (item->kind == Item_Decl) typeDecl(table, item->item_decl);

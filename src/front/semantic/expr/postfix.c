@@ -34,12 +34,12 @@ struct Symbol *resolveExprMember(struct SymbolTable *table, struct Expr *expr) {
   struct Symbol *member = NULL;
   if (obj->kind == Symbol_Variable) {
     struct Symbol *symbol = findSymbol(table->scope, &obj->type->type_named.name);
-    member = hashmap_get(symbol->symbol_struct.items, &expr->expr_member.member->expr_identifier);
-  } else member = hashmap_get(obj->symbol_enum.items, &expr->expr_member.member->expr_identifier);
+    member = hashmap_get(symbol->symbol_struct.items, &expr->expr_member.member->expr_identifier.name);
+  } else member = hashmap_get(obj->symbol_enum.items, &expr->expr_member.member->expr_identifier.name);
 
   if (member == NULL) {
     errorLang(table->program->filename, expr->line, expr->column, "no member named '%.*s' in '%.*s'",
-        expr->expr_member.member->expr_identifier.length, expr->expr_member.member->expr_identifier.start, obj->name.length, obj->name.start);
+        expr->expr_member.member->expr_identifier.name.length, expr->expr_member.member->expr_identifier.name.start, obj->name.length, obj->name.start);
   }
 
   return member;

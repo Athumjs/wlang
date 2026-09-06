@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <utils/tokens.h>
+#include <utils/symbols.h>
 
 struct Field {
   struct String name;
@@ -21,7 +22,6 @@ struct Method {
   size_t params_len;
   size_t params_cap;
   struct Stmt *body;
-  struct Scope *scope;
   int line;
   int column;
 };
@@ -30,6 +30,7 @@ struct Var {
   struct String name;
   struct Type *type;
   struct Expr *expr;
+  struct Symbol *symbol;
   int line;
   int column;
 };
@@ -127,7 +128,6 @@ struct Expr {
       size_t params_len;
       size_t params_cap;
       struct Stmt *body;
-      struct Scope *scope;
     } expr_callback;
 
     struct {
@@ -148,7 +148,11 @@ struct Expr {
     } expr_literal;
 
     struct String expr_this;
-    struct String expr_identifier;
+
+    struct {
+      struct String name;
+      struct Symbol *symbol;
+    } expr_identifier;
   };
 };
 
@@ -195,7 +199,6 @@ struct Decl {
       size_t params_len;
       size_t params_cap;
       struct Stmt *body;
-      struct Scope *scope;
     } decl_function;
 
     struct {
@@ -259,6 +262,8 @@ struct Stmt {
       struct Item *items;
       size_t items_len;
       size_t items_cap;
+      struct Scope *scope;
+      struct Type *expectType;
     } stmt_block;
 
     struct Expr *stmt_return;

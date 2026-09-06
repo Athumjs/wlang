@@ -18,6 +18,7 @@ void addSymbolVar(struct SymbolTable *table, struct Var *var, uint8_t isConst, u
   symbol->symbol_variable.isConst = isConst;
   addSymbol(table, symbol);
   if (isPublic) hashmap_set(table->exports, &var->name, symbol, table->program->arena);
+  var->symbol = symbol;
 }
 
 void varSymbol(struct SymbolTable *table, struct Decl *decl, uint8_t isPublic) {
@@ -44,6 +45,10 @@ struct Type *newTypeFunc(struct SymbolTable *table, struct Type **t, int pl, str
 }
 
 void funcSymbol(struct SymbolTable *table, struct Decl *decl, uint8_t isPublic) {
+  if (table->scope->prev != NULL) {
+    errorLang(table->program->filename, decl->line, decl->column, "function definition is not allowed here");
+  }
+
   struct Type *type = newTypeFunc(table, &decl->decl_function.retType, decl->decl_function.params_len,
       decl->decl_function.params);
   struct Symbol *symbol = newSymbol(table, Symbol_Function, decl->line, decl->column, decl->decl_function.name, type);

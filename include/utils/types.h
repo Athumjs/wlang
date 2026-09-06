@@ -1,6 +1,5 @@
 #pragma once
 
-#include <front/semantic.h>
 #include <utils/arena.h>
 #include <utils/literal.h>
 

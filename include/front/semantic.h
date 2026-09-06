@@ -1,6 +1,6 @@
 #pragma once
 
-#include <front/init.h>
+#include <utils/modules.h>
 #include <front/parser.h>
 #include <utils/symbols.h>
 

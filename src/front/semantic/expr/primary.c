@@ -20,14 +20,18 @@ static void addSymbolParam(struct SymbolTable *table, struct Param *param, uint8
 }
 
 struct Symbol *resolveExprCallback(struct SymbolTable *table, struct Expr *expr) {
-  enterScope(table);
   resolveType(table, &expr->expr_callback.retType);
-  for (int i = 0; i < expr->expr_callback.params_len; i++) {
-    addSymbolParam(table, &expr->expr_callback.params[i], 0);
+
+  if (expr->expr_callback.body->kind == Stmt_Block) {
+    enterScope(table);
+    for (int i = 0; i < expr->expr_callback.params_len; i++) {
+      addSymbolParam(table, &expr->expr_callback.params[i], 0);
+    }
+    expr->expr_callback.body->stmt_block.scope = table->scope;
+    expr->expr_callback.body->stmt_block.expectType = expr->expr_callback.retType;
   }
+
   resolveStmt(table, expr->expr_callback.body);
-  expr->expr_callback.scope = table->scope;
-  exitScope(table);
   return NULL;
 }
 
@@ -89,10 +93,11 @@ struct Symbol *resolveExprThis(struct SymbolTable *table, struct Expr *expr) {
 }
 
 struct Symbol *resolveExprIdentifier(struct SymbolTable *table, struct Expr *expr) {
-  struct Symbol *symbol = findSymbol(table->scope, &expr->expr_identifier);
+  struct Symbol *symbol = findSymbol(table->scope, &expr->expr_identifier.name);
+  expr->expr_identifier.symbol = symbol;
 
   if (symbol == NULL || expr->line < symbol->line || (expr->line == symbol->line && expr->column < symbol->column)) {
-    errorLang(table->program->filename, expr->line, expr->column, "cannot find name '%.*s'", expr->expr_identifier.length, expr->expr_identifier.start);
+    errorLang(table->program->filename, expr->line, expr->column, "cannot find name '%.*s'", expr->expr_identifier.name.length, expr->expr_identifier.name.start);
   }
 
   return symbol;

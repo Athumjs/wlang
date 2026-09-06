@@ -1,5 +1,6 @@
 #pragma once
 
+#include <utils/ir.h>
 #include <utils/literal.h>
 #include <front/semantic.h>
 
@@ -18,6 +19,7 @@ struct Symbol {
   enum SymbolKind kind;
   struct String name;
   struct Type *type;
+  struct Pointer ptr;
   int line;
   int column;
 

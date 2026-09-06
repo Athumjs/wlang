@@ -18,7 +18,6 @@ static struct Type *newTypeFunc(struct SymbolTable *table, struct Type **t, int 
 }
 
 struct Type *typeExprCallback(struct SymbolTable *table, struct Expr *expr) {
-  table->scope = expr->expr_callback.scope;
   table->scope->expectType = expr->expr_callback.retType;
 
   typeStmt(table, expr->expr_callback.body);
@@ -30,7 +29,6 @@ struct Type *typeExprCallback(struct SymbolTable *table, struct Expr *expr) {
   if (table->scope->retType == NULL && !cmpTP(table->scope->expectType, Primitive_Void))
     errorLang(table->program->filename, expr->line, expr->column, "non-void function does not return a value");
 
-  exitScope(table);
   expr->type = newTypeFunc(table, &expr->expr_callback.retType, expr->expr_callback.params_len, expr->expr_callback.params);
   return expr->type;
 }
@@ -79,7 +77,7 @@ struct Type *typeExprArray(struct SymbolTable *table, struct Expr *expr) {
   for (int i = 0; i < expr->expr_array.exprs_len; i++) {
     struct Type *value = typeExpr(table, expr->expr_array.exprs[i]);
 
-    if (!cmpTT(table, value, type->type_array.base)) {
+    if (!cmpTT(table, value, type->type_array.base) && !canImplicitConvert(table, value, type->type_array.base)) {
       struct String s1 = getType(value, table->program->arena);
       struct String s2 = getType(type->type_array.base, table->program->arena);
       errorLang(table->program->filename, expr->line, expr->column, "type '%.*s' is not assignable to type '%.*s'",
@@ -160,7 +158,7 @@ struct Type *typeExprThis(struct SymbolTable *table, struct Expr *expr) {
 }
 
 struct Type *typeExprIdentifier(struct SymbolTable *table, struct Expr *expr) {
-  struct Symbol *symbol = findSymbol(table->scope, &expr->expr_identifier);
+  struct Symbol *symbol = findSymbol(table->scope, &expr->expr_identifier.name);
   expr->type = symbol->type;
   return symbol->type;
 }

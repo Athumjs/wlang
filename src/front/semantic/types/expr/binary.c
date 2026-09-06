@@ -7,7 +7,7 @@ struct Type *typeExprAssign(struct SymbolTable *table, struct Expr *expr) {
   struct Type *right = typeExpr(table, expr->expr_binary.right);
 
   if (left->kind == Type_Auto) {
-    struct Symbol *lvalue = findSymbol(table->scope, &expr->expr_binary.left->expr_identifier);
+    struct Symbol *lvalue = findSymbol(table->scope, &expr->expr_binary.left->expr_identifier.name);
     lvalue->type = right;
     left = right;
   }
