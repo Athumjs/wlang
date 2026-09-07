@@ -1,6 +1,9 @@
-var x;
+set main(old: int): bool {
+  var is18: bool = false;
 
-set main(): int {
-  x = 10 + 10;
-  return x;
+  if (old > 18) {
+    is18 = true;
+  }
+
+  return is18;
 }

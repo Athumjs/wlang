@@ -6,7 +6,10 @@
 struct IROperand irOperand(struct Expr *expr, struct IRModule *ir, struct Arena *arena);
 struct Value irValue(int id, struct Expr *expr, struct IRModule *ir, struct Arena *arena);
 
-// irdecl.c
+// irglobal.c
+void irGlobal(struct Decl *decl, struct IRModule *ir, struct Arena *arena);
+
+// irDecl.c
 void irDecl(struct Decl *decl, struct IRModule *ir, struct Arena *arena);
 
 // irstmt.c

@@ -2,6 +2,13 @@
 
 #include <front/semantic.h>
 
+struct Flow {
+  uint8_t next;
+  uint8_t return_;
+  uint8_t break_;
+  uint8_t continue_;
+};
+
 // expr/expr.c
 struct Symbol *resolveExpr(struct SymbolTable *table, struct Expr *expr);
 
@@ -41,7 +48,7 @@ void resolveStmt(struct SymbolTable *table, struct Stmt *stmt);
 void resolveScopes(struct SymbolTable *table);
 
 // types/stmt.c
-void typeStmt(struct SymbolTable *table, struct Stmt *stmt);
+struct Flow typeStmt(struct SymbolTable *table, struct Stmt *stmt);
 
 // types/decl.c
 void typeDecl(struct SymbolTable *table, struct Decl *decl);

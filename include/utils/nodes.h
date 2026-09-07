@@ -38,6 +38,7 @@ struct Var {
 struct Param {
   struct String name;
   struct Type *type;
+  struct Symbol *symbol;
   int line;
   int column;
 };

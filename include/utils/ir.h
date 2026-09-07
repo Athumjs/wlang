@@ -22,23 +22,49 @@ struct Value {
   };
 };
 
+enum ICondition {
+  ICond_Eq,
+  ICond_Ne,
+  ICond_SGt,
+  ICond_SGe,
+  ICond_SLt,
+  ICond_SLe,
+  ICond_UGt,
+  ICond_UGe,
+  ICond_ULt,
+  ICond_ULe
+};
+
+enum FCondition {
+  FCond_OEq,
+  FCond_ONe,
+  FCond_OGt,
+  FCond_OGe,
+  FCond_OLt,
+  FCond_OLe
+};
+
 enum IROperandKind {
   Operand_Register,
   Operand_Constant,
   Operand_Block,
   Operand_Pointer,
-  Operand_Type
+  Operand_Type,
+  Operand_ICond,
+  Operand_FCond
 };
 
 struct Pointer {
   enum {
     Pointer_Global,
-    Pointer_Local
+    Pointer_Local,
+    Pointer_Param
   } kind; 
 
   union {
     struct IRGlobal *global;
     struct IRInstruction *inst;
+    struct IRParameter *param;
   };
 };
 
@@ -51,6 +77,8 @@ struct IROperand {
     int64_t block;
     struct Type *type;
     struct Pointer pointer;
+    enum ICondition icond;
+    enum FCondition fcond;
   };
 };
 
@@ -75,6 +103,8 @@ enum IROpcode {
   Opcode_Bit_LShr,
   Opcode_Br,
   Opcode_Jmp,
+  Opcode_Icmp,
+  Opcode_Fcmp,
   Opcode_Ret,
   Opcode_Alloca,
   Opcode_Store,
@@ -95,12 +125,19 @@ struct IRBasicBlock {
   size_t instructions_cap;
 };
 
+struct IRParameter {
+  struct Type *type;
+  int64_t result;
+};
+
 struct IRFunction {
   struct String *name;
   struct IRBasicBlock *blocks;
   size_t blocks_len;
   size_t blocks_cap;
   size_t regs_len;
+  struct IRParameter *params;
+  size_t params_len;
 };
 
 struct IRGlobal {

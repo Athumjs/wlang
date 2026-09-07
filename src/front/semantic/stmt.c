@@ -3,32 +3,26 @@
 
 static void stmtIf(struct SymbolTable *table, struct Stmt *stmt) {
   resolveExpr(table, stmt->stmt_if.condition);
-  enterScope(table);
   resolveStmt(table, stmt->stmt_if.trueBody);
-  exitScope(table);
   if (stmt->stmt_if.falseBody != NULL) {
-    enterScope(table);
     resolveStmt(table, stmt->stmt_if.falseBody);
-    exitScope(table);
   }
 }
 
 static void stmtWhile(struct SymbolTable *table, struct Stmt *stmt) {
+  table->loop++;
   resolveExpr(table, stmt->stmt_while.condition);
-  enterScope(table);
-  table->scope->onLoop = 1;
   resolveStmt(table, stmt->stmt_while.body);
-  exitScope(table);
+  table->loop--;
 }
 
 static void stmtFor(struct SymbolTable *table, struct Stmt *stmt) {
-  enterScope(table);
-  table->scope->onLoop = 1;
+  table->loop++;
   resolveDecl(table, stmt->stmt_for.init);
   resolveExpr(table, stmt->stmt_for.condition);
   resolveExpr(table, stmt->stmt_for.update);
   resolveStmt(table, stmt->stmt_for.body);
-  exitScope(table);
+  table->loop--;
 }
 
 static void stmtReturn(struct SymbolTable *table, struct Stmt *stmt) {
@@ -40,13 +34,13 @@ static void stmtReturn(struct SymbolTable *table, struct Stmt *stmt) {
 }
 
 static void stmtContinue(struct SymbolTable *table, struct Stmt *stmt) {
-  if (!table->scope->onLoop) {
+  if (table->loop == 0) {
     errorLang(table->program->filename, stmt->line, stmt->column, "'continue' can only be used in loops");
   }
 }
 
 static void stmtBreak(struct SymbolTable *table, struct Stmt *stmt) {
-  if (!table->scope->onLoop) {
+  if (table->loop == 0) {
     errorLang(table->program->filename, stmt->line, stmt->column, "'break' can only be used in loops");
   }
 }

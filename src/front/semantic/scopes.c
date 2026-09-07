@@ -15,6 +15,7 @@ void addSymbolParam(struct SymbolTable *table, struct Param *param, uint8_t isCo
   struct Symbol *symbol = newSymbol(table, Symbol_Variable, param->line, param->column, param->name, param->type);
   symbol->symbol_variable.isConst = isConst;
   addSymbol(table, symbol);
+  param->symbol = symbol;
 }
 
 void resolveFunc(struct SymbolTable *table, struct Decl *decl) {

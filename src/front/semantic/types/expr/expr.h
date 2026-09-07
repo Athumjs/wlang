@@ -79,6 +79,9 @@ static inline uint8_t canImplicitConvert(struct SymbolTable *table, struct Type 
   if (isFunction(t1) && isFunction(t2))
     return canImplicitConvert(table, t1->type_function.retType, t2->type_function.retType);
 
+  if (isInteger(t1) && isBoolean(t2))
+    return 1;
+
   if (isPointer(t1) && isPointer(t2))
     return canImplicitConvert(table, t1->type_pointer.base, t2->type_pointer.base);
 

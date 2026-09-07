@@ -90,6 +90,7 @@ struct Stmt *stmtReturn(int *i, struct Tokens *tokens, struct Program *program) 
 struct Stmt *stmtEmpty(int *i, struct Tokens *tokens, struct Program *program, enum StmtKind kind) {
   struct Stmt *stmt = newStmt(i, tokens, program, kind);
   CONSUME(PEEK());
+  CONSUME(TOKEN_SEMICOLON);
   return stmt;
 }
 

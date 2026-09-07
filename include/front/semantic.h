@@ -8,6 +8,7 @@ struct SymbolTable {
   struct Scope *scope;
   struct Hashmap *exports;
   struct Program *program;
+  int loop;
 };
 
 void semantic(struct SymbolTable *table, struct Module *modules);

@@ -63,6 +63,12 @@ void addTokenNum(struct Tokens *tokens, struct Arena *arena, enum TokenType t,
   addToken(tokens, arena, t, literal, l, c);
 }
 
+void addTokenBool(struct Tokens *tokens, struct Arena *arena, int64_t v, int l, int c) {
+  union Literal literal;
+  literal.numInt = v;
+  addToken(tokens, arena, LITERAL_BOOLEAN, literal, l, c);
+}
+
 void next(int *i, int *l, int *c, char ch) {
   if (ch == '\n') {
     (*l)++;
@@ -222,6 +228,16 @@ void lexer(const char *filename, const char *code, struct Tokens *tokens,
       KEYWORDS
 #undef X
 
+      if (index - start == 4 && memcmp(code + start, "true", 4) == 0) {
+        addTokenBool(tokens, arena, 1, line, col - 4);
+        continue;
+      }
+
+      if (index - start == 5 && memcmp(code + start, "false", 5) == 0) {
+        addTokenBool(tokens, arena, 0, line, col - 5);
+        continue;
+      }
+      
       addTokenString(tokens, arena, IDENTIFIER, code + start, index - start,
                      line, col - (index - start));
       continue;

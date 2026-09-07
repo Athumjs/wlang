@@ -25,6 +25,70 @@ void irAssign(struct Expr *expr, struct IRModule *module, struct IRBasicBlock *i
   ir->instructions[ir->instructions_len++] = inst;
 }
 
+void irCompare(struct Expr *expr, struct IRModule *module, struct IRBasicBlock *ir, struct Arena *arena) {
+  struct IRInstruction inst = (struct IRInstruction){
+    .operands[1] = irOperand(expr->expr_binary.left, module, arena),
+    .operands[2] = irOperand(expr->expr_binary.right, module, arena),
+    .operands_len = 3
+  };
+
+  if (isFloating(expr->expr_binary.left->type)) {
+    inst.opcode = Opcode_Fcmp;
+    enum FCondition op = FCond_OEq;
+
+    if (expr->expr_binary.op == TOKEN_NE)
+      op = FCond_ONe;
+    else if (isSignedInteger(expr->type)) {
+      if (expr->expr_binary.op == TOKEN_GT)
+        op = FCond_OGt;
+      else if (expr->expr_binary.op == TOKEN_GE)
+        op = FCond_OGe;
+      else if (expr->expr_binary.op == TOKEN_LT)
+        op = FCond_OLt;
+      else if (expr->expr_binary.op == TOKEN_LE)
+        op = FCond_OLe;
+    }
+
+    inst.operands[0] = (struct IROperand){
+      .kind = Operand_FCond,
+      .fcond = op
+    };
+  } else {
+    inst.opcode = Opcode_Icmp;
+    enum ICondition op = ICond_Eq;
+
+    if (expr->expr_binary.op == TOKEN_NE)
+      op = ICond_Ne;
+    else if (isSignedInteger(expr->expr_binary.left->type)) {
+      if (expr->expr_binary.op == TOKEN_GT)
+        op = ICond_SGt;
+      else if (expr->expr_binary.op == TOKEN_GE)
+        op = ICond_SGe;
+      else if (expr->expr_binary.op == TOKEN_LT)
+        op = ICond_SLt;
+      else if (expr->expr_binary.op == TOKEN_LE)
+        op = ICond_SLe;
+    } else {
+      if (expr->expr_binary.op == TOKEN_GT)
+        op = ICond_UGt;
+      else if (expr->expr_binary.op == TOKEN_GE)
+        op = ICond_UGe;
+      else if (expr->expr_binary.op == TOKEN_LT)
+        op = ICond_ULt;
+      else if (expr->expr_binary.op == TOKEN_LE)
+        op = ICond_ULe;
+    }
+
+    inst.operands[0] = (struct IROperand){
+      .kind = Operand_ICond,
+      .icond = op
+    };
+  } 
+
+  inst.result = module->functions[module->functions_len - 1].regs_len++;
+  ir->instructions[ir->instructions_len++] = inst;
+}
+
 void irBinary(struct Expr *expr, struct IRModule *module, struct IRBasicBlock *ir, struct Arena *arena) {
   enum IROpcode opc = Opcode_Add;
 
@@ -73,19 +137,18 @@ void irBinary(struct Expr *expr, struct IRModule *module, struct IRBasicBlock *i
 
   struct IRInstruction inst = (struct IRInstruction){
     .opcode = opc,
-    .result = module->functions[module->functions_len - 1].regs_len++,
     .operands[0] = irOperand(expr->expr_binary.left, module, arena),
     .operands[1] = irOperand(expr->expr_binary.right, module, arena),
     .operands_len = 2
   };
 
+  inst.result = module->functions[module->functions_len - 1].regs_len++;
   ir->instructions[ir->instructions_len++] = inst;
 }
 
 void irIdentifier(struct Expr *expr, struct IRModule *ir, struct IRBasicBlock *block, struct Arena *arena) {
   struct IRInstruction inst = (struct IRInstruction){
     .opcode = Opcode_Load,
-    .result = ir->functions[ir->functions_len - 1].regs_len++,
 
     .operands[0] = (struct IROperand){
       .kind = Operand_Type,
@@ -103,13 +166,25 @@ void irIdentifier(struct Expr *expr, struct IRModule *ir, struct IRBasicBlock *b
         .global = expr->expr_identifier.symbol->ptr.global
       }
     };
+  } else if (expr->expr_identifier.symbol->ptr.kind == Pointer_Local) {
+    inst.operands[1] = (struct IROperand){
+      .kind = Operand_Pointer,
+      .pointer = (struct Pointer){
+        .kind = Pointer_Local,
+        .inst = expr->expr_identifier.symbol->ptr.inst
+      }
+    };
   } else {
     inst.operands[1] = (struct IROperand){
-      .kind = Operand_Register,
-      .reg = expr->expr_identifier.symbol->ptr.inst->result,
+      .kind = Operand_Pointer,
+      .pointer = (struct Pointer){
+        .kind = Pointer_Param,
+        .param = expr->expr_identifier.symbol->ptr.param
+      }
     };
-  } 
+  }
 
+  inst.result = ir->functions[ir->functions_len - 1].regs_len++;
   block->instructions[block->instructions_len++] = inst;
 }
 
@@ -123,6 +198,7 @@ void irExpr(struct Expr *expr, struct IRModule *ir, struct IRBasicBlock *block, 
   }
 
   if (expr->kind == Expr_Assign) irAssign(expr, ir, block, arena);
+  else if (expr->kind == Expr_Compare) irCompare(expr, ir, block, arena);
   else if (expr->kind == Expr_Binary) irBinary(expr, ir, block, arena);
   else if (expr->kind == Expr_Identifier) irIdentifier(expr, ir, block, arena);
 }

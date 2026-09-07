@@ -48,8 +48,18 @@ void irFunc(struct Decl *decl, struct IRModule *ir, struct Arena *arena) {
     .blocks_cap = 2,
     .blocks = arena_alloc(arena, 2 * sizeof(struct IRBasicBlock)),
     .blocks_len = 1,
+    .params = arena_alloc(arena, decl->decl_function.params_len * sizeof(struct IRParameter)),
+    .params_len = 0,
     .regs_len = 0
   };
+
+  for (int i = 0; i < decl->decl_function.params_len; i++) {
+    func.params[i].type = decl->decl_function.params[i].type;
+    func.params[i].result = func.regs_len++;
+    func.params_len++;
+    decl->decl_function.params[i].symbol->ptr.kind = Pointer_Param;
+    decl->decl_function.params[i].symbol->ptr.param = &func.params[i];
+  }
 
   struct IRBasicBlock block = {
     .instructions_cap = 8,
@@ -62,7 +72,7 @@ void irFunc(struct Decl *decl, struct IRModule *ir, struct Arena *arena) {
   irStmt(decl->decl_function.body, ir, arena);
 }
 
-void irDecl(struct Decl *decl, struct IRModule *ir, struct Arena *arena) {
+void irGlobal(struct Decl *decl, struct IRModule *ir, struct Arena *arena) {
   if (decl->kind == Decl_Variable) irVar(decl, ir, arena);
   else if (decl->kind == Decl_Function) irFunc(decl, ir, arena);
 }

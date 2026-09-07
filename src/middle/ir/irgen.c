@@ -4,14 +4,14 @@
 
 void loweringAST(struct Program *program, struct IRModule *ir) {
   for (int i = 0; i < program->length; i++) {
-    irDecl(program->decls[i], ir, program->arena);
+    irGlobal(program->decls[i], ir, program->arena);
   }
 }
 
 struct Value irNumber(struct Expr *expr) {
   struct Value value;
 
-  if (expr->expr_literal.kind == LITERAL_INTEGER) {
+  if (expr->expr_literal.kind == LITERAL_INTEGER || expr->expr_literal.kind == LITERAL_BOOLEAN) {
     value.kind = Value_Int;
     value.i = expr->expr_literal.literal.numInt;
   }
@@ -50,7 +50,7 @@ struct IROperand irOperand(struct Expr *expr, struct IRModule *ir, struct Arena 
   };
 }
 
-void instStore(struct Type *type, struct IRGlobal *ptr, struct IRBasicBlock *ir, struct Arena *arena) {
+static void instStore(struct Type *type, struct IRGlobal *ptr, struct IRModule *module, struct IRBasicBlock *ir, struct Arena *arena) {
   if (ir->instructions_len == ir->instructions_cap) {
     size_t oldCap = ir->instructions_cap;
     ir->instructions_cap *= 2;
@@ -70,7 +70,7 @@ void instStore(struct Type *type, struct IRGlobal *ptr, struct IRBasicBlock *ir,
 
     .operands[1] = (struct IROperand){
       .kind = Operand_Register,
-      .reg = ir->instructions_len - 1
+      .reg = module->init.regs_len - 1
     },
 
     .operands[2] = (struct IROperand){
@@ -122,7 +122,7 @@ struct Value irValue(int id, struct Expr *expr, struct IRModule *ir, struct Aren
 
   irExpr(expr, ir, &ir->init.blocks[0], arena);
   struct IRGlobal *ptr = &ir->globals[id];
-  instStore(expr->type, ptr, &ir->init.blocks[0], arena);
+  instStore(expr->type, ptr, ir, &ir->init.blocks[0], arena);
   instRet(&ir->init.blocks[0], arena);
 
   return (struct Value){

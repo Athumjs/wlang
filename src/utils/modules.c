@@ -26,6 +26,8 @@ void printOpcode(enum IROpcode opcode) {
   else if (opcode == Opcode_Bit_LShr) printf("lshr ");
   else if (opcode == Opcode_Br) printf("br ");
   else if (opcode == Opcode_Jmp) printf("jmp ");
+  else if (opcode == Opcode_Icmp) printf("icmp ");
+  else if (opcode == Opcode_Fcmp) printf("fcmp ");
   else if (opcode == Opcode_Alloca) printf("alloca ");
   else if (opcode == Opcode_Store) printf("store ");
   else if (opcode == Opcode_Load) printf("load ");
@@ -67,7 +69,9 @@ void printOperand(struct IROperand *op, struct Arena *arena) {
     printf("ptr ");
     if (op->pointer.kind == Pointer_Local)
       printf("%%%ld", op->pointer.inst->result);
-    else printf("@%ld", op->pointer.global->result);
+    else if (op->pointer.kind == Pointer_Global)
+      printf("@%ld", op->pointer.global->result);
+    else printf("%%%ld", op->pointer.param->result);
   } else if (op->kind == Operand_Block)
     printf("b%ld", op->block);
   else if (op->kind == Operand_Constant)
@@ -75,6 +79,44 @@ void printOperand(struct IROperand *op, struct Arena *arena) {
   else if (op->kind == Operand_Type) {
     struct String type = getType(op->type, arena);
     printf("%.*s", type.length, type.start);
+  }
+
+  else if (op->kind == Operand_ICond) {
+    if (op->icond == ICond_Eq)
+      printf("eq");
+    else if (op->icond == ICond_Ne)
+      printf("ne");
+    else if (op->icond == ICond_SGt)
+      printf("sgt");
+    else if (op->icond == ICond_SGe)
+      printf("sge");
+    else if (op->icond == ICond_SLt)
+      printf("slt");
+    else if (op->icond == ICond_SLe)
+      printf("sle");
+    else if (op->icond == ICond_UGt)
+      printf("ugt");
+    else if (op->icond == ICond_UGe)
+      printf("uge");
+    else if (op->icond == ICond_ULt)
+      printf("ult");
+    else if (op->icond == ICond_ULe)
+      printf("ule");
+  }
+
+  else if (op->kind == Operand_FCond) {
+    if (op->fcond == FCond_OEq)
+      printf("oeq");
+    else if (op->fcond == FCond_ONe)
+      printf("one");
+    else if (op->fcond == FCond_OGt)
+      printf("ogt");
+    else if (op->fcond == FCond_OGe)
+      printf("oge");
+    else if (op->fcond == FCond_OLt)
+      printf("olt");
+    else if (op->fcond == FCond_OLe)
+      printf("ole");
   }
 }
 
@@ -106,7 +148,14 @@ void showIR(struct IRModule *ir, struct Arena *arena) {
 
   printf("\n");
   for (int i = 0; i < ir->functions_len; i++) {
-    printf("fn %.*s:\n  ", ir->functions[i].name->length, ir->functions[i].name->start);
+    printf("define %.*s(", ir->functions[i].name->length, ir->functions[i].name->start);
+    for (int j = 0; j < ir->functions[i].params_len; j++) {
+      if (j > 0) printf(", ");
+      struct String type = getType(ir->functions[i].params[j].type, arena);
+      printf("%.*s %%%d", type.length, type.start, ir->functions[i].params[j].result);
+    }
+
+    printf(")\n  ");
     for (int j = 0; j < ir->functions[i].blocks_len; j++) {
       if (j == 0) printf("entry:\n    ");
       else printf("b%d:\n    ", j); 
@@ -153,8 +202,8 @@ struct Hashmap *load_module(struct Module *modules, struct Arena *arena, char *p
   table.scope->expectType = NULL;
   table.scope->retType = NULL;
   table.scope->currentStruct = NULL;
-  table.scope->onLoop = 0;
   table.program = &program;
+  table.loop = 0;
 
   struct IRModule ir;
   ir.globals_cap = 4;

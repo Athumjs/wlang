@@ -69,10 +69,12 @@ void irBr(struct Stmt *stmt, struct IRModule *module, struct IRFunction *ir, str
 
   if (stmt->stmt_if.falseBody != NULL) {
     irStmt(stmt->stmt_if.falseBody, module, arena);
-    if (stmt->stmt_if.falseBody->kind != Stmt_If) newBlock(ir, arena);
+    if (stmt->stmt_if.falseBody->kind != Stmt_If && !ir->blocks[inst.operands[1].block].term && !ir->blocks[inst.operands[2].block].term)
+      newBlock(ir, arena);
   }
 
   ir->blocks[index].instructions[ir->blocks[index].instructions_len++] = inst;
+  ir->blocks[index].term = 1;
   if (!ir->blocks[inst.operands[1].block].term) instJmp(ir->blocks_len - 1, &ir->blocks[inst.operands[1].block], arena);
   if (stmt->stmt_if.falseBody != NULL && !ir->blocks[inst.operands[2].block].term)
     instJmp(ir->blocks_len - 1, &ir->blocks[inst.operands[2].block], arena);
@@ -92,7 +94,9 @@ void irRet(struct Stmt *stmt, struct IRModule *module, struct IRBasicBlock *ir, 
 
 void irBlock(struct Stmt *stmt, struct IRModule *module, struct IRFunction *ir, struct Arena *arena) {
   for (int i = 0; i < stmt->stmt_block.items_len; i++) {
-    irStmt(stmt->stmt_block.items[i].item_stmt, module, arena);
+    if (stmt->stmt_block.items[i].kind == Item_Decl)
+      irDecl(stmt->stmt_block.items[i].item_decl, module, arena);
+    else irStmt(stmt->stmt_block.items[i].item_stmt, module, arena);
   }
 }
 

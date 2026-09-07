@@ -50,7 +50,6 @@ struct Scope {
   struct Type *expectType;
   struct Type *varType;
   struct Symbol *currentStruct;
-  uint8_t onLoop;
 };
 
 void enterScope(struct SymbolTable *table);
