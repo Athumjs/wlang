@@ -73,7 +73,7 @@ struct Type *typeExprUnary(struct SymbolTable *table, struct Expr *expr) {
   }
 
   else if (expr->expr_unary.op == TOKEN_INCREMENT || expr->expr_unary.op == TOKEN_DECREMENT) {
-    if (!isNumeric(arg) || !isPointer(arg)) {
+    if (!isNumeric(arg) && !isPointer(arg)) {
       struct String s1 = getType(arg, table->program->arena);
       errorLang(table->program->filename, expr->line, expr->column, "operator '%s' cannot be applied to type '%.*s'",
           tk_names[expr->expr_unary.op], s1.length, s1.start);

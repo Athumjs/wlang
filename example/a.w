@@ -1,9 +1,7 @@
-set main(old: int): bool {
-  var is18: bool = false;
-
-  if (old > 18) {
-    is18 = true;
+set main(old: int): int {
+  if (old > 18 && old < 50) {
+    return 1;
   }
 
-  return is18;
+  return 0;
 }

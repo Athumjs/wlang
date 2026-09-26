@@ -1,204 +1,232 @@
 #include "ir.h"
-#include <string.h>
 #include <utils/numeric.h>
 
-void irAssign(struct Expr *expr, struct IRModule *module, struct IRBasicBlock *ir, struct Arena *arena) {
-  struct IRInstruction inst = (struct IRInstruction){
-    .opcode = Opcode_Store,
-    .result = -1,
+struct IROperand irAssign(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
+  struct IROperand refl = irExpr(expr->expr_binary.left, module, func, block, arena);
 
-    .operands[0] = (struct IROperand){
-      .kind = Operand_Type,
-      .type = expr->type
-    },
+  if (expr->expr_binary.op == TOKEN_ASSIGN) {
+    struct IROperand refr = irExpr(expr->expr_binary.right, module, func, block, arena); 
+    
+		if (expr->expr_binary.left->expr_identifier.symbol->isGlobal) {
+		  struct IRInstruction *inst = newInst(OPCODE_STORE, expr->type, 0, 2, block, arena);
+		  inst->operands[inst->operands_len++] = refr;
+		  refl.kind = Operand_Global;
+		  inst->operands[inst->operands_len++] = refl;
+		  refl.kind = Operand_Register;
+		}
+		
+		else {
+			if (expr->expr_binary.right->kind == Expr_Literal) {
+			  struct IRInstruction *inst = newInst(OPCODE_CONST, expr->type, 1, 1, block, arena);
+			  inst->operands[inst->operands_len++] = refr;
+			}
+			
+      setCurrentDef(func->ssa, &expr->expr_binary.left->expr_identifier.name, 0, &block->instructions[block->instructions_len - 1], block->index, arena);
+		}
 
-    .operands[1] = irOperand(expr->expr_binary.right, module, arena),
+    return (struct IROperand){};
+  }
 
-    .operands[2] = (struct IROperand){
-      .kind = Operand_Pointer,
-      .pointer = expr->expr_binary.left->expr_identifier.symbol->ptr
-    },
+  if (expr->expr_binary.op == TOKEN_MINUS_ASSIGN)
+    expr->expr_binary.op = TOKEN_MINUS;
+  else if (expr->expr_binary.op == TOKEN_ASTERISK_ASSIGN)
+    expr->expr_binary.op = TOKEN_ASTERISK;
+  else if (expr->expr_binary.op == TOKEN_SLASH_ASSIGN)
+    expr->expr_binary.op = TOKEN_SLASH;
+  else if (expr->expr_binary.op == TOKEN_MOD_ASSIGN)
+    expr->expr_binary.op = TOKEN_MOD;
+  else if (expr->expr_binary.op == TOKEN_BIT_AND_ASSIGN)
+    expr->expr_binary.op = TOKEN_BIT_AND;
+  else if (expr->expr_binary.op == TOKEN_BIT_XOR_ASSIGN)
+    expr->expr_binary.op = TOKEN_BIT_XOR;
+  else if (expr->expr_binary.op == TOKEN_BIT_OR_ASSIGN)
+    expr->expr_binary.op = TOKEN_BIT_OR;
 
-    .operands_len = 3
-  };
+  expr->kind = Expr_Binary;
+  struct IROperand refr = irExpr(expr, module, func, block, arena);
+  expr->kind = Expr_Assign;
 
-  ir->instructions[ir->instructions_len++] = inst;
+  if (expr->expr_binary.left->expr_identifier.symbol->isGlobal) {
+		struct IRInstruction *inst = newInst(OPCODE_STORE, expr->type, 0, 2, block, arena);
+		inst->operands[inst->operands_len++] = refr;
+		refl.kind = Operand_Global;
+		inst->operands[inst->operands_len++] = refl;
+		refl.kind = Operand_Register;
+  }
+
+  else
+    setCurrentDef(func->ssa, &expr->expr_binary.left->expr_identifier.name, 0, &block->instructions[block->instructions_len - 1], block->index, arena);
 }
 
-void irCompare(struct Expr *expr, struct IRModule *module, struct IRBasicBlock *ir, struct Arena *arena) {
-  struct IRInstruction inst = (struct IRInstruction){
-    .operands[1] = irOperand(expr->expr_binary.left, module, arena),
-    .operands[2] = irOperand(expr->expr_binary.right, module, arena),
-    .operands_len = 3
-  };
+struct IROperand irCompare(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
+  struct IROperand refl = irExpr(expr->expr_binary.left, module, func, block, arena);
+  struct IROperand refr = irExpr(expr->expr_binary.right, module, func, block, arena);
+  struct IRInstruction *inst = newInst(OPCODE_ICMP, expr->type, 1, 3, block, arena);
 
   if (isFloating(expr->expr_binary.left->type)) {
-    inst.opcode = Opcode_Fcmp;
-    enum FCondition op = FCond_OEq;
+    inst->opcode = OPCODE_FCMP;
+    enum IRFCMP opc = FCMP_OEq;
 
     if (expr->expr_binary.op == TOKEN_NE)
-      op = FCond_ONe;
+      opc = FCMP_ONe;
+
     else if (isSignedInteger(expr->type)) {
       if (expr->expr_binary.op == TOKEN_GT)
-        op = FCond_OGt;
+        opc = FCMP_OGt;
       else if (expr->expr_binary.op == TOKEN_GE)
-        op = FCond_OGe;
+        opc = FCMP_OGe;
       else if (expr->expr_binary.op == TOKEN_LT)
-        op = FCond_OLt;
+        opc = FCMP_OLt;
       else if (expr->expr_binary.op == TOKEN_LE)
-        op = FCond_OLe;
+        opc = FCMP_OLe;
     }
 
-    inst.operands[0] = (struct IROperand){
-      .kind = Operand_FCond,
-      .fcond = op
-    };
-  } else {
-    inst.opcode = Opcode_Icmp;
-    enum ICondition op = ICond_Eq;
+    addOperandFCmp(opc, inst);
+  }
+
+  else {
+    enum IRICMP opc = ICMP_Eq;
 
     if (expr->expr_binary.op == TOKEN_NE)
-      op = ICond_Ne;
+      opc = ICMP_Ne;
+
     else if (isSignedInteger(expr->expr_binary.left->type)) {
       if (expr->expr_binary.op == TOKEN_GT)
-        op = ICond_SGt;
+        opc = ICMP_SGt;
       else if (expr->expr_binary.op == TOKEN_GE)
-        op = ICond_SGe;
+        opc = ICMP_SGe;
       else if (expr->expr_binary.op == TOKEN_LT)
-        op = ICond_SLt;
+        opc = ICMP_SLt;
       else if (expr->expr_binary.op == TOKEN_LE)
-        op = ICond_SLe;
-    } else {
-      if (expr->expr_binary.op == TOKEN_GT)
-        op = ICond_UGt;
-      else if (expr->expr_binary.op == TOKEN_GE)
-        op = ICond_UGe;
-      else if (expr->expr_binary.op == TOKEN_LT)
-        op = ICond_ULt;
-      else if (expr->expr_binary.op == TOKEN_LE)
-        op = ICond_ULe;
+        opc = ICMP_SLe;
     }
 
-    inst.operands[0] = (struct IROperand){
-      .kind = Operand_ICond,
-      .icond = op
-    };
-  } 
+    else {
+      if (expr->expr_binary.op == TOKEN_GT)
+        opc = ICMP_UGt;
+      else if (expr->expr_binary.op == TOKEN_GE)
+        opc = ICMP_UGe;
+      else if (expr->expr_binary.op == TOKEN_LT)
+        opc = ICMP_ULt;
+      else if (expr->expr_binary.op == TOKEN_LE)
+        opc = ICMP_ULe;
+    }
 
-  inst.result = module->functions[module->functions_len - 1].regs_len++;
-  ir->instructions[ir->instructions_len++] = inst;
+    addOperandICmp(opc, inst);
+  }
+
+  inst->operands[inst->operands_len++] = refl;
+  inst->operands[inst->operands_len++] = refr;
+  return (struct IROperand){
+    .kind = Operand_Register,
+    .ref = inst->vl
+  };
 }
 
-void irBinary(struct Expr *expr, struct IRModule *module, struct IRBasicBlock *ir, struct Arena *arena) {
-  enum IROpcode opc = Opcode_Add;
+struct IROperand irBinary(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
+  enum IROpcode opc = OPCODE_ADD;
 
   if (expr->expr_binary.op == TOKEN_BIT_AND)
-    opc = Opcode_Bit_And;
-  else if (expr->expr_binary.op == TOKEN_BIT_OR)
-    opc = Opcode_Bit_Or;
+    opc = OPCODE_BIT_AND;
   else if (expr->expr_binary.op == TOKEN_BIT_XOR)
-    opc = Opcode_Bit_Xor;
+    opc = OPCODE_BIT_XOR;
+  else if (expr->expr_binary.op == TOKEN_BIT_OR)
+    opc = OPCODE_BIT_OR;
   else if (expr->expr_binary.op == TOKEN_SHIFT_LEFT)
-    opc = Opcode_Bit_Shl;
+    opc = OPCODE_BIT_SHL;
+
   else {
     if (isFloating(expr->type)) {
       if (expr->expr_binary.op == TOKEN_PLUS)
-        opc = Opcode_FAdd;
+        opc = OPCODE_FADD;
       else if (expr->expr_binary.op == TOKEN_MINUS)
-        opc = Opcode_FSub;
+        opc = OPCODE_FSUB;
       else if (expr->expr_binary.op == TOKEN_ASTERISK)
-        opc = Opcode_FMul;
+        opc = OPCODE_FMUL;
       else if (expr->expr_binary.op == TOKEN_SLASH)
-        opc = Opcode_FDiv;
+        opc = OPCODE_FDIV;
       else if (expr->expr_binary.op == TOKEN_MOD)
-        opc = Opcode_FRem;
-    } else {
+        opc = OPCODE_FREM;
+    }
+
+    else {
       if (expr->expr_binary.op == TOKEN_MINUS)
-        opc = Opcode_Sub;
+        opc = OPCODE_SUB;
       else if (expr->expr_binary.op == TOKEN_ASTERISK)
-        opc = Opcode_Mul;
+        opc = OPCODE_MUL;
+
       else if (isSignedInteger(expr->type)) {
         if (expr->expr_binary.op == TOKEN_SLASH)
-          opc = Opcode_SDiv;
+          opc = OPCODE_SDIV;
         else if (expr->expr_binary.op == TOKEN_MOD)
-          opc = Opcode_SRem;
+          opc = OPCODE_SREM;
         else if (expr->expr_binary.op == TOKEN_SHIFT_RIGHT)
-          opc = Opcode_Bit_AShr;
-      } else {
+          opc = OPCODE_BIT_ASHR;
+      }
+
+      else {
         if (expr->expr_binary.op == TOKEN_SLASH)
-          opc = Opcode_UDiv;
+          opc = OPCODE_UDIV;
         else if (expr->expr_binary.op == TOKEN_MOD)
-          opc = Opcode_URem;
+          opc = OPCODE_UREM;
         else if (expr->expr_binary.op == TOKEN_SHIFT_RIGHT)
-          opc = Opcode_Bit_LShr;
+          opc = OPCODE_BIT_LSHR;
       }
     }
   }
 
-  struct IRInstruction inst = (struct IRInstruction){
-    .opcode = opc,
-    .operands[0] = irOperand(expr->expr_binary.left, module, arena),
-    .operands[1] = irOperand(expr->expr_binary.right, module, arena),
-    .operands_len = 2
-  };
+  struct IROperand refl = irExpr(expr->expr_binary.left, module, func, block, arena);
+  struct IROperand refr = irExpr(expr->expr_binary.right, module, func, block, arena);
+  struct IRInstruction *inst = newInst(opc, expr->type, 1, 2, block, arena);
+  inst->operands[inst->operands_len++] = refl;
+  inst->operands[inst->operands_len++] = refr;
 
-  inst.result = module->functions[module->functions_len - 1].regs_len++;
-  ir->instructions[ir->instructions_len++] = inst;
+  return (struct IROperand){
+    .kind = Operand_Register,
+    .ref = inst->vl
+  };
 }
 
-void irIdentifier(struct Expr *expr, struct IRModule *ir, struct IRBasicBlock *block, struct Arena *arena) {
-  struct IRInstruction inst = (struct IRInstruction){
-    .opcode = Opcode_Load,
+struct IROperand irId(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
+  struct Symbol *symbol = expr->expr_identifier.symbol;
+  int64_t vl;
 
-    .operands[0] = (struct IROperand){
-      .kind = Operand_Type,
-      .type = expr->expr_identifier.symbol->type
-    },
-
-    .operands_len = 2
-  };
-
-  if (expr->expr_identifier.symbol->ptr.kind == Pointer_Global) {
-    inst.operands[1] = (struct IROperand){
-      .kind = Operand_Pointer,
-      .pointer = (struct Pointer){
-        .kind = Pointer_Global,
-        .global = expr->expr_identifier.symbol->ptr.global
-      }
-    };
-  } else if (expr->expr_identifier.symbol->ptr.kind == Pointer_Local) {
-    inst.operands[1] = (struct IROperand){
-      .kind = Operand_Pointer,
-      .pointer = (struct Pointer){
-        .kind = Pointer_Local,
-        .inst = expr->expr_identifier.symbol->ptr.inst
-      }
-    };
+  if (symbol->isGlobal) {
+    struct IRGlobal *global = &module->globals[symbol->index];
+    struct IRInstruction *inst = newInst(OPCODE_LOAD, symbol->type, 1, 1, block, arena);
+    addOperandRef(1, global->vl, inst);
+    vl = inst->vl;
   } else {
-    inst.operands[1] = (struct IROperand){
-      .kind = Operand_Pointer,
-      .pointer = (struct Pointer){
-        .kind = Pointer_Param,
-        .param = expr->expr_identifier.symbol->ptr.param
-      }
-    };
-  }
+    struct IRDef *def = getCurrentDef(func->ssa, &symbol->name, block, arena);
 
-  inst.result = ir->functions[ir->functions_len - 1].regs_len++;
-  block->instructions[block->instructions_len++] = inst;
+    if (def->isParam) {
+      vl = def->param->vl;
+    } else {
+      if (def->inst->opcode == OPCODE_ALLOCA) {
+        struct IRInstruction *inst = newInst(OPCODE_LOAD, symbol->type, 1, 1, block, arena);
+        addOperandRef(3, def->inst->vl, inst);
+        vl = inst->vl;
+      } else vl = def->inst->vl;
+    } 
+  };
+
+  return (struct IROperand){
+    .kind = Operand_Register,
+    .ref = vl
+  };
 }
 
-void irExpr(struct Expr *expr, struct IRModule *ir, struct IRBasicBlock *block, struct Arena *arena) {
-  if (block->instructions_len == block->instructions_cap) {
-    size_t oldCap = block->instructions_cap;
-    block->instructions_cap *= 2;
-    struct IRInstruction *temp = arena_alloc(arena, block->instructions_cap * sizeof(struct IRInstruction));
-    memcpy(temp, block->instructions, oldCap * sizeof(struct IRInstruction));
-    block->instructions = temp;
-  }
+struct IROperand irLiteral(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
+  return (struct IROperand){
+    .kind = Operand_Constant,
+    .constant = irNumber(expr)
+  };
+}
 
-  if (expr->kind == Expr_Assign) irAssign(expr, ir, block, arena);
-  else if (expr->kind == Expr_Compare) irCompare(expr, ir, block, arena);
-  else if (expr->kind == Expr_Binary) irBinary(expr, ir, block, arena);
-  else if (expr->kind == Expr_Identifier) irIdentifier(expr, ir, block, arena);
+struct IROperand irExpr(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
+  if (expr->kind == Expr_Assign) return irAssign(expr, module, func, block, arena);
+  else if (expr->kind == Expr_Compare) return irCompare(expr, module, func, block, arena);
+  else if (expr->kind == Expr_Binary) return irBinary(expr, module, func, block, arena);
+  else if (expr->kind == Expr_Identifier) return irId(expr, module, func, block, arena);
+  else if (expr->kind == Expr_Literal) return irLiteral(expr, module, func, block, arena);
 }

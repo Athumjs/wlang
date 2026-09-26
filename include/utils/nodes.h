@@ -257,6 +257,7 @@ struct Stmt {
       struct Expr *condition;
       struct Expr *update;
       struct Stmt *body;
+      struct Scope *scope;
     } stmt_for;
 
     struct {

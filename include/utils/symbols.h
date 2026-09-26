@@ -1,6 +1,5 @@
 #pragma once
 
-#include <utils/ir.h>
 #include <utils/literal.h>
 #include <front/semantic.h>
 
@@ -19,7 +18,8 @@ struct Symbol {
   enum SymbolKind kind;
   struct String name;
   struct Type *type;
-  struct Pointer ptr;
+  uint8_t isGlobal;
+  int64_t index;
   int line;
   int column;
 
@@ -50,6 +50,7 @@ struct Scope {
   struct Type *expectType;
   struct Type *varType;
   struct Symbol *currentStruct;
+  uint8_t onLoop;
 };
 
 void enterScope(struct SymbolTable *table);

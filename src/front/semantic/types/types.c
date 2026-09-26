@@ -8,7 +8,7 @@ uint8_t flowNever(struct Flow *flow) {
 void typeFunc(struct SymbolTable *table, struct Decl *decl) {
   struct Flow flow = typeStmt(table, decl->decl_function.body);
 
-  if (flow.next)
+  if (flow.next && !cmpTP(table->scope->expectType, Primitive_Void))
     errorLang(table->program->filename, decl->line, decl->column, "non-void function does not return a value in all control paths");
 
   if (!flowNever(&flow) && table->scope->retType == NULL && !cmpTP(table->scope->expectType, Primitive_Void))

@@ -69,11 +69,23 @@ struct Stmt *stmtFor(int *i, struct Tokens *tokens, struct Program *program) {
   struct Stmt *stmt = newStmt(i, tokens, program, Stmt_For);
   CONSUME(TOKEN_FOR);
   CONSUME(TOKEN_LPAREN);
-  stmt->stmt_for.init = parseDecl(i, tokens, program);
+
+  if (PEEK() != TOKEN_SEMICOLON) stmt->stmt_for.init = parseDecl(i, tokens, program);
+  else {
+    stmt->stmt_for.init = NULL;
+    CONSUME(TOKEN_SEMICOLON);
+  }
+
+  if (PEEK() != TOKEN_SEMICOLON) stmt->stmt_for.condition = parseExpr(i, tokens, program);
+  else {
+    stmt->stmt_for.condition = newExpr(i, tokens, program, Expr_Literal);
+    stmt->stmt_for.condition->expr_literal.kind = LITERAL_BOOLEAN;
+    stmt->stmt_for.condition->expr_literal.literal.numInt = 1;
+  }
+
   CONSUME(TOKEN_SEMICOLON);
-  stmt->stmt_for.condition = parseExpr(i, tokens, program);
-  CONSUME(TOKEN_SEMICOLON);
-  stmt->stmt_for.update = parseExpr(i, tokens, program);
+  if (PEEK() != TOKEN_RPAREN) stmt->stmt_for.update = parseExpr(i, tokens, program);
+  else stmt->stmt_for.update = NULL;
   CONSUME(TOKEN_RPAREN);
   stmt->stmt_for.body = parseStmt(i, tokens, program);
   return stmt;

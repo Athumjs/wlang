@@ -21,7 +21,3 @@ build/obj/%.o: src/%.c
 
 clean:
 	rm -rf build
-
-debug:
-	gprof ./build/$(TARGET-DEBUG) gmon.out > build/logs.txt
-	rm gmon.out

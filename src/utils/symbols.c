@@ -24,7 +24,7 @@ struct Symbol *findSymbol(struct Scope *scope, struct String *name) {
 }
 
 void addSymbol(struct SymbolTable *table, struct Symbol *symbol) {
-  if (findSymbol(table->scope, &symbol->name) != NULL) {
+  if (hashmap_get(table->scope->symbols, &symbol->name) != NULL) {
     errorLang(table->program->filename, symbol->line, symbol->column, "Identifier '%.*s' has been declared", symbol->name.length, symbol->name.start);
   }
 

@@ -18,10 +18,13 @@ static void stmtWhile(struct SymbolTable *table, struct Stmt *stmt) {
 
 static void stmtFor(struct SymbolTable *table, struct Stmt *stmt) {
   table->loop++;
-  resolveDecl(table, stmt->stmt_for.init);
+  enterScope(table);
+  stmt->stmt_for.scope = table->scope;
+  if (stmt->stmt_for.init != NULL) resolveDecl(table, stmt->stmt_for.init);
   resolveExpr(table, stmt->stmt_for.condition);
-  resolveExpr(table, stmt->stmt_for.update);
+  if (stmt->stmt_for.update != NULL) resolveExpr(table, stmt->stmt_for.update);
   resolveStmt(table, stmt->stmt_for.body);
+  exitScope(table);
   table->loop--;
 }
 

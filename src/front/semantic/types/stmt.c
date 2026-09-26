@@ -43,10 +43,20 @@ static struct Flow stmtWhile(struct SymbolTable *table, struct Stmt *stmt) {
 }
 
 static struct Flow stmtFor(struct SymbolTable *table, struct Stmt *stmt) {
-  resolveDecl(table, stmt->stmt_for.init);
+  struct Scope *prev = table->scope;
+  table->scope = stmt->stmt_for.scope;
+  if (stmt->stmt_for.init != NULL) typeDecl(table, stmt->stmt_for.init);
   typeExpr(table, stmt->stmt_for.condition);
-  typeExpr(table, stmt->stmt_for.update);
-  return typeStmt(table, stmt->stmt_for.body);
+  if (stmt->stmt_for.update != NULL) typeExpr(table, stmt->stmt_for.update);
+  struct Flow flow = typeStmt(table, stmt->stmt_for.body);
+
+  if (stmt->stmt_for.condition == NULL) {
+    flow.next = flow.break_;
+    flow.return_ = flow.return_;
+  }
+
+  table->scope = prev;
+  return flow;
 }
 
 static struct Flow stmtReturn(struct SymbolTable *table, struct Stmt *stmt) {
