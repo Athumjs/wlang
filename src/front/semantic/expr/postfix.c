@@ -52,7 +52,7 @@ static inline uint8_t isArray_or_Pointer(struct Type *type) {
 struct Symbol *resolveExprIndex(struct SymbolTable *table, struct Expr *expr) {
   struct Symbol *base = resolveExpr(table, expr->expr_index.base);
 
-  if (!isArray_or_Pointer(base->type)) {
+  if (base->type->kind != Type_Auto && !isArray_or_Pointer(base->type)) {
     errorLang(table->program->filename, expr->line, expr->column, "subscripted value is not an array or pointer");
   }
 

@@ -383,6 +383,36 @@ struct IROperand irUnary(struct Expr *expr, struct IRModule *module, struct IRFu
   return operand;
 }
 
+struct IROperand irIndex(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
+  struct IROperand refbase = irExpr(expr->expr_index.base, module, func, block, arena).operand;
+  struct IROperand refindex = irExpr(expr->expr_index.index, module, func, block, arena).operand;
+  struct IRInstruction *inst = newInst(OPCODE_GEP, expr->expr_index.base->type, 1, 3, block, arena);
+  inst->operands[inst->operands_len++] = refbase;
+
+  inst->operands[inst->operands_len++] = (struct IROperand){
+    .kind = Operand_Constant,
+    .constant = (struct IRValue){
+      .kind = Value_Int,
+      .i = 0
+    }
+  };
+
+  inst->operands[inst->operands_len++] = refindex;
+  struct Type *type = NULL;
+
+  if (expr->expr_index.base->type->kind == Type_Pointer)
+    type = expr->expr_index.base->type->type_pointer.base;
+  else type = expr->expr_index.base->type->type_array.base;
+
+  struct IRInstruction *load = newInst(OPCODE_LOAD, type, 1, 1, block, arena);
+  addOperandRef(3, inst->vl, load);
+
+  return (struct IROperand){
+    .kind = Operand_Register,
+    .ref = load->vl
+  };
+}
+
 struct IROperand irCall(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
   struct IROperand operand = (struct IROperand){
     .kind = Operand_Call,
@@ -438,12 +468,10 @@ struct IROperand irCallback(struct Expr *expr, struct IRModule *module, struct I
   };
 }
 
-struct IROperand irArray(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
-  struct IRInstruction *inst = newInst(OPCODE_ALLOCA, expr->type, 1, 0, block, arena);
- 
+void fillArray(int64_t vl, struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
   for (int i = 0; i < expr->expr_array.exprs_len; i++) {
     struct IRInstruction *gep = newInst(OPCODE_GEP, expr->type, 1, 3, block, arena);
-    addOperandRef(3, inst->vl, gep);
+    addOperandRef(3, vl, gep);
 
     gep->operands[gep->operands_len++] = (struct IROperand){
       .kind = Operand_Constant,
@@ -461,12 +489,18 @@ struct IROperand irArray(struct Expr *expr, struct IRModule *module, struct IRFu
       }
     };
 
-    struct IROperand operand = irExpr(expr->expr_array.exprs[i], module, func, block, arena).operand;
-    struct IRInstruction *store = newInst(OPCODE_STORE, expr->expr_array.exprs[i]->type, 0, 2, block, arena);
-    store->operands[store->operands_len++] = operand;
-    addOperandRef(3, gep->vl, store);
+    if (expr->expr_array.exprs[i]->kind != Expr_Array) {
+      struct IROperand operand = irExpr(expr->expr_array.exprs[i], module, func, block, arena).operand;
+      struct IRInstruction *store = newInst(OPCODE_STORE, expr->expr_array.exprs[i]->type, 0, 2, block, arena);
+      store->operands[store->operands_len++] = operand;
+      addOperandRef(3, gep->vl, store);
+    } else fillArray(gep->vl, expr->expr_array.exprs[i], module, func, block, arena);
   }
+}
 
+struct IROperand irArray(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
+  struct IRInstruction *inst = newInst(OPCODE_ALLOCA, expr->type, 1, 0, block, arena); 
+  fillArray(inst->vl, expr, module, func, block, arena);
   return (struct IROperand){
     .kind = Operand_Register,
     .ref = inst->vl
@@ -526,6 +560,7 @@ struct IRExpr irExpr(struct Expr *expr, struct IRModule *module, struct IRFuncti
   else if (expr->kind == Expr_Binary) irExpr.operand = irBinary(expr, module, func, block, arena);
   else if (expr->kind == Expr_Cast) irExpr.operand = irCast(expr, module, func, block, arena);
   else if (expr->kind == Expr_Unary) irExpr.operand = irUnary(expr, module, func, block, arena);
+  else if (expr->kind == Expr_Index) irExpr.operand = irIndex(expr, module, func, block, arena);
   else if (expr->kind == Expr_Call) irExpr.operand = irCall(expr, module, func, block, arena);
   else if (expr->kind == Expr_Callback) irExpr.operand = irCallback(expr, module, func, block, arena);
   else if (expr->kind == Expr_Array) irExpr.operand = irArray(expr, module, func, block, arena);

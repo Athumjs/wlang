@@ -126,7 +126,7 @@ struct Type *typeExprArray(struct SymbolTable *table, struct Expr *expr) {
     } else type->type_array.expr_resolved = expr->expr_array.exprs_len;
   }
 
-  if (table->scope->varType->kind != Type_Auto && table->scope->varType->type_array.expr != NULL &&
+  if (table->scope->varType->kind != Type_Auto && 
       type->type_array.expr_resolved < expr->expr_array.exprs_len)
     errorLang(table->program->filename, expr->line, expr->column, "excess elements in array");
 
