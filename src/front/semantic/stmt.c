@@ -24,7 +24,7 @@ static void stmtFor(struct SymbolTable *table, struct Stmt *stmt) {
   resolveExpr(table, stmt->stmt_for.condition);
   if (stmt->stmt_for.update != NULL) resolveExpr(table, stmt->stmt_for.update);
   resolveStmt(table, stmt->stmt_for.body);
-  exitScope(table);
+  if (stmt->stmt_for.body->kind != Stmt_Block) exitScope(table);
   table->loop--;
 }
 
@@ -49,10 +49,9 @@ static void stmtBreak(struct SymbolTable *table, struct Stmt *stmt) {
 }
 
 static void stmtBlock(struct SymbolTable *table, struct Stmt *stmt) {
-  if (stmt->stmt_block.scope != NULL) {
+  if (stmt->stmt_block.scope != NULL)
     table->scope = stmt->stmt_block.scope;
-    table->scope->expectType = stmt->stmt_block.expectType;
-  } else
+  else
     enterScope(table);
 
   for (int i = 0; i < stmt->stmt_block.items_len; i++) {

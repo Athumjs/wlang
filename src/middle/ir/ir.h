@@ -17,6 +17,11 @@ struct IRDef {
   };
 };
 
+struct IRExpr {
+  struct IRBasicBlock *block;
+  struct IROperand operand;
+};
+
 // irglobal.c
 void irGlobal(struct Decl *decl, struct IRModule *module, struct Arena *arena);
 
@@ -27,7 +32,7 @@ void irDecl(struct Decl *decl, struct IRModule *module, struct IRFunction *func,
 struct IRBasicBlock *irStmt(struct Stmt *stmt, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena);
 
 // irexpr.c
-struct IROperand irExpr(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena);
+struct IRExpr irExpr(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena);
 
 // ir.c
 int64_t newBlock(struct IRFunction *func, struct Arena *arena);
@@ -40,10 +45,16 @@ void addOperandConst(struct Expr *expr, struct IRInstruction *inst);
 void addOperandPhi(int64_t value, struct IRBasicBlock *block, struct IRInstruction *inst);
 void addOperandICmp(enum IRICMP opcode, struct IRInstruction *inst);
 void addOperandFCmp(enum IRFCMP opcode, struct IRInstruction *inst);
+void addOperandType(struct Type *type, struct IRInstruction *inst, struct Arena *arena);
 
 // irutil.c
-void setCurrentDef(struct Hashmap *hmap, struct String *str, uint8_t isParam, void *ptr, int64_t index, struct Arena *arena);
+struct IRType resolveTypeIR(struct Type *type, struct Arena *arena);
+void resolvePhi(struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena);
+void addPhiImcompletes(struct IRFunction *func, struct IRBasicBlock *prevBlock, struct IRBasicBlock *block, struct IRBasicBlock *nextBlock, struct Arena *arena, struct IRInstruction ***phis);
+void resolvePhiIncompletes(struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena, struct IRInstruction ***phis);
+struct IRDef *setCurrentDef(struct Hashmap *hmap, struct String *str, uint8_t isParam, void *ptr, struct IRBasicBlock *block, struct Arena *arena);
 struct IRDef *getCurrentDef(struct Hashmap *hmap, struct String *str, struct IRBasicBlock *block, struct Arena *arena);
+int getNumCase(int num);
 struct String getName(struct String *str, int block_index, struct Arena *arena);
 struct IRValue irNumber(struct Expr *expr);
 struct IRValue irValueGlobal(int64_t id, struct Expr *expr, struct IRModule *module, struct Arena *arena);

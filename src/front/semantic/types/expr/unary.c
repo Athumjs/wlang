@@ -7,6 +7,8 @@ static inline uint8_t canExplicitConvert(struct Type *t1, struct Type *t2) {
   if (isNumeric(t1) && isNumeric(t2)) return 1;
   if (isInteger(t1) && isChar(t2)) return 1;
   if (isInteger(t2) && isChar(t1)) return 1;
+  if (isPointer(t1) && isInteger(t2)) return 1;
+  if (isPointer(t2) && isInteger(t1)) return 1;
 
   return 0;
 }
@@ -22,7 +24,6 @@ struct Type *typeExprCast(struct SymbolTable *table, struct Expr *expr) {
         s1.length, s1.start, s2.length, s2.start);
   }
 
-  expr->expr_cast.value->type = expr->expr_cast.type;
   expr->type = expr->expr_cast.type;
   return expr->expr_cast.type;
 }

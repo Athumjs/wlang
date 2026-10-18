@@ -25,17 +25,6 @@ static struct Flow stmtWhile(struct SymbolTable *table, struct Stmt *stmt) {
   struct Type *type = typeExpr(table, stmt->stmt_while.condition);
   struct Flow flow = typeStmt(table, stmt->stmt_while.body);
 
-  if (isBoolean(type) || isInteger(type)) {
-    if (stmt->stmt_while.condition->expr_literal.literal.numInt == 0) return (struct Flow){
-      .next = 1
-    };
-
-    return (struct Flow){
-      .next = flow.break_,
-      .return_ = flow.return_
-    };
-  }
-
   return (struct Flow){
     .next = 1,
     .return_ = flow.return_
@@ -43,7 +32,6 @@ static struct Flow stmtWhile(struct SymbolTable *table, struct Stmt *stmt) {
 }
 
 static struct Flow stmtFor(struct SymbolTable *table, struct Stmt *stmt) {
-  struct Scope *prev = table->scope;
   table->scope = stmt->stmt_for.scope;
   if (stmt->stmt_for.init != NULL) typeDecl(table, stmt->stmt_for.init);
   typeExpr(table, stmt->stmt_for.condition);
@@ -55,7 +43,6 @@ static struct Flow stmtFor(struct SymbolTable *table, struct Stmt *stmt) {
     flow.return_ = flow.return_;
   }
 
-  table->scope = prev;
   return flow;
 }
 
@@ -75,6 +62,9 @@ static struct Flow stmtReturn(struct SymbolTable *table, struct Stmt *stmt) {
     errorLang(table->program->filename, stmt->line, stmt->column, "type '%.*s' is not assignable to type '%.*s'",
         t1.length, t1.start, t2.length, t2.start);
   }
+
+  if (stmt->stmt_return != NULL)
+    stmt->stmt_return->type = table->scope->expectType;
 
   return (struct Flow){
     .return_ = 1

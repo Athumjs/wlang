@@ -17,7 +17,11 @@ struct Symbol *resolveExprAssign(struct SymbolTable *table, struct Expr *expr) {
         left->name.length, left->name.start);
   }
 
-  resolveExpr(table, expr->expr_binary.right);
+  struct Symbol *right = resolveExpr(table, expr->expr_binary.right);
+
+  if (right != NULL && !(expr->expr_binary.right->kind == Expr_Unary && expr->expr_binary.right->expr_unary.op == TOKEN_ASTERISK))
+    left->isPtr = right->isPtr;
+
   return NULL;
 }
 

@@ -20,17 +20,17 @@ void addSymbolParam(struct SymbolTable *table, struct Param *param, uint8_t isCo
 
 void resolveFunc(struct SymbolTable *table, struct Decl *decl) {
   struct Symbol *symbol = findSymbol(table->scope, &decl->decl_function.name);
+  enterScope(table);
+  table->scope->expectType = decl->decl_function.retType;
+  decl->decl_function.scope = table->scope;
+  for (int i = 0; i < decl->decl_function.params_len; i++)
+    addSymbolParam(table, &decl->decl_function.params[i], 0);
 
-  if (decl->decl_function.body->kind == Stmt_Block) {
-    enterScope(table);
-    for (int i = 0; i < decl->decl_function.params_len; i++) {
-      addSymbolParam(table, &decl->decl_function.params[i], 0);
-    }
+  if (decl->decl_function.body->kind == Stmt_Block)
     decl->decl_function.body->stmt_block.scope = table->scope;
-    decl->decl_function.body->stmt_block.expectType = decl->decl_function.retType;
-  }
 
   resolveStmt(table, decl->decl_function.body);
+  if (decl->decl_function.body->kind != Stmt_Block) exitScope(table);
 }
 
 void resolveStruct(struct SymbolTable *table, struct Decl *decl) {
@@ -45,8 +45,8 @@ void resolveStruct(struct SymbolTable *table, struct Decl *decl) {
       for (int i = 0; i < method->params_len; i++) {
         addSymbolParam(table, &method->params[i], 0);
       }
+      table->scope->expectType = method->retType;
       method->body->stmt_block.scope = table->scope;
-      method->body->stmt_block.expectType = method->retType;
     }
 
     resolveStmt(table, method->body);

@@ -124,8 +124,11 @@ struct Decl *declFunction(int *i, struct Tokens *tokens, struct Program *program
 
   CONSUME(TOKEN_RPAREN);
   
-  CONSUME(TOKEN_COLON);
-  decl->decl_function.retType = parseType(i, tokens, program);
+  if (PEEK() == TOKEN_COLON) {
+    CONSUME(TOKEN_COLON);
+    decl->decl_function.retType = parseType(i, tokens, program);
+  } else decl->decl_function.retType = NULL;
+
   decl->decl_function.body = parseStmt(i, tokens, program);
   return decl;
 }

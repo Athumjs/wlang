@@ -4,6 +4,22 @@
 #include <utils/error.h>
 #include <stdio.h>
 
+void printType(struct IRType *type) {
+  if (type->kind == IRTYPEK_OTHER) {
+#define X(name, str) \
+    if (name == type->other) \
+      printf("%s ", str);
+    IRTYPES
+#undef X
+  }
+
+  else if (type->kind == IRTYPEK_ARRAY) {
+    printf("[ %ld x ", type->array.size);
+    printType(type->array.type);
+    printf("] ");
+  }
+}
+
 void printOpcode(enum IROpcode opcode) {
 #define X(name, str) \
   if (opcode == name) \
@@ -17,6 +33,8 @@ void printValue(struct IRValue *value) {
     printf("%ld", value->i);
   else if (value->kind == Value_UInt)
     printf("%ldu", value->u);
+  else if (value->kind == Value_Char)
+    printf("%c", (char)value->u);
   else if (value->kind == Value_Float)
     printf("%ff", value->f);
   else if (value->kind == Value_Double)
@@ -33,12 +51,7 @@ void printInst(struct IRInstruction *inst, struct Arena *arena) {
 
   enum IROpcode opcode = inst->opcode;
   printOpcode(opcode);
-
-  if (inst->type != NULL) {
-    struct String type = getType(inst->type, arena);
-    printf("%.*s ", type.length, type.start);
-  }
-  
+  printType(&inst->type);
 
   for (int l = 0; l < inst->operands_len; l++) {
     if (l > 0) printf(", ");
@@ -101,13 +114,28 @@ void printOperand(struct IROperand *op, struct Arena *arena) {
     if (op->phi.block->index == 0) printf("[ %%%ld, entry ]", op->phi.value);
     else printf("[ %%%ld, b%ld ]", op->phi.value, op->phi.block->index);
   }
+
+  else if (op->kind == Operand_Type)
+    printType(&op->type);
+
+  else if (op->kind == Operand_Call) {
+    printOperand(op->call.operand, arena);
+    printf("(");
+    for (int i = 0; i < op->call.args_len; i++) {
+      if (i > 0) printf(", ");
+      printOperand(&op->call.args[i], arena);
+    }
+    printf(")");
+  }
+
+  else if (op->kind == Operand_String)
+    printf("%.*s", op->string->length, op->string->start);
 }
 
 void showIR(struct IRModule *ir, struct Arena *arena) {
   printf("IR\n\n");
   for (int i = 0; i < ir->globals_len; i++) {
-    struct String type = getType(ir->globals[i].type, arena);
-    printf("@%ld = global %.*s ", ir->globals[i].vl, type.length, type.start);
+    printType(&ir->globals[i].type);
     printOperand(&ir->globals[i].value, arena);
     printf("\n");
   }
@@ -121,8 +149,8 @@ void showIR(struct IRModule *ir, struct Arena *arena) {
     printf("define %.*s(", ir->functions[i].name->length, ir->functions[i].name->start);
     for (int j = 0; j < ir->functions[i].params_len; j++) {
       if (j > 0) printf(", ");
-      struct String type = getType(ir->functions[i].params[j].type, arena);
-      printf("%.*s %%%d", type.length, type.start, ir->functions[i].params[j].vl);
+      printType(&ir->functions[i].params[j].type);
+      printf("%%%ld", ir->functions[i].params[j].vl);
     }
 
     printf(")\n  ");

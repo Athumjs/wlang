@@ -2,109 +2,69 @@
 #include <stdlib.h>
 
 struct IRBasicBlock *irBr(struct Stmt *stmt, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
-  struct IROperand operand = irExpr(stmt->stmt_if.condition, module, func, block, arena);
+  struct IRExpr expr = irExpr(stmt->stmt_if.condition, module, func, block, arena);
+  block = expr.block;
   struct IRInstruction *inst = newInst(OPCODE_BR, stmt->stmt_if.condition->type, 0, 3, block, arena);
-  inst->operands[inst->operands_len++] = operand;
-  int64_t itBlock = newBlock(func, arena);
-  int64_t ifBlock = newBlock(func, arena);
-  int64_t imBlock = -1;
-  addOperandRef(2, itBlock, inst);
-  addOperandRef(2, ifBlock, inst);
+  inst->operands[inst->operands_len++] = expr.operand;
+  int64_t tBlock = newBlock(func, arena);
+  int64_t fBlock = newBlock(func, arena);
+  int64_t mBlock = -1;
+  addOperandRef(2, tBlock, inst);
+  addOperandRef(2, fBlock, inst);
 
-  struct IRBasicBlock *trueBlock = &func->blocks[itBlock];
-  struct IRBasicBlock *falseBlock = &func->blocks[ifBlock];
-
+  struct IRBasicBlock *trueBlock = &func->blocks[tBlock];
+  struct IRBasicBlock *falseBlock = &func->blocks[fBlock];
   addPrevBlock(block, trueBlock, arena);
   addPrevBlock(block, falseBlock, arena);
-  irStmt(stmt->stmt_if.trueBody, module, func, trueBlock, arena);
+  trueBlock = irStmt(stmt->stmt_if.trueBody, module, func, trueBlock, arena);
 
   if (stmt->stmt_if.falseBody != NULL) {
     falseBlock = irStmt(stmt->stmt_if.falseBody, module, func, falseBlock, arena);
-    if (!trueBlock->term && !falseBlock->term) {
-      imBlock = newBlock(func, arena);
-      if (!trueBlock->term) addPrevBlock(trueBlock, &func->blocks[imBlock], arena);
-      if (!falseBlock->term) addPrevBlock(falseBlock, &func->blocks[imBlock], arena);
+    if (!trueBlock->term || !falseBlock->term) {
+      mBlock = newBlock(func, arena);
+      if (!trueBlock->term) addPrevBlock(trueBlock, &func->blocks[mBlock], arena);
+      if (!falseBlock->term) addPrevBlock(falseBlock, &func->blocks[mBlock], arena);
     }
-  } else if (!trueBlock->term)
-    addPrevBlock(trueBlock, falseBlock, arena);
+  } else if (!trueBlock->term) addPrevBlock(trueBlock, falseBlock, arena);
 
   block->term = 1;
 
   if (!trueBlock->term) {
-    struct IRInstruction *inst = newInst(OPCODE_JMP, NULL, 0, 1, trueBlock, arena);
-    addOperandRef(2, imBlock == -1 ? ifBlock : imBlock, inst);
+    struct IRInstruction *jmp = newInst(OPCODE_JMP, NULL, 0, 1, &func->blocks[trueBlock->index], arena);
+    addOperandRef(2, mBlock == -1 ? fBlock : mBlock, jmp);
     trueBlock->term = 1;
   }
 
   if (stmt->stmt_if.falseBody != NULL && !falseBlock->term) {
-    struct IRInstruction *inst = newInst(OPCODE_JMP, NULL, 0, 1, falseBlock, arena);
-    addOperandRef(2, imBlock, inst);
+    struct IRInstruction *jmp = newInst(OPCODE_JMP, NULL, 0, 1, &func->blocks[falseBlock->index], arena);
+    addOperandRef(2, mBlock, jmp);
     falseBlock->term = 1;
   }
 
-  struct IRBasicBlock *b = &func->blocks[imBlock == -1 ? ifBlock : imBlock];
-
-  for (int i = 0; i < func->defs_len; i++) {
-    struct IRDef *def = getCurrentDef(func->ssa, &func->defs[i]->name, b, arena);
-    uint8_t equal = 1;
-
-    for (int j = 0; j < b->prevs_len; j++) {
-      struct IRDef *pdef = getCurrentDef(func->ssa, &func->defs[i]->name, b->prevs[j], arena);
-      if (pdef == NULL) break;
-      if (pdef == def) continue; 
-      equal = 0;
-      break;
-    }
-
-    if (!equal) {
-      struct IRInstruction *inst = newInst(OPCODE_PHI, NULL, 1, b->prevs_len, &func->blocks[imBlock == -1 ? ifBlock : imBlock], arena);
-
-      for (int j = 0; j < b->prevs_len; j++) {
-        struct IRDef *pdef = getCurrentDef(func->ssa, &func->defs[i]->name, b->prevs[j], arena);
-        if (pdef->isParam)
-          addOperandPhi(pdef->param->vl, pdef->block, inst);
-        else addOperandPhi(pdef->inst->vl, pdef->block, inst);
-      }
-
-      setCurrentDef(func->ssa, &func->defs[i]->name, 0, inst, b->index, arena);
-    }
-  }
-
-  return &func->blocks[imBlock == -1 ? ifBlock : imBlock];
+  resolvePhi(func, &func->blocks[mBlock == -1 ? fBlock : mBlock], arena);
+  return &func->blocks[mBlock == -1 ? fBlock : mBlock];
 }
 
 struct IRBasicBlock *irDoWhile(struct Stmt *stmt, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
   struct IRInstruction *inst = newInst(OPCODE_JMP, NULL, 0, 1, block, arena);
   block->term = 1;
 
-  int64_t ibBlock = newBlock(func, arena);
-  int64_t icBlock = newBlock(func, arena);
-  int64_t ieBlock = newBlock(func, arena);
-  addOperandRef(2, ibBlock, inst);
+  int64_t bBlock = newBlock(func, arena);
+  int64_t cBlock = newBlock(func, arena);
+  int64_t eBlock = newBlock(func, arena);
+  addOperandRef(2, bBlock, inst);
 
-  struct IRBasicBlock *bodyBlock = &func->blocks[ibBlock];
-  struct IRBasicBlock *condBlock = &func->blocks[icBlock];
-  struct IRBasicBlock *exitBlock = &func->blocks[ieBlock];
+  struct IRBasicBlock *bodyBlock = &func->blocks[bBlock];
+  struct IRBasicBlock *condBlock = &func->blocks[cBlock];
+  struct IRBasicBlock *exitBlock = &func->blocks[eBlock];
   addPrevBlock(block, bodyBlock, arena);
   addPrevBlock(bodyBlock, condBlock, arena);
   addPrevBlock(condBlock, exitBlock, arena);
   addPrevBlock(condBlock, bodyBlock, arena);
 
   struct IRInstruction **phis = malloc(func->defs_len * sizeof(struct IRInstruction *));
+  addPhiImcompletes(func, block, bodyBlock, condBlock, arena, &phis);
 
-  for (int i = 0; i < func->defs_len; i++) {
-    struct IRInstruction *phi = newInst(OPCODE_PHI, NULL, 1, bodyBlock->prevs_len, bodyBlock, arena);
-    struct IRDef *def = getCurrentDef(func->ssa, &func->defs[i]->name, block, arena);
-
-    if (def->isParam)
-      addOperandPhi(def->param->vl, def->block, phi);
-    else addOperandPhi(def->inst->vl, def->block, phi);
-
-    addOperandPhi(-1, condBlock, phi);
-    setCurrentDef(func->ssa, &func->defs[i]->name, 0, phi, ibBlock, arena);
-    phis[i] = phi;
-  }
- 
   struct IRLoopContext loop = (struct IRLoopContext){
     .breakBlock = exitBlock,
     .continueBlock = condBlock,
@@ -112,49 +72,25 @@ struct IRBasicBlock *irDoWhile(struct Stmt *stmt, struct IRModule *module, struc
   };
 
   func->loop = &loop;
-  irStmt(stmt->stmt_while.body, module, func, bodyBlock, arena); 
+  bodyBlock = irStmt(stmt->stmt_while.body, module, func, bodyBlock, arena);
   func->loop = loop.prev;
 
   if (!bodyBlock->term) {
-    struct IRInstruction *bodyInst = newInst(OPCODE_JMP, NULL, 0, 1, bodyBlock, arena);
-    addOperandRef(2, icBlock, bodyInst);
+    struct IRInstruction *jmp = newInst(OPCODE_JMP, NULL, 0, 1, bodyBlock, arena);
+    addOperandRef(2, cBlock, jmp);
     bodyBlock->term = 1;
   }
 
-  struct IROperand operand = irExpr(stmt->stmt_while.condition, module, func, condBlock, arena);
-  struct IRInstruction *condInst = newInst(OPCODE_BR, stmt->stmt_while.condition->type, 0, 3, condBlock, arena);
-  condInst->operands[condInst->operands_len++] = operand;
-  addOperandRef(2, ibBlock, condInst);
-  addOperandRef(2, ieBlock, condInst);
+  struct IRExpr irexpr = irExpr(stmt->stmt_while.condition, module, func, condBlock, arena);
+  condBlock = irexpr.block;
+  struct IRInstruction *br = newInst(OPCODE_BR, stmt->stmt_while.condition->type, 0, 3, condBlock, arena);
+  br->operands[br->operands_len++] = irexpr.operand;
+  addOperandRef(2, bBlock, br);
+  addOperandRef(2, eBlock, br);
   condBlock->term = 1;
-
-  for (int i = 0; i < func->defs_len; i++) {
-    struct IRDef *def = getCurrentDef(func->ssa, &func->defs[i]->name, bodyBlock, arena);
-    uint8_t equal = 1;
-
-    for (int j = 0; j < bodyBlock->prevs_len; j++) {
-      struct IRDef *pdef = getCurrentDef(func->ssa, &func->defs[i]->name, bodyBlock->prevs[j], arena);
-      if (pdef == NULL) break;
-      if (pdef == def) continue; 
-      equal = 0;
-      break;
-    }
-
-    if (!equal) {
-      struct IRInstruction *phi = phis[i];
-
-      for (int j = 0; j < bodyBlock->prevs_len; j++) {
-        struct IRDef *pdef = getCurrentDef(func->ssa, &func->defs[i]->name, bodyBlock->prevs[j], arena);
-        if (pdef->isParam)
-          phi->operands[phi->operands_len - 1].phi.value = pdef->param->vl;
-        else phi->operands[phi->operands_len - 1].phi.value = pdef->inst->vl;
-        def->inst->operands[def->inst->operands_len - 1].phi.block = pdef->block;
-      }
-    }
-  }
-
+  resolvePhiIncompletes(func, bodyBlock, arena, &phis);
   free(phis);
-  return &func->blocks[ieBlock];
+  return &func->blocks[eBlock];
 }
 
 struct IRBasicBlock *irWhile(struct Stmt *stmt, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
@@ -164,36 +100,27 @@ struct IRBasicBlock *irWhile(struct Stmt *stmt, struct IRModule *module, struct 
   struct IRInstruction *inst = newInst(OPCODE_JMP, NULL, 0, 1, block, arena);
   block->term = 1;
 
-  int64_t icBlock = newBlock(func, arena);
-  int64_t ibBlock = newBlock(func, arena);
-  int64_t ieBlock = newBlock(func, arena);
-  addOperandRef(2, icBlock, inst);
+  int64_t cBlock = newBlock(func, arena);
+  int64_t bBlock = newBlock(func, arena);
+  int64_t eBlock = newBlock(func, arena);
+  addOperandRef(2, cBlock, inst);
 
-  struct IRBasicBlock *condBlock = &func->blocks[icBlock];
-  struct IRBasicBlock *bodyBlock = &func->blocks[ibBlock];
-  struct IRBasicBlock *exitBlock = &func->blocks[ieBlock];
+  struct IRBasicBlock *condBlock = &func->blocks[cBlock];
+  struct IRBasicBlock *bodyBlock = &func->blocks[bBlock];
+  struct IRBasicBlock *exitBlock = &func->blocks[eBlock];
   addPrevBlock(block, condBlock, arena);
   addPrevBlock(condBlock, bodyBlock, arena);
   addPrevBlock(condBlock, exitBlock, arena);
-  addPrevBlock(bodyBlock, condBlock, arena);
 
-  for (int i = 0; i < func->defs_len; i++) {
-    struct IRInstruction *phi = newInst(OPCODE_PHI, NULL, 1, condBlock->prevs_len, condBlock, arena);
-    struct IRDef *def = getCurrentDef(func->ssa, &func->defs[i]->name, block, arena);
+  struct IRInstruction **phis = malloc(func->defs_len * sizeof(struct IRInstruction *));
+  addPhiImcompletes(func, block, condBlock, bodyBlock, arena, &phis);
 
-    if (def->isParam)
-      addOperandPhi(def->param->vl, def->block, phi);
-    else addOperandPhi(def->inst->vl, def->block, phi);
-
-    addOperandPhi(-1, bodyBlock, phi);
-    setCurrentDef(func->ssa, &func->defs[i]->name, 0, phi, icBlock, arena);
-  }
-
-  struct IROperand operand = irExpr(stmt->stmt_while.condition, module, func, condBlock, arena);
-  struct IRInstruction *condInst = newInst(OPCODE_BR, stmt->stmt_while.condition->type, 0, 3, condBlock, arena);
-  condInst->operands[condInst->operands_len++] = operand;
-  addOperandRef(2, ibBlock, condInst);
-  addOperandRef(2, ieBlock, condInst);
+  struct IRExpr irexpr = irExpr(stmt->stmt_while.condition, module, func, condBlock, arena);
+  condBlock = irexpr.block;
+  struct IRInstruction *br = newInst(OPCODE_BR, stmt->stmt_while.condition->type, 0, 3, condBlock, arena);
+  br->operands[br->operands_len++] = irexpr.operand;
+  addOperandRef(2, bBlock, br);
+  addOperandRef(2, eBlock, br);
   condBlock->term = 1;
 
   struct IRLoopContext loop = (struct IRLoopContext){
@@ -203,134 +130,84 @@ struct IRBasicBlock *irWhile(struct Stmt *stmt, struct IRModule *module, struct 
   };
 
   func->loop = &loop;
-  irStmt(stmt->stmt_while.body, module, func, bodyBlock, arena);
+  bodyBlock = irStmt(stmt->stmt_while.body, module, func, &func->blocks[bBlock], arena);
   func->loop = loop.prev;
-
-  for (int i = 0; i < func->defs_len; i++) {
-    struct IRDef *def = getCurrentDef(func->ssa, &func->defs[i]->name, condBlock, arena);
-    uint8_t equal = 1;
-
-    for (int j = 0; j < condBlock->prevs_len; j++) {
-      struct IRDef *pdef = getCurrentDef(func->ssa, &func->defs[i]->name, condBlock->prevs[j], arena);
-      if (pdef == NULL) break;
-      if (pdef == def) continue; 
-      equal = 0;
-      break;
-    }
-
-    if (!equal) {
-      for (int j = 0; j < condBlock->prevs_len; j++) {
-        struct IRDef *pdef = getCurrentDef(func->ssa, &func->defs[i]->name, condBlock->prevs[j], arena);
-        if (pdef->isParam)
-          def->inst->operands[def->inst->operands_len - 1].phi.value = pdef->param->vl;
-        else def->inst->operands[def->inst->operands_len - 1].phi.value = pdef->inst->vl;
-        def->inst->operands[def->inst->operands_len - 1].phi.block = pdef->block;
-      }
-    }
-  }
+  addPrevBlock(bodyBlock, condBlock, arena);
 
   if (!bodyBlock->term) {
-    struct IRInstruction *bodyInst = newInst(OPCODE_JMP, NULL, 0, 1, bodyBlock, arena);
-    addOperandRef(2, icBlock, bodyInst);
+    struct IRInstruction *jmp = newInst(OPCODE_JMP, NULL, 0, 1, bodyBlock, arena);
+    addOperandRef(2, cBlock, jmp);
     bodyBlock->term = 1;
   }
 
-  return &func->blocks[ieBlock];
+  resolvePhiIncompletes(func, condBlock, arena, &phis);
+  free(phis);
+  return &func->blocks[eBlock];
 }
 
 struct IRBasicBlock *irFor(struct Stmt *stmt, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
   struct IRInstruction *inst = newInst(OPCODE_JMP, NULL, 0, 1, block, arena);
   block->term = 1;
 
-  int64_t iinBlock = newBlock(func, arena);
-  int64_t icBlock = newBlock(func, arena);
-  int64_t ibBlock = newBlock(func, arena);
-  int64_t iiBlock = newBlock(func, arena);
-  int64_t ieBlock = newBlock(func, arena);
-  addOperandRef(2, iinBlock, inst);
+  int64_t iBlock = newBlock(func, arena);
+  int64_t cBlock = newBlock(func, arena);
+  int64_t bBlock = newBlock(func, arena);
+  int64_t uBlock = newBlock(func, arena);
+  int64_t eBlock = newBlock(func, arena);
+  addOperandRef(2, iBlock, inst);
 
-  struct IRBasicBlock *initBlock = &func->blocks[iinBlock];
-  struct IRBasicBlock *condBlock = &func->blocks[icBlock];
-  struct IRBasicBlock *bodyBlock = &func->blocks[ibBlock];
-  struct IRBasicBlock *incBlock = &func->blocks[iiBlock];
-  struct IRBasicBlock *exitBlock = &func->blocks[ieBlock];
+  struct IRBasicBlock *initBlock = &func->blocks[iBlock];
+  struct IRBasicBlock *condBlock = &func->blocks[cBlock];
+  struct IRBasicBlock *bodyBlock = &func->blocks[bBlock];
+  struct IRBasicBlock *updateBlock = &func->blocks[uBlock];
+  struct IRBasicBlock *exitBlock = &func->blocks[eBlock];
   addPrevBlock(block, initBlock, arena);
   addPrevBlock(initBlock, condBlock, arena);
-  addPrevBlock(incBlock, condBlock, arena);
   addPrevBlock(condBlock, bodyBlock, arena);
   addPrevBlock(condBlock, exitBlock, arena);
-  addPrevBlock(bodyBlock, incBlock, arena);
+  addPrevBlock(bodyBlock, updateBlock, arena);
 
   if (stmt->stmt_for.init != NULL) irDecl(stmt->stmt_for.init, module, func, initBlock, arena);
-  struct IRInstruction *initInst = newInst(OPCODE_JMP, NULL, 0, 1, initBlock, arena);
-  addOperandRef(2, icBlock, initInst);
+  struct IRInstruction *jmp = newInst(OPCODE_JMP, NULL, 0, 1, initBlock, arena);
+  addOperandRef(2, cBlock, jmp);
   initBlock->term = 1;
 
-  for (int i = 0; i < func->defs_len; i++) {
-    struct IRInstruction *phi = newInst(OPCODE_PHI, NULL, 1, condBlock->prevs_len, condBlock, arena);
-    struct IRDef *def = getCurrentDef(func->ssa, &func->defs[i]->name, initBlock, arena);
+  struct IRInstruction **phis = malloc(func->defs_len * sizeof(struct IRInstruction *));
+  addPhiImcompletes(func, initBlock, condBlock, updateBlock, arena, &phis);
 
-    if (def->isParam)
-      addOperandPhi(def->param->vl, def->block, phi);
-    else addOperandPhi(def->inst->vl, def->block, phi);
-
-    addOperandPhi(-1, incBlock, phi);
-    setCurrentDef(func->ssa, &func->defs[i]->name, 0, phi, icBlock, arena);
-  }
-
-  struct IROperand operand = irExpr(stmt->stmt_for.condition, module, func, condBlock, arena);
-  struct IRInstruction *condInst = newInst(OPCODE_BR, stmt->stmt_for.condition->type, 0, 3, condBlock, arena);
-  condInst->operands[condInst->operands_len++] = operand;
-  addOperandRef(2, ibBlock, condInst);
-  addOperandRef(2, ieBlock, condInst);
+  struct IRExpr irexpr = irExpr(stmt->stmt_for.condition, module, func, condBlock, arena);
+  condBlock = irexpr.block;
+  struct IRInstruction *br = newInst(OPCODE_BR, stmt->stmt_for.condition->type, 0, 3, condBlock, arena);
+  br->operands[br->operands_len++] = irexpr.operand;
+  addOperandRef(2, bBlock, br);
+  addOperandRef(2, eBlock, br);
   condBlock->term = 1;
 
   struct IRLoopContext loop = (struct IRLoopContext){
     .breakBlock = exitBlock,
-    .continueBlock = incBlock,
+    .continueBlock = updateBlock,
     .prev = func->loop
   };
 
   func->loop = &loop;
-  irStmt(stmt->stmt_for.body, module, func, bodyBlock, arena);
+  bodyBlock = irStmt(stmt->stmt_for.body, module, func, bodyBlock, arena);
   func->loop = loop.prev;
+  addPrevBlock(updateBlock, condBlock, arena);
 
   if (!bodyBlock->term) {
-    struct IRInstruction *bodyInst = newInst(OPCODE_JMP, NULL, 0, 1, bodyBlock, arena);
-    addOperandRef(2, iiBlock, bodyInst);
+    struct IRInstruction *jmp = newInst(OPCODE_JMP, NULL, 0, 1, bodyBlock, arena);
+    addOperandRef(2, uBlock, jmp);
     bodyBlock->term = 1;
   }
 
-  if (stmt->stmt_for.update != NULL) irExpr(stmt->stmt_for.update, module, func, incBlock, arena);
-  struct IRInstruction *incInst = newInst(OPCODE_JMP, NULL, 0, 1, incBlock, arena);
-  addOperandRef(2, icBlock, incInst);
-  incBlock->term = 1;
+  if (stmt->stmt_for.update != NULL) updateBlock = irExpr(stmt->stmt_for.update, module, func, updateBlock, arena).block;
+  struct IRInstruction *jmp2 = newInst(OPCODE_JMP, NULL, 0, 1, updateBlock, arena);
+  addOperandRef(2, cBlock, jmp2);
+  updateBlock->term = 1;
 
-  for (int i = 0; i < func->defs_len; i++) {
-    struct IRDef *def = getCurrentDef(func->ssa, &func->defs[i]->name, condBlock, arena);
-    uint8_t equal = 1;
-
-    for (int j = 0; j < condBlock->prevs_len; j++) {
-      struct IRDef *pdef = getCurrentDef(func->ssa, &func->defs[i]->name, condBlock->prevs[j], arena);
-      if (pdef == NULL) break;
-      if (pdef == def) continue;
-      equal = 0;
-      break;
-    }
-
-    if (!equal) {
-      for (int j = 0; j < condBlock->prevs_len; j++) {
-        struct IRDef *pdef = getCurrentDef(func->ssa, &func->defs[i]->name, condBlock->prevs[j], arena);
-
-        if (pdef->isParam)
-          def->inst->operands[def->inst->operands_len - 1].phi.value = pdef->param->vl;
-        else def->inst->operands[def->inst->operands_len - 1].phi.value = pdef->inst->vl;
-        def->inst->operands[def->inst->operands_len - 1].phi.block = pdef->block;
-      }
-    }
-  }
-
-  return &func->blocks[ieBlock];
+  resolvePhiIncompletes(func, condBlock, arena, &phis);
+  free(phis);
+  return &func->blocks[eBlock];
 }
 
 void irContinue(struct Stmt *stmt, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
@@ -352,7 +229,7 @@ void irRet(struct Stmt *stmt, struct IRModule *module, struct IRFunction *func, 
     return;
   }
 
-  struct IROperand ref = irExpr(stmt->stmt_return, module, func, block, arena);
+  struct IROperand ref = irExpr(stmt->stmt_return, module, func, block, arena).operand;
   struct IRInstruction *inst = newInst(OPCODE_RET, stmt->stmt_return->type, 0, 1, block, arena);
   inst->operands[inst->operands_len++] = ref;
   block->term = 1;

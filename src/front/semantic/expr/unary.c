@@ -15,6 +15,11 @@ struct Symbol *resolveExprUnary(struct SymbolTable *table, struct Expr *expr) {
       errorLang(table->program->filename, expr->line, expr->column, "expression is not assignable");
     }
 
+    if (expr->expr_unary.op == TOKEN_BIT_AND) {
+      arg->isPtr = 1;
+      return arg;
+    }
+
     if (expr->expr_unary.op == TOKEN_ASTERISK) return arg;
   }
 

@@ -2,37 +2,6 @@
 
 #include <utils/numeric.h>
 
-static inline uint8_t rankType(struct Type *type) {
-  if (type->kind != Type_Primitive) return 0;
-
-  switch (type->type_primitive.type) {
-    case Primitive_Byte:
-    case Primitive_Ubyte:
-      return 1;
-
-    case Primitive_Short:
-    case Primitive_Ushort:
-      return 2;
-
-    case Primitive_Integer:
-    case Primitive_Uinteger:
-      return 3;
-
-    case Primitive_Long:
-    case Primitive_Ulong:
-      return 4;
-
-    case Primitive_Float:
-      return 5;
-
-    case Primitive_Double:
-      return 6;
-
-    default:
-      return 0;
-  }
-}
-
 static inline uint8_t isNumeric(struct Type *type) {
   if (type->kind != Type_Primitive) return 0;
 
@@ -79,17 +48,8 @@ static inline uint8_t canImplicitConvert(struct SymbolTable *table, struct Type 
   if (isFunction(t1) && isFunction(t2))
     return canImplicitConvert(table, t1->type_function.retType, t2->type_function.retType);
 
-  if (isInteger(t1) && isBoolean(t2))
-    return 1;
-
   if (isPointer(t1) && isPointer(t2))
     return canImplicitConvert(table, t1->type_pointer.base, t2->type_pointer.base);
-
-  if (isArray(t1) && isPointer(t2))
-    return canImplicitConvert(table, t1->type_array.base, t2->type_pointer.base);
-
-  if (isPointer(t1) && isArray(t2))
-    return canImplicitConvert(table, t1->type_pointer.base, t2->type_array.base);
 
   if (isSignedInteger(t1) && isSignedInteger(t2))
     return rankType(t1) <= rankType(t2);

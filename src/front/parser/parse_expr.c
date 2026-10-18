@@ -274,7 +274,7 @@ struct Expr *exprUnary(int *i, struct Tokens *tokens, struct Program *program) {
     expr->expr_unary.op = PEEK();
     expr->expr_unary.prefix = 1;
     CONSUME(PEEK());
-    expr->expr_unary.arg = exprPrimary(i, tokens, program);
+    expr->expr_unary.arg = exprUnary(i, tokens, program);
     return expr;
   }
 

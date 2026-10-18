@@ -22,6 +22,7 @@ void typeVar(struct SymbolTable *table, struct Decl *decl) {
             s1.length, s1.start, s2.length, s2.start);
       }
     }
+    table->scope->varType = NULL;
   }
 }
 

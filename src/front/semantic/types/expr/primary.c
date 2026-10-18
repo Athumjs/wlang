@@ -17,10 +17,22 @@ static struct Type *newTypeFunc(struct SymbolTable *table, struct Type **t, int 
   return type;
 }
 
+static uint8_t flowNever(struct Flow *flow) {
+  return !flow->next && !flow->return_ && !flow->break_ && !flow->continue_;
+}
+
 struct Type *typeExprCallback(struct SymbolTable *table, struct Expr *expr) {
+  table->scope = expr->expr_callback.scope;
   table->scope->expectType = expr->expr_callback.retType;
 
-  typeStmt(table, expr->expr_callback.body);
+  struct Flow flow = typeStmt(table, expr->expr_callback.body);
+
+  if (flow.next && !cmpTP(table->scope->expectType, Primitive_Void))
+    errorLang(table->program->filename, expr->line, expr->column, "non-void function does not return a value in all control paths");
+
+  if (!flowNever(&flow) && table->scope->retType == NULL && !cmpTP(table->scope->expectType, Primitive_Void))
+    errorLang(table->program->filename, expr->line, expr->column, "non-void function does not return a value");
+
   if (expr->expr_callback.retType->kind == Type_Auto) {
     expr->expr_callback.retType = table->scope->retType;
     table->scope->expectType = table->scope->retType;
@@ -29,6 +41,7 @@ struct Type *typeExprCallback(struct SymbolTable *table, struct Expr *expr) {
   if (table->scope->retType == NULL && !cmpTP(table->scope->expectType, Primitive_Void))
     errorLang(table->program->filename, expr->line, expr->column, "non-void function does not return a value");
 
+  exitScope(table);
   expr->type = newTypeFunc(table, &expr->expr_callback.retType, expr->expr_callback.params_len, expr->expr_callback.params);
   return expr->type;
 }
@@ -45,7 +58,10 @@ struct Type *typeExprStruct(struct SymbolTable *table, struct Expr *expr) {
           f1->name.length, f1->name.start);
     }
 
+    struct Type *type = table->scope->varType;
+    table->scope->varType = f2->type;
     struct Type *value = typeExpr(table, f1->expr);
+    table->scope->varType = type;
 
     if (!cmpTT(table, value, f2->type) && !canImplicitConvert(table, value, f2->type)) {
       struct String t1 = getType(value, table->program->arena);
@@ -59,12 +75,41 @@ struct Type *typeExprStruct(struct SymbolTable *table, struct Expr *expr) {
   return expr->type;
 }
 
+int resolveSizeArray(struct Expr *expr) {
+  if (expr->kind == Expr_Binary) {
+    int indexL = resolveSizeArray(expr->expr_binary.left);
+    int indexR = resolveSizeArray(expr->expr_binary.right);
+
+    if (expr->expr_binary.op == TOKEN_PLUS)
+      return indexL + indexR;
+    else if (expr->expr_binary.op == TOKEN_MINUS)
+      return indexL - indexR;
+    else if (expr->expr_binary.op == TOKEN_ASTERISK)
+      return indexL * indexR;
+    else if (expr->expr_binary.op == TOKEN_SLASH)
+      return indexL / indexR;
+  }
+
+  else if (expr->kind == Expr_Literal) {
+    if (expr->expr_literal.kind == LITERAL_INTEGER)
+      return expr->expr_literal.literal.numInt;
+    else if (expr->expr_literal.kind == LITERAL_UINTEGER)
+      return expr->expr_literal.literal.numUint;
+  }
+
+  else if (expr->kind == Expr_Cast)
+    return resolveSizeArray(expr->expr_cast.value);
+
+  return -1;
+}
+
 struct Type *typeExprArray(struct SymbolTable *table, struct Expr *expr) {
   struct Type *type = arena_alloc(table->program->arena, sizeof(struct Type));
   type->kind = Type_Array;
 
-  if (table->scope->varType == Type_Auto) {
+  if (table->scope->varType->kind == Type_Auto) {
     type->type_array.base = typeExpr(table, expr->expr_array.exprs[0]);
+    type->type_array.expr_resolved = expr->expr_array.exprs_len;
   } else {
     if (table->scope->varType->kind != Type_Array) {
       struct String str = getType(table->scope->varType, table->program->arena);
@@ -72,9 +117,21 @@ struct Type *typeExprArray(struct SymbolTable *table, struct Expr *expr) {
     }
 
     type->type_array.base = table->scope->varType->type_array.base;
+    if (table->scope->varType->type_array.expr != NULL) {
+      type->type_array.expr = table->scope->varType->type_array.expr;
+      int size = resolveSizeArray(table->scope->varType->type_array.expr);
+      if (size < 0)
+        errorLang(table->program->filename, expr->line, expr->column, "'%.*s' declared as an array with a negative size");
+      type->type_array.expr_resolved = size;
+    } else type->type_array.expr_resolved = expr->expr_array.exprs_len;
   }
 
+  if (table->scope->varType->kind != Type_Auto && table->scope->varType->type_array.expr != NULL &&
+      type->type_array.expr_resolved < expr->expr_array.exprs_len)
+    errorLang(table->program->filename, expr->line, expr->column, "excess elements in array");
+
   for (int i = 0; i < expr->expr_array.exprs_len; i++) {
+    table->scope->varType = type->type_array.base;
     struct Type *value = typeExpr(table, expr->expr_array.exprs[i]);
 
     if (!cmpTT(table, value, type->type_array.base) && !canImplicitConvert(table, value, type->type_array.base)) {
@@ -90,6 +147,11 @@ struct Type *typeExprArray(struct SymbolTable *table, struct Expr *expr) {
 }
 
 struct Type *typeExprLiteral(struct SymbolTable *table, struct Expr *expr) {
+  if (table->scope->varType != NULL && table->scope->varType->kind != Type_Auto) {
+    expr->type = table->scope->varType;
+    return expr->type;
+  }
+
   if (expr->expr_literal.kind == LITERAL_INTEGER) {
     if (isByte(expr->expr_literal.literal.numInt))
       expr->type = typePrimitive(table, Primitive_Byte);

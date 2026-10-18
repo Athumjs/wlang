@@ -82,7 +82,7 @@ struct Type *typeExprBinary(struct SymbolTable *table, struct Expr *expr) {
   struct Type *left = typeExpr(table, expr->expr_binary.left);
   struct Type *right = typeExpr(table, expr->expr_binary.right);
 
-  if (!canImplicitConvert(table, left, right) && !canImplicitConvert(table, right, left)) {
+  if (!canImplicitConvert(table, left, right) && !canImplicitConvert(table, right, left) && !(isPointer(left) && isInteger(right)) && !(isPointer(right) && isInteger(left))) {
       struct String s1 = getType(left, table->program->arena);
       struct String s2 = getType(right, table->program->arena);
       errorLang(table->program->filename, expr->line, expr->column, "operator '%s' cannot be applied to types '%.*s' and '%.*s'",

@@ -9,6 +9,7 @@ void enterScope(struct SymbolTable *table) {
   temp->symbols = hashmap_new(table->program->arena, 64 * sizeof(struct Symbol *));
   temp->prev = table->scope;
   temp->expectType = table->scope->expectType;
+  temp->currentStruct = table->scope->currentStruct;
   table->scope = temp;
 }
 

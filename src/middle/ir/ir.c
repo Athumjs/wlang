@@ -63,10 +63,10 @@ struct IRFunction *newFunc(struct String *name, size_t params_len, struct Param 
   int64_t iBlock = newBlock(&func, arena);
   for (int i = 0; i < params_len; i++) {
     struct Param *param = &(*params)[i];
-    func.params[i].type = param->type;
+    func.params[i].type = resolveTypeIR(param->type, arena);
     func.params[i].vl = func.reg++;
     newDef(param->symbol, &func, arena);
-    setCurrentDef(func.ssa, &param->name, 1, &func.params[i], iBlock, arena);
+    setCurrentDef(func.ssa, &param->name, 1, &func.params[i], &func.blocks[iBlock], arena);
   }
 
   struct IRBasicBlock *block = &func.blocks[iBlock];
@@ -98,7 +98,7 @@ struct IRInstruction *newInst(enum IROpcode opcode, struct Type *type, uint8_t i
 
   block->instructions[block->instructions_len++] = (struct IRInstruction){
     .opcode = opcode,
-    .type = type,
+    .type = resolveTypeIR(type, arena),
     .vl = isVl ? (*block->reg)++ : -1,
     .operands = arena_alloc(arena, operands_len * sizeof(struct IROperand)),
     .operands_len = 0
@@ -158,5 +158,12 @@ void addOperandFCmp(enum IRFCMP opcode, struct IRInstruction *inst) {
       .kind = CMP_FLOAT,
       .fcmp = opcode
     }
+  };
+}
+
+void addOperandType(struct Type *type, struct IRInstruction *inst, struct Arena *arena) {
+  inst->operands[inst->operands_len++] = (struct IROperand){
+    .kind = Operand_Type,
+    .type = resolveTypeIR(type, arena)
   };
 }

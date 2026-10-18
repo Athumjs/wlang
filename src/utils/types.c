@@ -176,7 +176,7 @@ uint8_t cmpTP(struct Type *t1, enum PrimitiveType t2) {
 }
 
 void resolveType(struct SymbolTable *table, struct Type **type) {
-  if (*type == NULL) {
+  if (*type == NULL || ((*type)->type_named.name.length == 4 && memcmp((*type)->type_named.name.start, "auto", 4) == 0)) {
     *type = arena_alloc(table->program->arena, sizeof(struct Type));
     (*type)->kind = Type_Auto;
     return;

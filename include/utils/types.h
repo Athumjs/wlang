@@ -50,6 +50,7 @@ struct Type {
     struct {
       struct Type *base;
       struct Expr *expr;
+      int64_t expr_resolved;
     } type_array;
     
     struct {

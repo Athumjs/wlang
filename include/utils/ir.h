@@ -1,6 +1,5 @@
 #pragma once
 
-#include <utils/types.h>
 #include <utils/literal.h>
 #include <stddef.h>
 
@@ -30,9 +29,59 @@
   X(OPCODE_PHI, "phi") \
   X(OPCODE_BR, "br") \
   X(OPCODE_JMP, "jmp") \
+  X(OPCODE_CALL, "call") \
   X(OPCODE_ICMP, "icmp") \
   X(OPCODE_FCMP, "fcmp") \
+  X(OPCODE_TRUNC, "trunc") \
+  X(OPCODE_ZEXT, "zext") \
+  X(OPCODE_SEXT, "sext") \
+  X(OPCODE_FPTRUNC, "fptrunc") \
+  X(OPCODE_FPEXT, "fpext") \
+  X(OPCODE_FP2UI, "fp2ui") \
+  X(OPCODE_FP2SI, "fp2si") \
+  X(OPCODE_UI2FP, "ui2fp") \
+  X(OPCODE_SI2FP, "si2fp") \
+  X(OPCODE_PTR2INT, "ptr2int") \
+  X(OPCODE_INT2PTR, "int2ptr") \
+  X(OPCODE_GEP, "gep") \
   X(OPCODE_RET, "ret")
+
+#define IRTYPES \
+  X(IRTYPE_i1, "i1") \
+  X(IRTYPE_i8, "i8") \
+  X(IRTYPE_i16, "i16") \
+  X(IRTYPE_i32, "i32") \
+  X(IRTYPE_i64, "i64") \
+  X(IRTYPE_f32, "f32") \
+  X(IRTYPE_f64, "f64") \
+  X(IRTYPE_ptr, "ptr") \
+  X(IRTYPE_void, "void")
+
+enum IRTypes {
+#define X(name, str) name,
+  IRTYPES
+#undef X
+};
+
+enum IRTypeKind {
+  IRTYPEK_ARRAY,
+  IRTYPEK_STRUCT,
+  IRTYPEK_OTHER,
+  IRTYPEK_NULL
+};
+
+struct IRType {
+  enum IRTypeKind kind;
+
+  union {
+    enum IRTypes other;
+
+    struct {
+      size_t size;
+      struct IRType *type;
+    } array;
+  };
+};
 
 enum IRCMPKind {
   CMP_INT,
@@ -93,13 +142,22 @@ struct IRValue {
   };
 };
 
+struct IRCall {
+  struct IROperand *args;
+  size_t args_len;
+  struct IROperand *operand;
+};
+
 enum IROperandKind {
   Operand_Global,
   Operand_Register,
   Operand_Constant,
   Operand_Block,
   Operand_Cmp,
-  Operand_Phi
+  Operand_Phi,
+  Operand_Type,
+  Operand_Call,
+  Operand_String
 };
 
 struct IROperand {
@@ -110,6 +168,9 @@ struct IROperand {
     struct IRValue constant;
     struct IRCMP cmp;
     struct IRPhi phi;
+    struct IRType type;
+    struct IRCall call;
+    struct String *string;
   };
 };
 
@@ -121,7 +182,7 @@ enum IROpcode {
 
 struct IRInstruction {
   enum IROpcode opcode;
-  struct Type *type;
+  struct IRType type;
   int64_t vl;
   struct IROperand *operands;
   size_t operands_len;
@@ -141,7 +202,7 @@ struct IRBasicBlock {
 };
 
 struct IRParameter {
-  struct Type *type;
+  struct IRType type;
   int64_t vl;
 };
 
@@ -168,6 +229,6 @@ struct IRFunction {
 
 struct IRGlobal {
   int64_t vl;
-  struct Type *type;
+  struct IRType type;
   struct IROperand value;
 };

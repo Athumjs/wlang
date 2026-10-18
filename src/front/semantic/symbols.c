@@ -26,7 +26,12 @@ void varSymbol(struct SymbolTable *table, struct Decl *decl, uint8_t isPublic) {
     struct Var *var = &decl->decl_variable.vars[i];
     addSymbolVar(table, var, decl->decl_variable.isConst, isPublic);
     table->scope->varType = var->type;
-    if (var->expr != NULL) resolveExpr(table, var->expr);
+    if (var->expr != NULL) {
+      struct Symbol *symbol = resolveExpr(table, var->expr);
+      if (symbol != NULL && !(var->expr->kind == Expr_Unary && var->expr->expr_unary.op == TOKEN_ASTERISK))
+        var->symbol->isPtr = symbol->isPtr;
+    }
+    table->scope->varType = NULL;
   }
 }
 
@@ -39,6 +44,10 @@ struct Type *newTypeFunc(struct SymbolTable *table, struct Type **t, int pl, str
   type->type_function.params = arena_alloc(table->program->arena, type->type_function.params_len * sizeof(struct Type *));
   for (int i = 0; i < type->type_function.params_len; i++) {
     resolveType(table, &ps[i].type);
+
+    if (ps[i].type->kind == Type_Auto)
+      errorLang(table->program->filename, ps[i].line, ps[i].column, "parameters must have explicit types");
+
     type->type_function.params[i] = ps[i].type;
   }
   return type;

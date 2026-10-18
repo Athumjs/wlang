@@ -1,5 +1,36 @@
 #include <utils/numeric.h>
 
+uint8_t rankType(struct Type *type) {
+  if (type->kind != Type_Primitive) return 0;
+
+  switch (type->type_primitive.type) {
+    case Primitive_Byte:
+    case Primitive_Ubyte:
+      return 1;
+
+    case Primitive_Short:
+    case Primitive_Ushort:
+      return 2;
+
+    case Primitive_Integer:
+    case Primitive_Uinteger:
+      return 3;
+
+    case Primitive_Long:
+    case Primitive_Ulong:
+      return 4;
+
+    case Primitive_Float:
+      return 5;
+
+    case Primitive_Double:
+      return 6;
+
+    default:
+      return 0;
+  }
+}
+
 uint8_t isInteger(struct Type *type) {
   if (type->kind != Type_Primitive) return 0;
 
