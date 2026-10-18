@@ -9,6 +9,8 @@ file(GLOB_RECURSE WLANG_SOURCES CONFIGURE_DEPENDS
 )
 
 add_executable(wl ${WLANG_SOURCES})
+target_compile_options(wl PRIVATE -fsanitize=address -g)
+target_link_options(wl PRIVATE -fsanitize=address)
 target_include_directories(wl
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src

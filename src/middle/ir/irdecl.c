@@ -5,31 +5,32 @@ void irVarLocal(struct Decl *decl, struct IRModule *module, struct IRFunction *f
     struct Var *var = &decl->decl_variable.vars[i];
 
     if (var->expr != NULL) {
-      struct IROperand ref = irExpr(var->expr, module, func, block, arena).operand;
+      struct IRExpr ref = irExpr(var->expr, module, func, block, arena);
 
       if (var->symbol->isPtr) {
         if (block->instructions[block->instructions_len - 1].opcode == OPCODE_LOAD) {
-          block->instructions_len--;
           (*block->reg)--;
-          ref.ref--;
+          ref.operand.ref = block->instructions[block->instructions_len - 1].operands[0].ref;
+          block->instructions_len--;
         }
 
         struct IRInstruction *inst = newInst(OPCODE_ALLOCA, var->symbol->type, 1, 0, block, arena);
         struct IRInstruction *store = newInst(OPCODE_STORE, var->symbol->type, 0, 2, block, arena);
-        store->operands[store->operands_len++] = ref;
+        store->operands[store->operands_len++] = ref.operand;
         addOperandRef(3, inst->vl, store);
         newDef(var->symbol, func, arena);
         setCurrentDef(func->ssa, &var->name, 0, inst, block, arena);
         continue;
       }
       
-      if (ref.kind == Operand_Constant) {
+      if (ref.operand.kind == Operand_Constant) {
         struct IRInstruction *inst = newInst(OPCODE_CONST, var->symbol->type, 1, 1, block, arena);
-        inst->operands[inst->operands_len++] = ref;
+        inst->operands[inst->operands_len++] = ref.operand;
+        ref.inst = inst;
       }
 
       newDef(var->symbol, func, arena);
-      setCurrentDef(func->ssa, &var->name, 0, &block->instructions[block->instructions_len - 1], block, arena);
+      setCurrentDef(func->ssa, &var->name, 0, ref.inst, block, arena);
       continue;
     }
 

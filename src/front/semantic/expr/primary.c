@@ -71,7 +71,7 @@ struct Symbol *resolveExprStruct(struct SymbolTable *table, struct Expr *expr) {
 }
 
 struct Symbol *resolveExprArray(struct SymbolTable *table, struct Expr *expr) {
-  if (table->scope->varType->kind != Type_Auto &&
+  if (table->scope->varType->kind != Type_Auto && table->scope->varType->type_array.expr != NULL &&
       table->scope->varType->type_array.expr->kind == Expr_Identifier)
     errorLang(table->program->filename, expr->line, expr->column, "array size must be a constant expression");
 

@@ -3,7 +3,7 @@
 #include <string.h>
 #include <utils/numeric.h>
 
-struct IROperand irAssign(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
+struct IRExpr irAssign(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
   if (expr->expr_binary.op == TOKEN_ASSIGN) {
     struct IROperand refr = irExpr(expr->expr_binary.right, module, func, block, arena).operand; 
 
@@ -11,9 +11,9 @@ struct IROperand irAssign(struct Expr *expr, struct IRModule *module, struct IRF
       struct IROperand refl = irExpr(expr->expr_binary.left, module, func, block, arena).operand;
 
       if (block->instructions[block->instructions_len - 1].opcode == OPCODE_LOAD) {
-        block->instructions_len--;
         (*block->reg)--;
-        refl.ref--;
+        refl.ref = block->instructions[block->instructions_len - 1].operands[0].ref;
+        block->instructions_len--;
       }
 
 		  struct IRInstruction *inst = newInst(OPCODE_STORE, expr->type, 0, 2, block, arena);
@@ -33,7 +33,7 @@ struct IROperand irAssign(struct Expr *expr, struct IRModule *module, struct IRF
         struct IRInstruction *inst = newInst(OPCODE_STORE, expr->type, 0, 2, block, arena);
         inst->operands[inst->operands_len++] = refr;
         addOperandRef(3, def->inst->vl, inst);
-        return (struct IROperand){};
+        return (struct IRExpr){0};
       }
 
 			if (expr->expr_binary.right->kind == Expr_Literal) {
@@ -44,7 +44,7 @@ struct IROperand irAssign(struct Expr *expr, struct IRModule *module, struct IRF
       setCurrentDef(func->ssa, &expr->expr_binary.left->expr_identifier.name, 0, &block->instructions[block->instructions_len - 1], block, arena);
 		}
 
-    return (struct IROperand){};
+    return (struct IRExpr){0};
   }
   
   struct IROperand refl = irExpr(expr->expr_binary.left, module, func, block, arena).operand;
@@ -78,6 +78,8 @@ struct IROperand irAssign(struct Expr *expr, struct IRModule *module, struct IRF
 
   else
     setCurrentDef(func->ssa, &expr->expr_binary.left->expr_identifier.name, 0, &block->instructions[block->instructions_len - 1], block, arena);
+
+  return (struct IRExpr){0};
 }
 
 struct IRExpr irLogical(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
@@ -137,7 +139,7 @@ struct IRExpr irLogical(struct Expr *expr, struct IRModule *module, struct IRFun
   return irexpr;
 }
 
-struct IROperand irCompare(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
+struct IRExpr irCompare(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
   struct IROperand refl = irExpr(expr->expr_binary.left, module, func, block, arena).operand;
   struct IROperand refr = irExpr(expr->expr_binary.right, module, func, block, arena).operand;
   struct IRInstruction *inst = newInst(OPCODE_ICMP, expr->type, 1, 3, block, arena);
@@ -196,13 +198,16 @@ struct IROperand irCompare(struct Expr *expr, struct IRModule *module, struct IR
 
   inst->operands[inst->operands_len++] = refl;
   inst->operands[inst->operands_len++] = refr;
-  return (struct IROperand){
-    .kind = Operand_Register,
-    .ref = inst->vl
+  return (struct IRExpr){
+    .inst = inst,
+    .operand = (struct IROperand){
+      .kind = Operand_Register,
+      .ref = inst->vl
+    }
   };
 }
 
-struct IROperand irBinary(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
+struct IRExpr irBinary(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
   enum IROpcode opc = OPCODE_ADD;
 
   if (expr->expr_binary.op == TOKEN_BIT_AND)
@@ -260,13 +265,16 @@ struct IROperand irBinary(struct Expr *expr, struct IRModule *module, struct IRF
   inst->operands[inst->operands_len++] = refl;
   inst->operands[inst->operands_len++] = refr;
 
-  return (struct IROperand){
-    .kind = Operand_Register,
-    .ref = inst->vl
+  return (struct IRExpr){
+    .inst = inst,
+    .operand = (struct IROperand){
+      .kind = Operand_Register,
+      .ref = inst->vl
+    }
   };
 }
 
-struct IROperand irCast(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
+struct IRExpr irCast(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
   enum IROpcode opc = OPCODE_TRUNC;
 
   if (isFloating(expr->expr_cast.type)) {
@@ -301,13 +309,16 @@ struct IROperand irCast(struct Expr *expr, struct IRModule *module, struct IRFun
   inst->operands[inst->operands_len++] = operand;
   addOperandType(expr->expr_cast.type, inst, arena);
 
-  return (struct IROperand){
-   .kind = Operand_Register,
-   .ref = inst->vl
+  return (struct IRExpr){
+    .inst = inst,
+    .operand = (struct IROperand){
+      .kind = Operand_Register,
+      .ref = inst->vl
+    }
   };
 }
 
-struct IROperand irUnary(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
+struct IRExpr irUnary(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
   struct IROperand operand = irExpr(expr->expr_unary.arg, module, func, block, arena).operand;
 
   if (expr->expr_unary.op == TOKEN_NOT || expr->expr_unary.op == TOKEN_BIT_NOT) {
@@ -321,9 +332,12 @@ struct IROperand irUnary(struct Expr *expr, struct IRModule *module, struct IRFu
       }
     };
 
-    return (struct IROperand){
-      .kind = Operand_Register,
-      .ref = inst->vl
+    return (struct IRExpr){
+      .inst = inst,
+      .operand = (struct IROperand){
+        .kind = Operand_Register,
+        .ref = inst->vl
+      }
     };
   }
 
@@ -331,9 +345,12 @@ struct IROperand irUnary(struct Expr *expr, struct IRModule *module, struct IRFu
     struct IRInstruction *inst = newInst(OPCODE_LOAD, expr->type, 1, 1, block, arena);
     inst->operands[inst->operands_len++] = operand;
 
-    return (struct IROperand){
-      .kind = Operand_Register,
-      .ref = inst->vl
+    return (struct IRExpr){
+      .inst = inst,
+      .operand = (struct IROperand){
+        .kind = Operand_Register,
+        .ref = inst->vl
+      }
     };
   }
 
@@ -374,17 +391,29 @@ struct IROperand irUnary(struct Expr *expr, struct IRModule *module, struct IRFu
       operand.kind = Operand_Global;
       store->operands[store->operands_len++] = operand;
       operand.kind = Operand_Register;
-      return (struct IROperand){};
+      return (struct IRExpr){0};
     } else setCurrentDef(func->ssa, &expr->expr_unary.arg->expr_identifier.name, 0, inst, block, arena);
 
-    return res;
+    return (struct IRExpr){
+      .inst = inst,
+      .operand = res
+    };
   }
 
-  return operand;
+  return (struct IRExpr){
+    .operand = operand
+  };
 }
 
-struct IROperand irIndex(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
+struct IRExpr irIndex(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
   struct IROperand refbase = irExpr(expr->expr_index.base, module, func, block, arena).operand;
+
+  if (block->instructions[block->instructions_len - 1].opcode == OPCODE_LOAD) {
+    (*block->reg)--;
+    refbase.ref = block->instructions[block->instructions_len - 1].operands[0].ref;
+    block->instructions_len--;
+  }
+
   struct IROperand refindex = irExpr(expr->expr_index.index, module, func, block, arena).operand;
   struct IRInstruction *inst = newInst(OPCODE_GEP, expr->expr_index.base->type, 1, 3, block, arena);
   inst->operands[inst->operands_len++] = refbase;
@@ -407,13 +436,15 @@ struct IROperand irIndex(struct Expr *expr, struct IRModule *module, struct IRFu
   struct IRInstruction *load = newInst(OPCODE_LOAD, type, 1, 1, block, arena);
   addOperandRef(3, inst->vl, load);
 
-  return (struct IROperand){
-    .kind = Operand_Register,
-    .ref = load->vl
+  return (struct IRExpr){
+    .operand = (struct IROperand){
+      .kind = Operand_Register,
+      .ref = load->vl
+    }
   };
 }
 
-struct IROperand irCall(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
+struct IRExpr irCall(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
   struct IROperand operand = (struct IROperand){
     .kind = Operand_Call,
     .call = (struct IRCall){
@@ -432,19 +463,22 @@ struct IROperand irCall(struct Expr *expr, struct IRModule *module, struct IRFun
   if (cmpTP(expr->type, Primitive_Void)) {
     struct IRInstruction *inst = newInst(OPCODE_CALL, expr->type, 0, 1, block, arena);
     inst->operands[inst->operands_len++] = operand;
-    return (struct IROperand){};
+    return (struct IRExpr){0};
   }
 
   struct IRInstruction *inst = newInst(OPCODE_CALL, expr->type, 1, 1, block, arena);
   inst->operands[inst->operands_len++] = operand;
 
-  return (struct IROperand){
-    .kind = Operand_Register,
-    .ref = inst->vl
+  return (struct IRExpr){
+    .inst = inst,
+    .operand = (struct IROperand){
+      .kind = Operand_Register,
+      .ref = inst->vl
+    }
   };
 }
 
-struct IROperand irCallback(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
+struct IRExpr irCallback(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
   struct String *name = arena_alloc(arena, sizeof(struct String));
   int len = 7 + getNumCase(module->functions_len);
   char *buffer = arena_alloc(arena, len);
@@ -462,9 +496,11 @@ struct IROperand irCallback(struct Expr *expr, struct IRModule *module, struct I
     f->blocks[f->blocks_len - 1].term = 1;
   }
 
-  return (struct IROperand){
-    .kind = Operand_String,
-    .string = name
+  return (struct IRExpr){
+    .operand = (struct IROperand){
+      .kind = Operand_String,
+      .string = name
+    }
   };
 }
 
@@ -498,23 +534,28 @@ void fillArray(int64_t vl, struct Expr *expr, struct IRModule *module, struct IR
   }
 }
 
-struct IROperand irArray(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
+struct IRExpr irArray(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
   struct IRInstruction *inst = newInst(OPCODE_ALLOCA, expr->type, 1, 0, block, arena); 
   fillArray(inst->vl, expr, module, func, block, arena);
-  return (struct IROperand){
-    .kind = Operand_Register,
-    .ref = inst->vl
+  return (struct IRExpr){
+    .inst = inst,
+    .operand = (struct IROperand){
+      .kind = Operand_Register,
+      .ref = inst->vl
+    }
   };
 }
 
-struct IROperand irId(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
+struct IRExpr irId(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
   struct Symbol *symbol = expr->expr_identifier.symbol;
   int64_t vl;
 
   if (symbol->kind == Symbol_Function) {
-    return (struct IROperand){
-      .kind = Operand_String,
-      .string = &symbol->name
+    return (struct IRExpr){
+      .operand = (struct IROperand){
+        .kind = Operand_String,
+        .string = &symbol->name
+      }
     };
   }
 
@@ -537,35 +578,39 @@ struct IROperand irId(struct Expr *expr, struct IRModule *module, struct IRFunct
     }
   };
 
-  return (struct IROperand){
-    .kind = Operand_Register,
-    .ref = vl
+  return (struct IRExpr){
+    .operand = (struct IROperand){
+      .kind = Operand_Register,
+      .ref = vl
+    }
   };
 }
 
-struct IROperand irLiteral(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
-  return (struct IROperand){
-    .kind = Operand_Constant,
-    .constant = irNumber(expr)
+struct IRExpr irLiteral(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
+  return (struct IRExpr){
+    .operand = (struct IROperand){
+      .kind = Operand_Constant,
+      .constant = irNumber(expr)
+    }
   };
 }
 
 struct IRExpr irExpr(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
   struct IRExpr irExpr = {0};
-  irExpr.block = block;
 
-  if (expr->kind == Expr_Assign) irExpr.operand = irAssign(expr, module, func, block, arena);
+  if (expr->kind == Expr_Assign) irExpr = irAssign(expr, module, func, block, arena);
   else if (expr->kind == Expr_Logical) irExpr = irLogical(expr, module, func, block, arena);
-  else if (expr->kind == Expr_Compare) irExpr.operand = irCompare(expr, module, func, block, arena);
-  else if (expr->kind == Expr_Binary) irExpr.operand = irBinary(expr, module, func, block, arena);
-  else if (expr->kind == Expr_Cast) irExpr.operand = irCast(expr, module, func, block, arena);
-  else if (expr->kind == Expr_Unary) irExpr.operand = irUnary(expr, module, func, block, arena);
-  else if (expr->kind == Expr_Index) irExpr.operand = irIndex(expr, module, func, block, arena);
-  else if (expr->kind == Expr_Call) irExpr.operand = irCall(expr, module, func, block, arena);
-  else if (expr->kind == Expr_Callback) irExpr.operand = irCallback(expr, module, func, block, arena);
-  else if (expr->kind == Expr_Array) irExpr.operand = irArray(expr, module, func, block, arena);
-  else if (expr->kind == Expr_Identifier) irExpr.operand = irId(expr, module, func, block, arena);
-  else if (expr->kind == Expr_Literal) irExpr.operand = irLiteral(expr, module, func, block, arena);
+  else if (expr->kind == Expr_Compare) irExpr = irCompare(expr, module, func, block, arena);
+  else if (expr->kind == Expr_Binary) irExpr = irBinary(expr, module, func, block, arena);
+  else if (expr->kind == Expr_Cast) irExpr = irCast(expr, module, func, block, arena);
+  else if (expr->kind == Expr_Unary) irExpr = irUnary(expr, module, func, block, arena);
+  else if (expr->kind == Expr_Index) irExpr = irIndex(expr, module, func, block, arena);
+  else if (expr->kind == Expr_Call) irExpr = irCall(expr, module, func, block, arena);
+  else if (expr->kind == Expr_Callback) irExpr = irCallback(expr, module, func, block, arena);
+  else if (expr->kind == Expr_Array) irExpr = irArray(expr, module, func, block, arena);
+  else if (expr->kind == Expr_Identifier) irExpr = irId(expr, module, func, block, arena);
+  else if (expr->kind == Expr_Literal) irExpr = irLiteral(expr, module, func, block, arena);
 
+  if (irExpr.block == NULL) irExpr.block = block;
   return irExpr;
 }

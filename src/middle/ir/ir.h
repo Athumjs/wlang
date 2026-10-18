@@ -19,6 +19,7 @@ struct IRDef {
 
 struct IRExpr {
   struct IRBasicBlock *block;
+  struct IRInstruction *inst;
   struct IROperand operand;
 };
 
