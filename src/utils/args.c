@@ -13,6 +13,7 @@ struct Args *resolveArgs(int argc, char **argv, struct Arena *arena)
   int current_op = 0;
   struct option options[] = {
       {"help", no_argument, 0, 'h'},
+      {"version", no_argument, 0, 'v'},
       {"output", required_argument, 0, 'o'},
       {0, 0, 0, 0} //
   };
@@ -43,7 +44,7 @@ struct Args *resolveArgs(int argc, char **argv, struct Arena *arena)
     }
   }
 
-  while ((current_op = getopt_long(argc, argv, "ho:", options, NULL)) != -1)
+  while ((current_op = getopt_long(argc, argv, "hvo:", options, NULL)) != -1)
   {
     switch (current_op)
     {
@@ -53,6 +54,11 @@ struct Args *resolveArgs(int argc, char **argv, struct Arena *arena)
       break;
     case 'o':
       args->output_file = optarg;
+      break;
+
+    case 'v':
+      printf("Compiler: v0.1, W: none\n");
+      exit(0);
       break;
 
     case '?':
