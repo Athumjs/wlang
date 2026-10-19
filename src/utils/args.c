@@ -50,6 +50,9 @@ struct Args *resolveArgs(int argc, char **argv, struct Arena *arena)
     {
     case 'h':
       printf("Usage: wl [options] file...\n");
+      printf("\t--help or -h: Lists the commands.\n");
+      printf("\t--version or -v: W compiler and language version.\n");
+      printf("\t--output or -o: Specifies the path to the output file.\n");
       exit(0);
       break;
     case 'o':
