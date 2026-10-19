@@ -205,18 +205,31 @@ struct IRValue irNumber(struct Expr *expr) {
 }
 
 struct IRValue irValueGlobal(int64_t id, struct Expr *expr, struct IRModule *module, struct Arena *arena) {
-  if (expr->kind == Expr_Literal)
+  if (expr->kind == Expr_Literal) {
+    if (expr->expr_literal.kind == LITERAL_STRING) {
+      if (expr->type->kind == Type_Array) {
+        return (struct IRValue){
+          .kind = Value_String,
+          .s = &expr->expr_literal.literal.string
+        };
+      }
+    }
+
     return irNumber(expr);
+  }
 
   if (module->init.blocks_len == 0)
     newBlock(&module->init, arena);
+
+  if (module->init.blocks[0].term)
+    module->init.blocks[0].instructions_len--;
 
   struct IROperand ref = irExpr(expr, module, &module->init, &module->init.blocks[0], arena).operand;
   struct IRInstruction *inst = newInst(OPCODE_STORE, expr->type, 0, 2, &module->init.blocks[0], arena);
   inst->operands[inst->operands_len++] = ref;
   addOperandRef(1, id, inst);
   newInst(OPCODE_RET, NULL, 0, 0, &module->init.blocks[0], arena);
-
+  module->init.blocks[0].term = 1;
   return (struct IRValue){
     .kind = Value_Int,
     .i = 0

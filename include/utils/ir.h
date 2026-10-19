@@ -44,6 +44,7 @@
   X(OPCODE_PTR2INT, "ptr2int") \
   X(OPCODE_INT2PTR, "int2ptr") \
   X(OPCODE_GEP, "gep") \
+  X(OPCODE_MEMCPY, "memcpy") \
   X(OPCODE_RET, "ret")
 
 #define IRTYPES \

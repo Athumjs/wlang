@@ -40,7 +40,7 @@ void printValue(struct IRValue *value) {
   else if (value->kind == Value_Double)
     printf("%f", value->d);
   else if (value->kind == Value_String)
-    printf("%.*s", value->s->length, value->s->start);
+    printf("\"%.*s\\0\"", value->s->length, value->s->start);
 }
 
 void printOperand(struct IROperand *op, struct Arena *arena);
@@ -135,6 +135,7 @@ void printOperand(struct IROperand *op, struct Arena *arena) {
 void showIR(struct IRModule *ir, struct Arena *arena) {
   printf("IR\n\n");
   for (int i = 0; i < ir->globals_len; i++) {
+    printf("@%ld = ", ir->globals[i].vl);
     printType(&ir->globals[i].type);
     printOperand(&ir->globals[i].value, arena);
     printf("\n");

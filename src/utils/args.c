@@ -60,7 +60,7 @@ struct Args *resolveArgs(int argc, char **argv, struct Arena *arena)
       break;
 
     case 'v':
-      printf("Compiler: v0.1, W: none\n");
+      printf("Compiler: v%s\n", WCOMPILER_VERSION_STR);
       exit(0);
       break;
 

@@ -1,6 +1,35 @@
 #pragma once
 
+#include <utils/nodes.h>
 #include <utils/numeric.h>
+
+static int resolveSizeArray(struct Expr *expr) {
+  if (expr->kind == Expr_Binary) {
+    int indexL = resolveSizeArray(expr->expr_binary.left);
+    int indexR = resolveSizeArray(expr->expr_binary.right);
+
+    if (expr->expr_binary.op == TOKEN_PLUS)
+      return indexL + indexR;
+    else if (expr->expr_binary.op == TOKEN_MINUS)
+      return indexL - indexR;
+    else if (expr->expr_binary.op == TOKEN_ASTERISK)
+      return indexL * indexR;
+    else if (expr->expr_binary.op == TOKEN_SLASH)
+      return indexL / indexR;
+  }
+
+  else if (expr->kind == Expr_Literal) {
+    if (expr->expr_literal.kind == LITERAL_INTEGER)
+      return expr->expr_literal.literal.numInt;
+    else if (expr->expr_literal.kind == LITERAL_UINTEGER)
+      return expr->expr_literal.literal.numUint;
+  }
+
+  else if (expr->kind == Expr_Cast)
+    return resolveSizeArray(expr->expr_cast.value);
+
+  return -1;
+}
 
 static inline uint8_t isNumeric(struct Type *type) {
   if (type->kind != Type_Primitive) return 0;

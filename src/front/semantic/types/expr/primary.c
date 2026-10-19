@@ -75,34 +75,6 @@ struct Type *typeExprStruct(struct SymbolTable *table, struct Expr *expr) {
   return expr->type;
 }
 
-int resolveSizeArray(struct Expr *expr) {
-  if (expr->kind == Expr_Binary) {
-    int indexL = resolveSizeArray(expr->expr_binary.left);
-    int indexR = resolveSizeArray(expr->expr_binary.right);
-
-    if (expr->expr_binary.op == TOKEN_PLUS)
-      return indexL + indexR;
-    else if (expr->expr_binary.op == TOKEN_MINUS)
-      return indexL - indexR;
-    else if (expr->expr_binary.op == TOKEN_ASTERISK)
-      return indexL * indexR;
-    else if (expr->expr_binary.op == TOKEN_SLASH)
-      return indexL / indexR;
-  }
-
-  else if (expr->kind == Expr_Literal) {
-    if (expr->expr_literal.kind == LITERAL_INTEGER)
-      return expr->expr_literal.literal.numInt;
-    else if (expr->expr_literal.kind == LITERAL_UINTEGER)
-      return expr->expr_literal.literal.numUint;
-  }
-
-  else if (expr->kind == Expr_Cast)
-    return resolveSizeArray(expr->expr_cast.value);
-
-  return -1;
-}
-
 struct Type *typeExprArray(struct SymbolTable *table, struct Expr *expr) {
   struct Type *type = arena_alloc(table->program->arena, sizeof(struct Type));
   type->kind = Type_Array;
@@ -119,10 +91,9 @@ struct Type *typeExprArray(struct SymbolTable *table, struct Expr *expr) {
     type->type_array.base = table->scope->varType->type_array.base;
     if (table->scope->varType->type_array.expr != NULL) {
       type->type_array.expr = table->scope->varType->type_array.expr;
-      int size = resolveSizeArray(table->scope->varType->type_array.expr);
-      if (size < 0)
-        errorLang(table->program->filename, expr->line, expr->column, "'%.*s' declared as an array with a negative size");
-      type->type_array.expr_resolved = size;
+      type->type_array.expr_resolved = resolveSizeArray(table->scope->varType->type_array.expr);
+      if (type->type_array.expr_resolved < 0)
+        errorLang(table->program->filename, expr->line, expr->column, "declared as an array with a negative size");
     } else type->type_array.expr_resolved = expr->expr_array.exprs_len;
   }
 
@@ -147,11 +118,6 @@ struct Type *typeExprArray(struct SymbolTable *table, struct Expr *expr) {
 }
 
 struct Type *typeExprLiteral(struct SymbolTable *table, struct Expr *expr) {
-  if (table->scope->varType != NULL && table->scope->varType->kind != Type_Auto) {
-    expr->type = table->scope->varType;
-    return expr->type;
-  }
-
   if (expr->expr_literal.kind == LITERAL_INTEGER) {
     if (isByte(expr->expr_literal.literal.numInt))
       expr->type = typePrimitive(table, Primitive_Byte);
@@ -201,8 +167,38 @@ struct Type *typeExprLiteral(struct SymbolTable *table, struct Expr *expr) {
 
   else if (expr->expr_literal.kind == LITERAL_STRING) {
     struct Type *type = arena_alloc(table->program->arena, sizeof(struct Type));
-    type->kind = Type_Pointer;
-    type->type_pointer.base = typePrimitive(table, Primitive_Char);
+
+    if (table->scope->varType->kind != Type_Array) {
+      type->kind = Type_Pointer;
+      type->type_pointer.base = typePrimitive(table, Primitive_Char);
+      expr->type = type;
+      return expr->type;
+    }
+
+    type->kind = Type_Array;
+
+    if (table->scope->varType->kind == Type_Auto) {
+      struct Type *typebase = arena_alloc(table->program->arena, sizeof(struct Type));
+      typebase->kind = Type_Primitive;
+      typebase->type_primitive.type = Primitive_Char;
+      type->type_array.base = typebase;
+      type->type_array.expr_resolved = expr->expr_literal.literal.string.length + 1;
+    } else {
+      type->type_array.base = table->scope->varType->type_array.base;
+      if (table->scope->varType->type_array.expr != NULL) {
+        type->type_array.expr = table->scope->varType->type_array.expr;
+        type->type_array.expr_resolved = resolveSizeArray(table->scope->varType->type_array.expr);
+        if (type->type_array.expr_resolved < 0)
+          errorLang(table->program->filename, expr->line, expr->column, "declared as an array with a negative size");
+      } else type->type_array.expr_resolved = expr->expr_literal.literal.string.length + 1;
+    }
+
+    if (type->type_array.expr_resolved < expr->expr_literal.literal.string.length + 1)
+      errorLang(table->program->filename, expr->line, expr->column, "excess elements in array");
+
+    if (!cmpTP(type->type_array.base, Primitive_Char))
+      errorLang(table->program->filename, expr->line, expr->column, "incompatible types");
+
     expr->type = type;
     return expr->type;
   }

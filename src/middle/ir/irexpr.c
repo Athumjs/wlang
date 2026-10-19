@@ -587,6 +587,44 @@ struct IRExpr irId(struct Expr *expr, struct IRModule *module, struct IRFunction
 }
 
 struct IRExpr irLiteral(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
+  if (expr->expr_literal.kind == LITERAL_STRING) {
+    if (module->globals_len == module->globals_cap) {
+      size_t oldCap = module->globals_cap;
+      module->globals_cap *= 2;
+      struct IRGlobal *temp = arena_alloc(arena, module->globals_cap * sizeof(struct IRGlobal));
+      memcpy(temp, module->globals, oldCap * sizeof(struct IRGlobal));
+      module->globals = temp;
+    }
+
+    struct IRType *typebase = arena_alloc(arena, sizeof(struct IRType));
+    typebase->kind = IRTYPEK_OTHER;
+    typebase->other = IRTYPE_i8;
+    struct IRType type;
+    type.kind = IRTYPEK_ARRAY;
+    type.array.type = typebase;
+    type.array.size = expr->expr_literal.literal.string.length + 1;
+
+    struct IRGlobal global = (struct IRGlobal){
+      .vl = module->globals_len,
+      .type = type,
+      .value = (struct IROperand){
+        .kind = Operand_Constant,
+        .constant = (struct IRValue){
+          .kind = Value_String,
+          .s = &expr->expr_literal.literal.string
+        }
+      }
+    };
+
+    module->globals[module->globals_len++] = global;
+    return (struct IRExpr){
+      .operand = (struct IROperand){
+        .kind = Operand_Global,
+        .ref = global.vl
+      }
+    };
+  }
+
   return (struct IRExpr){
     .operand = (struct IROperand){
       .kind = Operand_Constant,

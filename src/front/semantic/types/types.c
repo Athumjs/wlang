@@ -17,7 +17,7 @@ void typeFunc(struct SymbolTable *table, struct Decl *decl) {
 
   if (decl->decl_function.retType->kind == Type_Auto) {
     struct Symbol *symbol = findSymbol(table->scope, &decl->decl_function.name);
-    symbol->type = table->scope->retType;
+    symbol->type->type_function.retType = table->scope->retType;
     decl->decl_function.retType = table->scope->retType;
   }
 

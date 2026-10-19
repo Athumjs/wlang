@@ -6,4 +6,5 @@ void semantic(struct SymbolTable *table, struct Module *modules) {
   resolveImports(table, modules);
   resolveScopes(table);
   resolveTypes(table);
+  resolveTypes(table);
 }

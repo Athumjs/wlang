@@ -8,7 +8,7 @@ void typeVar(struct SymbolTable *table, struct Decl *decl) {
     table->scope->varType = var->type;
     if (var->expr != NULL) {
       struct Type *ret = typeExpr(table, var->expr);
-
+      
       if (var->type->kind == Type_Auto) {
         struct Symbol *lvalue = findSymbol(table->scope, &var->name);
         lvalue->type = ret;
@@ -20,6 +20,12 @@ void typeVar(struct SymbolTable *table, struct Decl *decl) {
         struct String s2 = getType(var->type, table->program->arena);
         errorLang(table->program->filename, decl->line, decl->column, "type '%.*s' is not assignable to type '%.*s'",
             s1.length, s1.start, s2.length, s2.start);
+      }
+
+      if (var->type->kind == Type_Array) {
+        struct Symbol *lvalue = findSymbol(table->scope, &var->name);
+        lvalue->type = ret;
+        var->type = ret;
       }
     }
     table->scope->varType = NULL;
