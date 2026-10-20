@@ -8,6 +8,7 @@ struct Field {
   struct String name;
   int line;
   int column;
+  int64_t index;
 
   union {
     struct Expr *expr;
@@ -24,6 +25,7 @@ struct Method {
   struct Stmt *body;
   int line;
   int column;
+  struct Scope *scope;
 };
 
 struct Var {
@@ -136,6 +138,7 @@ struct Expr {
       struct Field *fields;
       size_t fields_len;
       size_t fields_cap;
+      struct Symbol *symbol;
     } expr_struct;
 
     struct {
@@ -149,7 +152,10 @@ struct Expr {
       union Literal literal;
     } expr_literal;
 
-    struct String expr_this;
+    struct {
+      struct String str;
+      struct Symbol *symbol;
+    } expr_this;
 
     struct {
       struct String name;
@@ -219,6 +225,7 @@ struct Decl {
       struct Method *methods;
       size_t methods_len;
       size_t methods_cap;
+      struct Symbol *symbol;
     } decl_struct;
 
     struct Decl *decl_public;

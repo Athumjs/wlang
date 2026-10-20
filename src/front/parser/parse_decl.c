@@ -180,7 +180,7 @@ void resolveStructMethods(int *i, struct Tokens *tokens, struct Program *program
 	if (decl->decl_struct.methods_len == decl->decl_struct.fields_cap) {
 	  size_t oldCap = decl->decl_struct.methods_cap;
 	  decl->decl_struct.methods_cap *= 2;
-	  struct Method *temp = arena_alloc(program->arena, decl->decl_struct.methods_cap * sizeof(struct Field));
+	  struct Method *temp = arena_alloc(program->arena, decl->decl_struct.methods_cap * sizeof(struct Method));
 	  memcpy(temp, decl->decl_struct.methods, oldCap * sizeof(struct Method));
 	  decl->decl_struct.methods = temp;
 	}
@@ -217,11 +217,8 @@ void resolveStructMethods(int *i, struct Tokens *tokens, struct Program *program
 	      .type = NULL
 	    };
 	
-	    if (PEEK() == TOKEN_COLON) {
-	      CONSUME(TOKEN_COLON);
-	      param.type = parseType(i, tokens, program);
-	    }
-	
+      CONSUME(TOKEN_COLON);
+      param.type = parseType(i, tokens, program);
 	    method.params[method.params_len++] = param;
 	    if (PEEK() == TOKEN_COMMA) CONSUME(TOKEN_COMMA);
 	    else break;

@@ -58,10 +58,10 @@ struct Type *typeExprStruct(struct SymbolTable *table, struct Expr *expr) {
           f1->name.length, f1->name.start);
     }
 
-    struct Type *type = table->scope->varType;
+    struct Type *t = table->scope->varType;
     table->scope->varType = f2->type;
     struct Type *value = typeExpr(table, f1->expr);
-    table->scope->varType = type;
+    table->scope->varType = t;
 
     if (!cmpTT(table, value, f2->type) && !canImplicitConvert(table, value, f2->type)) {
       struct String t1 = getType(value, table->program->arena);
@@ -69,6 +69,7 @@ struct Type *typeExprStruct(struct SymbolTable *table, struct Expr *expr) {
       errorLang(table->program->filename, f1->line, f1->column, "type '%.*s' is not assignable to type '%.*s'",
           t1.length, t1.start, t2.length, t2.start);
     }
+    f1->expr->type = f2->type;
   }
 
   expr->type = table->scope->varType;
@@ -168,7 +169,7 @@ struct Type *typeExprLiteral(struct SymbolTable *table, struct Expr *expr) {
   else if (expr->expr_literal.kind == LITERAL_STRING) {
     struct Type *type = arena_alloc(table->program->arena, sizeof(struct Type));
 
-    if (table->scope->varType->kind != Type_Array) {
+    if (table->scope->varType->kind != Type_Array && table->scope->varType->kind != Type_Auto) {
       type->kind = Type_Pointer;
       type->type_pointer.base = typePrimitive(table, Primitive_Char);
       expr->type = type;
@@ -210,7 +211,7 @@ struct Type *typeExprLiteral(struct SymbolTable *table, struct Expr *expr) {
 }
 
 struct Type *typeExprThis(struct SymbolTable *table, struct Expr *expr) {
-  struct Symbol *member = hashmap_get(table->scope->currentStruct->symbol_struct.items, &expr->expr_this);
+  struct Symbol *member = hashmap_get(table->scope->currentStruct->symbol_struct.items, &expr->expr_this.str);
   expr->type = member->type;
   return member->type;
 }

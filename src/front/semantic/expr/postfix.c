@@ -27,9 +27,8 @@ static inline uint8_t isMemberAcessible(struct Symbol *symbol) {
 struct Symbol *resolveExprMember(struct SymbolTable *table, struct Expr *expr) {
   struct Symbol *obj = resolveExpr(table, expr->expr_member.obj);
 
-  if (!isMemberAcessible(obj)) {
+  if (!isMemberAcessible(obj))
     errorLang(table->program->filename, expr->line, expr->column, "member reference base type is not a structure");
-  }
 
   struct Symbol *member = NULL;
   if (obj->kind == Symbol_Variable) {
@@ -37,11 +36,11 @@ struct Symbol *resolveExprMember(struct SymbolTable *table, struct Expr *expr) {
     member = hashmap_get(symbol->symbol_struct.items, &expr->expr_member.member->expr_identifier.name);
   } else member = hashmap_get(obj->symbol_enum.items, &expr->expr_member.member->expr_identifier.name);
 
-  if (member == NULL) {
+  if (member == NULL)
     errorLang(table->program->filename, expr->line, expr->column, "no member named '%.*s' in '%.*s'",
         expr->expr_member.member->expr_identifier.name.length, expr->expr_member.member->expr_identifier.name.start, obj->name.length, obj->name.start);
-  }
 
+  expr->expr_member.member->expr_identifier.symbol = member;
   return member;
 }
 

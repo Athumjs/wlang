@@ -81,6 +81,11 @@ struct IRType {
       size_t size;
       struct IRType *type;
     } array;
+
+    struct {
+      struct IRType *types;
+      size_t types_len;
+    } struct_;
   };
 };
 

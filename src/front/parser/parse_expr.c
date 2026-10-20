@@ -195,7 +195,7 @@ struct Expr *exprPrimary(int *i, struct Tokens *tokens, struct Program *program)
     struct Expr *expr = newExpr(i, tokens, program, Expr_This);
     CONSUME(TOKEN_THIS);
     CONSUME(TOKEN_DOT);
-    expr->expr_this = CONSUME(IDENTIFIER).string;
+    expr->expr_this.str = CONSUME(IDENTIFIER).string;
     return expr;
   }
 

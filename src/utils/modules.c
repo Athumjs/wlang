@@ -18,6 +18,15 @@ void printType(struct IRType *type) {
     printType(type->array.type);
     printf("] ");
   }
+
+  else if (type->kind == IRTYPEK_STRUCT) {
+    printf("{ ");
+    for (int i = 0; i < type->struct_.types_len; i++) {
+      if (i > 0) printf(", ");
+      printType(&type->struct_.types[i]);
+    }
+    printf("} ");
+  }
 }
 
 void printOpcode(enum IROpcode opcode) {

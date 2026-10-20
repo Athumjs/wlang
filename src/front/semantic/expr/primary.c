@@ -36,20 +36,18 @@ struct Symbol *resolveExprCallback(struct SymbolTable *table, struct Expr *expr)
 }
 
 struct Symbol *resolveExprStruct(struct SymbolTable *table, struct Expr *expr) {
-  if (table->scope->varType->kind == Type_Auto) {
+  if (table->scope->varType->kind == Type_Auto)
     errorLang(table->program->filename, expr->line, expr->column, "cannot infer type of struct literal");
-  }
 
-  if (table->scope->varType->kind != Type_Named) {
+  if (table->scope->varType->kind != Type_Named)
     errorLang(table->program->filename, expr->line, expr->column, "expected expression");
-  }
 
   struct Symbol *type = findSymbol(table->scope, &table->scope->varType->type_named.name);
+  expr->expr_struct.symbol = type;
 
-  if (type == NULL) {
+  if (type == NULL)
     errorLang(table->program->filename, expr->line, expr->column, "cannot find name '%.*s'", 
         table->scope->varType->type_named.name.length, table->scope->varType->type_named.name.start);
-  }
 
   if (type->kind != Symbol_Struct) {
     struct String str = getType(table->scope->varType, table->program->arena);
@@ -59,11 +57,11 @@ struct Symbol *resolveExprStruct(struct SymbolTable *table, struct Expr *expr) {
   for (int i = 0; i < expr->expr_struct.fields_len; i++) {
     struct Field *f1 = &expr->expr_struct.fields[i];
     struct Symbol *f2 = hashmap_get(type->symbol_struct.items, &f1->name);
+    f1->index = f2->index;
 
-    if (f2 == NULL) {
+    if (f2 == NULL)
       errorLang(table->program->filename, f1->line, f1->column, "cannot find name '%.*s'",
           f1->name.length, f1->name.start);
-    }
 
     resolveExpr(table, expr->expr_struct.fields[i].expr);
   }
@@ -82,17 +80,16 @@ struct Symbol *resolveExprArray(struct SymbolTable *table, struct Expr *expr) {
 }
 
 struct Symbol *resolveExprThis(struct SymbolTable *table, struct Expr *expr) {
-  if (table->scope->currentStruct == NULL) {
+  if (table->scope->currentStruct == NULL)
     errorLang(table->program->filename, expr->line, expr->column, "'this' outside of struct method");
-  }
 
-  struct Symbol *member = hashmap_get(table->scope->currentStruct->symbol_struct.items, &expr->expr_this);
+  struct Symbol *member = hashmap_get(table->scope->currentStruct->symbol_struct.items, &expr->expr_this.str);
  
-  if (member == NULL) {
+  if (member == NULL)
     errorLang(table->program->filename, expr->line, expr->column, "no member named '%.*s' in '%.*s'",
-        expr->expr_this.length, expr->expr_this.start, table->scope->currentStruct->name.length, table->scope->currentStruct->name.start);
-  }
+        expr->expr_this.str.length, expr->expr_this.str.start, table->scope->currentStruct->name.length, table->scope->currentStruct->name.start);
 
+  expr->expr_this.symbol = table->scope->currentStruct;
   return member;
 }
 
@@ -100,9 +97,8 @@ struct Symbol *resolveExprIdentifier(struct SymbolTable *table, struct Expr *exp
   struct Symbol *symbol = findSymbol(table->scope, &expr->expr_identifier.name);
   expr->expr_identifier.symbol = symbol;
 
-  if (symbol == NULL || (symbol->kind == Symbol_Variable && (expr->line < symbol->line || (expr->line == symbol->line && expr->column < symbol->column)))) {
+  if (symbol == NULL || (symbol->kind == Symbol_Variable && (expr->line < symbol->line || (expr->line == symbol->line && expr->column < symbol->column))))
     errorLang(table->program->filename, expr->line, expr->column, "cannot find name '%.*s'", expr->expr_identifier.name.length, expr->expr_identifier.name.start);
-  }
 
   return symbol;
 }

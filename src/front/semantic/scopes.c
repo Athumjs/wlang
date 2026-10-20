@@ -34,22 +34,20 @@ void resolveFunc(struct SymbolTable *table, struct Decl *decl) {
 }
 
 void resolveStruct(struct SymbolTable *table, struct Decl *decl) {
-  struct Symbol *symbol = findSymbol(table->scope, &decl->decl_struct.name);
   for (int i = 0; i < decl->decl_struct.methods_len; i++) {
     struct Method *method = &decl->decl_struct.methods[i];
-    table->scope->currentStruct = symbol;
+    enterScope(table);
+    table->scope->currentStruct = decl->decl_struct.symbol;
     table->scope->expectType = method->retType;
-
-    if (method->body->kind == Stmt_Block) {
-      enterScope(table);
-      for (int i = 0; i < method->params_len; i++) {
+    method->scope = table->scope;
+    for (int i = 0; i < method->params_len; i++)
         addSymbolParam(table, &method->params[i], 0);
-      }
-      table->scope->expectType = method->retType;
+
+    if (method->body->kind == Stmt_Block)
       method->body->stmt_block.scope = table->scope;
-    }
 
     resolveStmt(table, method->body);
+    if (method->body->kind != Stmt_Block) exitScope(table);
   }
 }
 

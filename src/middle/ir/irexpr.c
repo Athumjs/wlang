@@ -405,6 +405,47 @@ struct IRExpr irUnary(struct Expr *expr, struct IRModule *module, struct IRFunct
   };
 }
 
+struct IRExpr irMember(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
+  struct IROperand obj = irExpr(expr->expr_member.obj, module, func, block, arena).operand;
+
+  if (block->instructions[block->instructions_len - 1].opcode == OPCODE_LOAD) {
+    (*block->reg)--;
+    obj.ref = block->instructions[block->instructions_len - 1].operands[0].ref;
+    block->instructions_len--;
+  }
+
+  struct IRType type = module->globals[expr->expr_member.obj->expr_identifier.symbol->index].value.type;
+  struct IRInstruction *inst = newInst(OPCODE_GEP, NULL, 1, 3, block, arena);
+  inst->type = type;
+  inst->operands[inst->operands_len++] = obj;
+
+  inst->operands[inst->operands_len++] = (struct IROperand){
+    .kind = Operand_Constant,
+    .constant = (struct IRValue){
+      .kind = Value_Int,
+      .i = 0
+    }
+  };
+
+  inst->operands[inst->operands_len++] = (struct IROperand){
+    .kind = Operand_Constant,
+    .constant = (struct IRValue){
+      .kind = Value_Int,
+      .i = expr->expr_member.member->expr_identifier.symbol->index
+    }
+  };
+
+  struct IRInstruction *load = newInst(OPCODE_LOAD, expr->expr_member.member->expr_identifier.symbol->type, 1, 1, block, arena);
+  addOperandRef(3, inst->vl, load);
+
+  return (struct IRExpr){
+    .operand = (struct IROperand){
+      .kind = Operand_Register,
+      .ref = load->vl
+    }
+  };
+}
+
 struct IRExpr irIndex(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
   struct IROperand refbase = irExpr(expr->expr_index.base, module, func, block, arena).operand;
 
@@ -449,12 +490,28 @@ struct IRExpr irCall(struct Expr *expr, struct IRModule *module, struct IRFuncti
     .kind = Operand_Call,
     .call = (struct IRCall){
       .operand = arena_alloc(arena, sizeof(struct IROperand)),
-      .args = arena_alloc(arena, expr->expr_call.args_len * sizeof(struct IROperand)),
+      .args = NULL,
       .args_len = 0
     }
   };
 
-  *operand.call.operand = irExpr(expr->expr_call.callee, module, func, block, arena).operand;
+  if (expr->expr_call.callee->kind == Expr_Member) {
+    *operand.call.operand = (struct IROperand){
+      .kind = Operand_String,
+      .string = &expr->expr_call.callee->expr_member.member->expr_identifier.symbol->name
+    };
+
+    operand.call.args = arena_alloc(arena, (expr->expr_call.args_len + 1) * sizeof(struct IROperand));
+    operand.call.args_len++;
+    operand.call.args[0] = (struct IROperand){
+      .kind = Operand_Register,
+      .ref = getCurrentDef(func->ssa, &expr->expr_call.callee->expr_member.obj->expr_identifier.name, block, arena)->inst->vl
+    };
+  } else {
+    *operand.call.operand = irExpr(expr->expr_call.callee, module, func, block, arena).operand;
+    operand.call.args = arena_alloc(arena, expr->expr_call.args_len * sizeof(struct IROperand));
+  }
+
   for (int i = 0; i < expr->expr_call.args_len; i++) {
     struct IROperand ref = irExpr(expr->expr_call.args[i], module, func, block, arena).operand;
     operand.call.args[operand.call.args_len++] = ref;
@@ -500,6 +557,47 @@ struct IRExpr irCallback(struct Expr *expr, struct IRModule *module, struct IRFu
     .operand = (struct IROperand){
       .kind = Operand_String,
       .string = name
+    }
+  };
+}
+
+struct IRExpr irStructExpr(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
+  struct IRType type = module->globals[expr->expr_struct.symbol->index].value.type;
+  struct IRInstruction *inst = newInst(OPCODE_ALLOCA, NULL, 1, 0, block, arena);
+  inst->type = type;
+
+  for (int i = 0; i < expr->expr_struct.fields_len; i++) {
+    struct IRInstruction *field = newInst(OPCODE_GEP, NULL, 1, 3, block, arena);
+    field->type = type;
+    addOperandRef(3, inst->vl, field);
+
+    field->operands[field->operands_len++] = (struct IROperand){
+      .kind = Operand_Constant,
+      .constant = (struct IRValue){
+        .kind = Value_Int,
+        .i = 0
+      }
+    };
+
+    field->operands[field->operands_len++] = (struct IROperand){
+      .kind = Operand_Constant,
+      .constant = (struct IRValue){
+        .kind = Value_Int,
+        .i = expr->expr_struct.fields[i].index
+      }
+    };
+
+    struct IROperand operand = irExpr(expr->expr_struct.fields[i].expr, module, func, block, arena).operand;
+    struct IRInstruction *store = newInst(OPCODE_STORE, expr->expr_struct.fields[i].expr->type, 0, 2, block, arena);
+    store->operands[store->operands_len++] = operand;
+    addOperandRef(3, field->vl, store);
+  }
+
+  return (struct IRExpr){
+    .inst = inst,
+    .operand = (struct IROperand){
+      .kind = Operand_Register,
+      .ref = inst->vl
     }
   };
 }
@@ -586,6 +684,40 @@ struct IRExpr irId(struct Expr *expr, struct IRModule *module, struct IRFunction
   };
 }
 
+struct IRExpr irThis(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
+  struct IRInstruction *inst = newInst(OPCODE_GEP, NULL, 1, 3, block, arena);
+  inst->type = module->globals[expr->expr_this.symbol->index].value.type;
+  addOperandRef(3, 0, inst);
+
+  inst->operands[inst->operands_len++] = (struct IROperand){
+    .kind = Operand_Constant,
+    .constant = (struct IRValue){
+      .kind = Value_Int,
+      .i = 0
+    }
+  };
+
+  struct Symbol *symbol = hashmap_get(expr->expr_this.symbol->symbol_struct.items, &expr->expr_this.str);
+
+  inst->operands[inst->operands_len++] = (struct IROperand){
+    .kind = Operand_Constant,
+    .constant = (struct IRValue){
+      .kind = Value_Int,
+      .i = symbol->index
+    }
+  };
+
+  struct IRInstruction *load = newInst(OPCODE_LOAD, symbol->type, 1, 1, block, arena);
+  addOperandRef(3, inst->vl, load);
+
+  return (struct IRExpr){
+    .operand = (struct IROperand){
+      .kind = Operand_Register,
+      .ref = load->vl
+    }
+  };
+}
+
 struct IRExpr irLiteral(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
   if (expr->expr_literal.kind == LITERAL_STRING) {
     if (module->globals_len == module->globals_cap) {
@@ -642,11 +774,14 @@ struct IRExpr irExpr(struct Expr *expr, struct IRModule *module, struct IRFuncti
   else if (expr->kind == Expr_Binary) irExpr = irBinary(expr, module, func, block, arena);
   else if (expr->kind == Expr_Cast) irExpr = irCast(expr, module, func, block, arena);
   else if (expr->kind == Expr_Unary) irExpr = irUnary(expr, module, func, block, arena);
+  else if (expr->kind == Expr_Member) irExpr = irMember(expr, module, func, block, arena);
   else if (expr->kind == Expr_Index) irExpr = irIndex(expr, module, func, block, arena);
   else if (expr->kind == Expr_Call) irExpr = irCall(expr, module, func, block, arena);
   else if (expr->kind == Expr_Callback) irExpr = irCallback(expr, module, func, block, arena);
+  else if (expr->kind == Expr_Struct) irExpr = irStructExpr(expr, module, func, block, arena);
   else if (expr->kind == Expr_Array) irExpr = irArray(expr, module, func, block, arena);
   else if (expr->kind == Expr_Identifier) irExpr = irId(expr, module, func, block, arena);
+  else if (expr->kind == Expr_This) irExpr = irThis(expr, module, func, block, arena);
   else if (expr->kind == Expr_Literal) irExpr = irLiteral(expr, module, func, block, arena);
 
   if (irExpr.block == NULL) irExpr.block = block;

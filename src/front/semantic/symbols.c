@@ -94,10 +94,16 @@ void structSymbol(struct SymbolTable *table, struct Decl *decl, uint8_t isPublic
   for (int i = 0; i < decl->decl_struct.fields_len; i++) {
     struct Field *field = &decl->decl_struct.fields[i];
     resolveType(table, &field->type);
+
+    if (field->type->kind == Type_Auto)
+      errorLang(table->program->filename, decl->line, decl->column, "struct fields must have explicit types");
+
     struct Symbol *fSymbol = newSymbol(table, Symbol_Variable, field->line, field->column, field->name, field->type);
     fSymbol->symbol_variable.isConst = 0;
+    fSymbol->index = i;
     hashmap_set(symbol->symbol_struct.items, &field->name, fSymbol, table->program->arena);
   }
+
   for (int i = 0; i < decl->decl_struct.methods_len; i++) {
     struct Method *method = &decl->decl_struct.methods[i];
     struct Type *type = newTypeFunc(table, &method->retType, method->params_len, method->params);
@@ -106,6 +112,7 @@ void structSymbol(struct SymbolTable *table, struct Decl *decl, uint8_t isPublic
     mSymbol->symbol_function.params_len = method->params_len;
     hashmap_set(symbol->symbol_struct.items, &method->name, mSymbol, table->program->arena);
   }
+  decl->decl_struct.symbol = symbol;
   addSymbol(table, symbol);
   if (isPublic) hashmap_set(table->exports, &decl->decl_struct.name, symbol, table->program->arena);
 }
