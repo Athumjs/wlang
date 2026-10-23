@@ -18,6 +18,9 @@ struct Symbol {
   enum SymbolKind kind;
   struct String name;
   struct Type *type;
+  uint8_t isGlobal;
+  uint8_t isPtr;
+  int64_t index;
   int line;
   int column;
 
@@ -34,6 +37,10 @@ struct Symbol {
     struct {
       struct Hashmap *items;
     } symbol_enum;
+
+    struct {
+      struct Expr *expr;
+    } symbol_enumvalue;
 
     struct {
       struct Hashmap *items;

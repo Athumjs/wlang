@@ -1,39 +1,66 @@
 #include "semantic.h"
 
-void resolveFunc(struct SymbolTable *table, struct Decl *decl) {
-  enterScope(table);
+static struct Symbol *newSymbol(struct SymbolTable *table, enum SymbolKind k, int l, int c, struct String n, struct Type *t) {
+  struct Symbol *symbol = arena_alloc(table->program->arena, sizeof(struct Symbol));
+  symbol->kind = k;
+  symbol->line = l;
+  symbol->column = c;
+  symbol->name = n;
+  symbol->type = t;
+  return symbol;
+}
 
-  for (int i = 0; i < decl->decl_function.params_len; i++) {
-    addSymbolVar(table, (struct Var *)&decl->decl_function.params[i], 0);
-  }
+void addSymbolParam(struct SymbolTable *table, struct Param *param, uint8_t isConst) {
+  resolveType(table, &param->type);
+  struct Symbol *symbol = newSymbol(table, Symbol_Variable, param->line, param->column, param->name, param->type);
+  symbol->symbol_variable.isConst = isConst;
+  addSymbol(table, symbol);
+  param->symbol = symbol;
+}
+
+void resolveFunc(struct SymbolTable *table, struct Decl *decl) {
+  struct Symbol *symbol = findSymbol(table->scope, &decl->decl_function.name);
+  enterScope(table);
+  table->scope->expectType = decl->decl_function.retType;
+  decl->decl_function.scope = table->scope;
+  for (int i = 0; i < decl->decl_function.params_len; i++)
+    addSymbolParam(table, &decl->decl_function.params[i], 0);
+
+  if (decl->decl_function.body->kind == Stmt_Block)
+    decl->decl_function.body->stmt_block.scope = table->scope;
 
   resolveStmt(table, decl->decl_function.body);
-  decl->decl_function.scope = table->scope;
-  exitScope(table);
+  if (decl->decl_function.body->kind != Stmt_Block) exitScope(table);
 }
 
 void resolveStruct(struct SymbolTable *table, struct Decl *decl) {
-  struct Symbol *symbol = findSymbol(table->scope, &decl->decl_struct.name);
   for (int i = 0; i < decl->decl_struct.methods_len; i++) {
     struct Method *method = &decl->decl_struct.methods[i];
     enterScope(table);
-    table->scope->currentStruct = symbol;
+    table->scope->currentStruct = decl->decl_struct.symbol;
     table->scope->expectType = method->retType;
+    method->scope = table->scope;
+    for (int i = 0; i < method->params_len; i++)
+        addSymbolParam(table, &method->params[i], 0);
 
-    for (int i = 0; i < method->params_len; i++) {
-      addSymbolVar(table, (struct Var *)&method->params[i], 0);
-    }
+    if (method->body->kind == Stmt_Block)
+      method->body->stmt_block.scope = table->scope;
 
     resolveStmt(table, method->body);
-    method->scope = table->scope;
-    exitScope(table);
+    if (method->body->kind != Stmt_Block) exitScope(table);
   }
 }
 
 void resolveScopes(struct SymbolTable *table) {
   for (int i = 0; i < table->program->length; i++) {
     struct Decl *decl = table->program->decls[i];
-    if (decl->kind == Decl_Function) resolveFunc(table, decl);
+    if (decl->kind == Decl_Public) {
+      decl = decl->decl_public;
+      if (decl->kind == Decl_Function) resolveFunc(table, decl);
+      else if (decl->kind == Decl_Struct) resolveStruct(table, decl);
+    }
+
+    else if (decl->kind == Decl_Function) resolveFunc(table, decl);
     else if (decl->kind == Decl_Struct) resolveStruct(table, decl);
     continue;
   }

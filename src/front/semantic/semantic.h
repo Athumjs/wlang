@@ -2,6 +2,13 @@
 
 #include <front/semantic.h>
 
+struct Flow {
+  uint8_t next;
+  uint8_t return_;
+  uint8_t break_;
+  uint8_t continue_;
+};
+
 // expr/expr.c
 struct Symbol *resolveExpr(struct SymbolTable *table, struct Expr *expr);
 
@@ -21,15 +28,18 @@ struct Symbol *resolveExprMember(struct SymbolTable *table, struct Expr *expr);
 struct Symbol *resolveExprIndex(struct SymbolTable *table, struct Expr *expr);
 
 // expr/primary.c
+struct Symbol *resolveExprCallback(struct SymbolTable *table, struct Expr *expr);
 struct Symbol *resolveExprStruct(struct SymbolTable *table, struct Expr *expr);
 struct Symbol *resolveExprArray(struct SymbolTable *table, struct Expr *expr);
 struct Symbol *resolveExprThis(struct SymbolTable *table, struct Expr *expr);
 struct Symbol *resolveExprIdentifier(struct SymbolTable *table, struct Expr *expr);
 
 // symbols.c
-void addSymbolVar(struct SymbolTable *table, struct Var *var, uint8_t isConst);
 void resolveSymbols(struct SymbolTable *table);
 void resolveDecl(struct SymbolTable *table, struct Decl *decl);
+
+// imports.c
+void resolveImports(struct SymbolTable *table, struct Module *modules);
 
 // stmt.c
 void resolveStmt(struct SymbolTable *table, struct Stmt *stmt);
@@ -38,7 +48,7 @@ void resolveStmt(struct SymbolTable *table, struct Stmt *stmt);
 void resolveScopes(struct SymbolTable *table);
 
 // types/stmt.c
-void typeStmt(struct SymbolTable *table, struct Stmt *stmt);
+struct Flow typeStmt(struct SymbolTable *table, struct Stmt *stmt);
 
 // types/decl.c
 void typeDecl(struct SymbolTable *table, struct Decl *decl);
@@ -62,6 +72,7 @@ struct Type *typeExprMember(struct SymbolTable *table, struct Expr *expr);
 struct Type *typeExprIndex(struct SymbolTable *table, struct Expr *expr);
 
 // types/expr/primary.c
+struct Type *typeExprCallback(struct SymbolTable *table, struct Expr *expr);
 struct Type *typeExprStruct(struct SymbolTable *table, struct Expr *expr);
 struct Type *typeExprArray(struct SymbolTable *table, struct Expr *expr);
 struct Type *typeExprLiteral(struct SymbolTable *table, struct Expr *expr);

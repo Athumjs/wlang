@@ -3,41 +3,85 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <getopt.h>
 
-struct Args *resolveArgs(int argc, char **argv, struct Arena *arena) {
+struct Args *resolveArgs(int argc, char **argv, struct Arena *arena)
+{
   struct Args *args = arena_alloc(arena, sizeof(struct Args));
   memset(args, 0, sizeof(struct Args));
 
-  for (int i = 1; i < argc; i++) {
-    if (argv[i][0] == '-') {
-      if (strcmp(argv[i], "--help") == 0) {
-        printf("Usage: wl [options] file...\n");
-        printf("Options:\n");
+  int current_op = 0;
+  struct option options[] = {
+      {"help", no_argument, 0, 'h'},
+      {"version", no_argument, 0, 'v'},
+      {"output", required_argument, 0, 'o'},
+      {0, 0, 0, 0} //
+  };
 
-#define X(flag, params, desc, body) \
-        printf("  \033[33m%s %s\n", flag, params); \
-        printf("      \033[32m%s\033[0m\n", desc);
-        FLAGS_LIST
-#undef X
+  for (int i = 1; i < argc; i++)
+  {
+    if (strcmp(argv[i], "--") == 0)
+      break;
 
-        exit(0);
+    if (argv[i][0] == '-')
+    {
+      int option_found = 0;
+      for (int j = 0; options[j].name != NULL; j++)
+      {
+        if ((strncmp(argv[i], "--", 2) == 0 && strcmp(argv[i] + 2, options[j].name) == 0) ||
+            (options[j].val != 0 && argv[i][1] == options[j].val &&
+             argv[i][2] == '\0'))
+        {
+          option_found = 1;
+          if (options[j].has_arg == required_argument)
+            i++;
+          break;
+        }
       }
 
-#define X(flag, params, desc, body) \
-      else if (strcmp(argv[i], flag) == 0) body
-      FLAGS_LIST
-#undef X
-
-      else errorGeneric("missing argument to '%s'", argv[i]);
-    }
-
-    else {
-      if (args->input_file != NULL) errorGeneric("more than one input file");
-      args->input_file = argv[i];
+      if (!option_found)
+        errorGeneric("Invalid argument: %s", argv[i]);
     }
   }
 
-  if (args->input_file == NULL) errorGeneric("no input file");
+  while ((current_op = getopt_long(argc, argv, "hvo:", options, NULL)) != -1)
+  {
+    switch (current_op)
+    {
+    case 'h':
+      printf("Usage: wl [options] file...\n");
+      printf("\t--help or -h: Lists the commands.\n");
+      printf("\t--version or -v: W compiler and language version.\n");
+      printf("\t--output or -o: Specifies the path to the output file.\n");
+      exit(0);
+      break;
+    case 'o':
+      args->output_file = optarg;
+      break;
+
+    case 'v':
+      printf("Compiler: v%s\n", WCOMPILER_VERSION_STR);
+      exit(0);
+      break;
+
+    case '?':
+      errorGeneric("Invalid argument.\n");
+      break;
+
+    default:
+      break;
+    }
+  }
+
+  if (optind < argc)
+  {
+    char *file_path = argv[optind];
+    args->input_file = file_path;
+  }
+  else
+  {
+    errorGeneric("No input file specified.\n");
+  }
 
   return args;
 }

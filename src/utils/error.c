@@ -14,7 +14,7 @@ void errorGeneric(const char *error, ...) {
   exit(1);
 }
 
-int getNumCase(int num) {
+static int getNumCase(int num) {
   if (num <= 0) return 1;
   return (int)log10(num) + 1;
 }

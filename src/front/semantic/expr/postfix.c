@@ -10,12 +10,7 @@ struct Symbol *resolveExprCall(struct SymbolTable *table, struct Expr *expr) {
   struct Symbol *callee = resolveExpr(table, expr->expr_call.callee);
 
   if (!isCallable(callee)) {
-    errorLang(table->program->args->input_file, expr->line, expr->column, "this expression is not callable");
-  }
-
-  if (callee->type->type_function.params_len != expr->expr_call.args_len) {
-      errorLang(table->program->args->input_file, expr->line, expr->column, "expected %d arguments, but got %d",
-          callee->type->type_function.params_len, expr->expr_call.args_len);
+    errorLang(table->program->filename, expr->line, expr->column, "this expression is not callable");
   }
 
   for (int i = 0; i < expr->expr_call.args_len; i++) {
@@ -32,21 +27,20 @@ static inline uint8_t isMemberAcessible(struct Symbol *symbol) {
 struct Symbol *resolveExprMember(struct SymbolTable *table, struct Expr *expr) {
   struct Symbol *obj = resolveExpr(table, expr->expr_member.obj);
 
-  if (!isMemberAcessible(obj)) {
-    errorLang(table->program->args->input_file, expr->line, expr->column, "member reference base type is not a structure");
-  }
+  if (!isMemberAcessible(obj))
+    errorLang(table->program->filename, expr->line, expr->column, "member reference base type is not a structure");
 
   struct Symbol *member = NULL;
   if (obj->kind == Symbol_Variable) {
     struct Symbol *symbol = findSymbol(table->scope, &obj->type->type_named.name);
-    member = hashmap_get(symbol->symbol_struct.items, &expr->expr_member.member->expr_identifier);
-  } else member = hashmap_get(obj->symbol_enum.items, &expr->expr_member.member->expr_identifier);
+    member = hashmap_get(symbol->symbol_struct.items, &expr->expr_member.member->expr_identifier.name);
+  } else member = hashmap_get(obj->symbol_enum.items, &expr->expr_member.member->expr_identifier.name);
 
-  if (member == NULL) {
-    errorLang(table->program->args->input_file, expr->line, expr->column, "no member named '%.*s' in '%.*s'",
-        expr->expr_member.member->expr_identifier.length, expr->expr_member.member->expr_identifier.start, obj->name.length, obj->name.start);
-  }
+  if (member == NULL)
+    errorLang(table->program->filename, expr->line, expr->column, "no member named '%.*s' in '%.*s'",
+        expr->expr_member.member->expr_identifier.name.length, expr->expr_member.member->expr_identifier.name.start, obj->name.length, obj->name.start);
 
+  expr->expr_member.member->expr_identifier.symbol = member;
   return member;
 }
 
@@ -57,8 +51,8 @@ static inline uint8_t isArray_or_Pointer(struct Type *type) {
 struct Symbol *resolveExprIndex(struct SymbolTable *table, struct Expr *expr) {
   struct Symbol *base = resolveExpr(table, expr->expr_index.base);
 
-  if (!isArray_or_Pointer(base->type)) {
-    errorLang(table->program->args->input_file, expr->line, expr->column, "subscripted value is not an array or pointer");
+  if (base->type->kind != Type_Auto && !isArray_or_Pointer(base->type)) {
+    errorLang(table->program->filename, expr->line, expr->column, "subscripted value is not an array or pointer");
   }
 
   resolveExpr(table, expr->expr_index.index);

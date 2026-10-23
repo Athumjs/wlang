@@ -9,6 +9,7 @@ void enterScope(struct SymbolTable *table) {
   temp->symbols = hashmap_new(table->program->arena, 64 * sizeof(struct Symbol *));
   temp->prev = table->scope;
   temp->expectType = table->scope->expectType;
+  temp->currentStruct = table->scope->currentStruct;
   table->scope = temp;
 }
 
@@ -24,8 +25,8 @@ struct Symbol *findSymbol(struct Scope *scope, struct String *name) {
 }
 
 void addSymbol(struct SymbolTable *table, struct Symbol *symbol) {
-  if (findSymbol(table->scope, &symbol->name) != NULL) {
-    errorLang(table->program->args->input_file, symbol->line, symbol->column, "Identifier '%.*s' has been declared", symbol->name.length, symbol->name.start);
+  if (hashmap_get(table->scope->symbols, &symbol->name) != NULL) {
+    errorLang(table->program->filename, symbol->line, symbol->column, "Identifier '%.*s' has been declared", symbol->name.length, symbol->name.start);
   }
 
   hashmap_set(table->scope->symbols, &symbol->name, symbol, table->program->arena);

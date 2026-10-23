@@ -34,5 +34,5 @@ set main(): int {
 
   if (calc.kind == CalcKind.Add) return calc.add();
   else return calc.sub();
-  return func();
+  return func(10);
 }

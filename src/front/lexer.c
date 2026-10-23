@@ -1,7 +1,6 @@
 #include <ctype.h>
 #include <errno.h>
 #include <front/lexer.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <utils/error.h>
@@ -60,7 +59,20 @@ void addTokenNum(struct Tokens *tokens, struct Arena *arena, enum TokenType t,
 
   else if (t == LITERAL_UINTEGER)
     literal.numUint = strtoull(v, NULL, b);
+
   addToken(tokens, arena, t, literal, l, c);
+}
+
+void addTokenChar(struct Tokens *tokens, struct Arena *arena, char ch, int l, int c) {
+  union Literal literal;
+  literal.numUint = (unsigned char) ch;
+  addToken(tokens, arena, LITERAL_CHAR, literal, l, c);
+}
+
+void addTokenBool(struct Tokens *tokens, struct Arena *arena, int64_t v, int l, int c) {
+  union Literal literal;
+  literal.numInt = v;
+  addToken(tokens, arena, LITERAL_BOOLEAN, literal, l, c);
 }
 
 void next(int *i, int *l, int *c, char ch) {
@@ -177,29 +189,32 @@ void lexer(const char *filename, const char *code, struct Tokens *tokens,
     }
 
     if (code[index] == '\'') {
+      int sCol = col;
       NEXT();
-      int start = index;
-      uint8_t escape = 0;
+      char ch;
 
-      while (code[index] && code[index] != '\'') {
-        if (code[index] == '\\') {
-          NEXT();
-          escape = 1;
+      if (code[index] == '\\') {
+        NEXT();
+
+        switch (code[index]) {
+          case 'n': ch = '\n'; break;
+          case 't': ch = '\t'; break;
+          case 'r': ch = '\r'; break;
+          case '\\': ch = '\\'; break;
+          case '\'': ch = '\''; break;
+          case '0': ch = '\0'; break;
+          default:
+            errorLang(filename, line, col, "invalid escape sequence");
         }
 
-        NEXT();
-      }
+      } else ch = code[index];
 
+      NEXT();
       if (code[index] != '\'') {
         errorLang(filename, line, col, "missing terminating '\'' character");
       }
 
-      if ((!escape && index - start > 1) || (escape && index - start > 2)) {
-        errorLang(filename, line, col, "Multi-character character constant");
-      }
-
-      addTokenString(tokens, arena, LITERAL_CHAR, code + start, index - start,
-                     line, col - (index - start));
+      addTokenChar(tokens, arena, ch, line, sCol);
       NEXT();
       continue;
     }
@@ -222,6 +237,16 @@ void lexer(const char *filename, const char *code, struct Tokens *tokens,
       KEYWORDS
 #undef X
 
+      if (index - start == 4 && memcmp(code + start, "true", 4) == 0) {
+        addTokenBool(tokens, arena, 1, line, col - 4);
+        continue;
+      }
+
+      if (index - start == 5 && memcmp(code + start, "false", 5) == 0) {
+        addTokenBool(tokens, arena, 0, line, col - 5);
+        continue;
+      }
+      
       addTokenString(tokens, arena, IDENTIFIER, code + start, index - start,
                      line, col - (index - start));
       continue;

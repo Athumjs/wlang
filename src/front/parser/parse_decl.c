@@ -4,7 +4,33 @@
 struct Decl *declImport(int *i, struct Tokens *tokens, struct Program *program) {
   struct Decl *decl = newDecl(i, tokens, program, Decl_Import);
   CONSUME(TOKEN_IMPORT);
-  decl->decl_import = parseExpr(i, tokens, program);
+
+  if (PEEK() == LITERAL_STRING) {
+    decl->decl_Import.local = 1;
+    decl->decl_Import.import_local = CONSUME(LITERAL_STRING).string;
+  }
+
+  else {
+    decl->decl_Import.local = 0;
+    decl->decl_Import.import_std.parts_cap = 2;
+    decl->decl_Import.import_std.parts = arena_alloc(program->arena, decl->decl_Import.import_std.parts_cap * sizeof(struct String));
+    decl->decl_Import.import_std.parts[0] = CONSUME(IDENTIFIER).string;
+    decl->decl_Import.import_std.parts_len = 1;
+
+    while (PEEK() == TOKEN_DOT) {
+      if (decl->decl_Import.import_std.parts_len == decl->decl_Import.import_std.parts_cap) {
+        size_t oldCap = decl->decl_Import.import_std.parts_cap;
+        decl->decl_Import.import_std.parts_cap *= 2;
+        struct String *temp = arena_alloc(program->arena, decl->decl_Import.import_std.parts_cap * sizeof(struct String));
+        memcpy(temp, decl->decl_Import.import_std.parts, oldCap * sizeof(struct String));
+        decl->decl_Import.import_std.parts = temp;
+      }
+
+      CONSUME(TOKEN_DOT);
+      decl->decl_Import.import_std.parts[decl->decl_Import.import_std.parts_len++] = CONSUME(IDENTIFIER).string;
+    }
+  }
+
   CONSUME(TOKEN_SEMICOLON);
   return decl;
 }
@@ -88,11 +114,8 @@ struct Decl *declFunction(int *i, struct Tokens *tokens, struct Program *program
         .type = NULL
       };
 
-      if (PEEK() == TOKEN_COLON) {
-        CONSUME(TOKEN_COLON);
-        param.type = parseType(i, tokens, program);
-      }
-
+      CONSUME(TOKEN_COLON);
+      param.type = parseType(i, tokens, program);
       decl->decl_function.params[decl->decl_function.params_len++] = param;
       if (PEEK() == TOKEN_COMMA) CONSUME(TOKEN_COMMA);
       else break;
@@ -104,7 +127,7 @@ struct Decl *declFunction(int *i, struct Tokens *tokens, struct Program *program
   if (PEEK() == TOKEN_COLON) {
     CONSUME(TOKEN_COLON);
     decl->decl_function.retType = parseType(i, tokens, program);
-  }
+  } else decl->decl_function.retType = NULL;
 
   decl->decl_function.body = parseStmt(i, tokens, program);
   return decl;
@@ -157,7 +180,7 @@ void resolveStructMethods(int *i, struct Tokens *tokens, struct Program *program
 	if (decl->decl_struct.methods_len == decl->decl_struct.fields_cap) {
 	  size_t oldCap = decl->decl_struct.methods_cap;
 	  decl->decl_struct.methods_cap *= 2;
-	  struct Method *temp = arena_alloc(program->arena, decl->decl_struct.methods_cap * sizeof(struct Field));
+	  struct Method *temp = arena_alloc(program->arena, decl->decl_struct.methods_cap * sizeof(struct Method));
 	  memcpy(temp, decl->decl_struct.methods, oldCap * sizeof(struct Method));
 	  decl->decl_struct.methods = temp;
 	}
@@ -194,11 +217,8 @@ void resolveStructMethods(int *i, struct Tokens *tokens, struct Program *program
 	      .type = NULL
 	    };
 	
-	    if (PEEK() == TOKEN_COLON) {
-	      CONSUME(TOKEN_COLON);
-	      param.type = parseType(i, tokens, program);
-	    }
-	
+      CONSUME(TOKEN_COLON);
+      param.type = parseType(i, tokens, program);
 	    method.params[method.params_len++] = param;
 	    if (PEEK() == TOKEN_COMMA) CONSUME(TOKEN_COMMA);
 	    else break;

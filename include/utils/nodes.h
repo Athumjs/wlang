@@ -2,11 +2,13 @@
 
 #include <stdint.h>
 #include <utils/tokens.h>
+#include <utils/symbols.h>
 
 struct Field {
   struct String name;
   int line;
   int column;
+  int64_t index;
 
   union {
     struct Expr *expr;
@@ -21,15 +23,16 @@ struct Method {
   size_t params_len;
   size_t params_cap;
   struct Stmt *body;
-  struct Scope *scope;
   int line;
   int column;
+  struct Scope *scope;
 };
 
 struct Var {
   struct String name;
   struct Type *type;
   struct Expr *expr;
+  struct Symbol *symbol;
   int line;
   int column;
 };
@@ -37,6 +40,7 @@ struct Var {
 struct Param {
   struct String name;
   struct Type *type;
+  struct Symbol *symbol;
   int line;
   int column;
 };
@@ -72,6 +76,7 @@ enum ExprKind {
   Expr_Member,
   Expr_Index,
   Expr_Call,
+  Expr_Callback,
   Expr_Struct,
   Expr_Array,
   Expr_Literal,
@@ -121,9 +126,19 @@ struct Expr {
     } expr_call;
 
     struct {
+      struct Type *retType;
+      struct Param *params;
+      size_t params_len;
+      size_t params_cap;
+      struct Stmt *body;
+      struct Scope *scope;
+    } expr_callback;
+
+    struct {
       struct Field *fields;
       size_t fields_len;
       size_t fields_cap;
+      struct Symbol *symbol;
     } expr_struct;
 
     struct {
@@ -137,8 +152,15 @@ struct Expr {
       union Literal literal;
     } expr_literal;
 
-    struct String expr_this;
-    struct String expr_identifier;
+    struct {
+      struct String str;
+      struct Symbol *symbol;
+    } expr_this;
+
+    struct {
+      struct String name;
+      struct Symbol *symbol;
+    } expr_identifier;
   };
 };
 
@@ -157,6 +179,20 @@ struct Decl {
   int column;
 
   union {
+    struct {
+      uint8_t local;
+
+      union {
+        struct String import_local;
+
+        struct {
+          struct String *parts;
+          size_t parts_len;
+          size_t parts_cap;
+        } import_std;
+      };
+    } decl_Import;
+
     struct {
       struct Var *vars;
       size_t vars_len;
@@ -179,6 +215,7 @@ struct Decl {
       struct Element *elems;
       size_t elems_len;
       size_t elems_cap;
+      struct Symbol *symbol;
     } decl_enum;
 
     struct {
@@ -189,9 +226,9 @@ struct Decl {
       struct Method *methods;
       size_t methods_len;
       size_t methods_cap;
+      struct Symbol *symbol;
     } decl_struct;
 
-    struct Expr *decl_import;
     struct Decl *decl_public;
   };
 };
@@ -230,12 +267,14 @@ struct Stmt {
       struct Expr *condition;
       struct Expr *update;
       struct Stmt *body;
+      struct Scope *scope;
     } stmt_for;
 
     struct {
       struct Item *items;
       size_t items_len;
       size_t items_cap;
+      struct Scope *scope;
     } stmt_block;
 
     struct Expr *stmt_return;

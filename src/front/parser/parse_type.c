@@ -14,7 +14,8 @@ struct Type *parseType(int *i, struct Tokens *tokens, struct Program *program) {
         temp->kind = Type_Array;
         temp->type_array.base = type;
         CONSUME(TOKEN_LBRACKET);
-        temp->type_array.expr = parseExpr(i, tokens, program);
+        if (PEEK() != TOKEN_RBRACKET) temp->type_array.expr = parseExpr(i, tokens, program);
+        else temp->type_array.expr = NULL;
         CONSUME(TOKEN_RBRACKET);
         type = temp;
       }

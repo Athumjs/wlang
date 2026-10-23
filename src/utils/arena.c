@@ -13,18 +13,20 @@ struct ArenaBlock *arenaBlock_create(size_t size) {
 }
 
 void *arena_alloc(struct Arena *arena, size_t size) {
-  if (arena->current->used + size > arena->current->size) {
+  size_t align = _Alignof(max_align_t);
+  size_t used = (arena->current->used + align - 1) & ~(align - 1);
+
+  if (used + size > arena->current->size) {
     size_t newSize = arena->current->size * 2;
     while (newSize < size) newSize *= 2;
     struct ArenaBlock *block = arenaBlock_create(newSize);
     block->prev = arena->current;
     arena->current = block;
+    used = 0;
   }
 
-  void *ptr = arena->current->memory + arena->current->used;
-  size_t align = _Alignof(max_align_t);
-  arena->current->used += (size + align - 1) & ~(align - 1);
-
+  void *ptr = arena->current->memory + used;
+  arena->current->used = used + size;
   return ptr;
 }
 

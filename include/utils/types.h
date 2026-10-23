@@ -1,6 +1,5 @@
 #pragma once
 
-#include <front/semantic.h>
 #include <utils/arena.h>
 #include <utils/literal.h>
 
@@ -46,11 +45,13 @@ struct Type {
 
     struct {
       struct String name;
+      struct Type *type;
     } type_named;
 
     struct {
       struct Type *base;
       struct Expr *expr;
+      int64_t expr_resolved;
     } type_array;
     
     struct {
