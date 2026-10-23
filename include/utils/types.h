@@ -45,6 +45,7 @@ struct Type {
 
     struct {
       struct String name;
+      struct Type *type;
     } type_named;
 
     struct {

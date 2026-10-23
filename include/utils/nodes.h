@@ -215,6 +215,7 @@ struct Decl {
       struct Element *elems;
       size_t elems_len;
       size_t elems_cap;
+      struct Symbol *symbol;
     } decl_enum;
 
     struct {

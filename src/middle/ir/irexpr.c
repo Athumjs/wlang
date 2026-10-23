@@ -406,6 +406,9 @@ struct IRExpr irUnary(struct Expr *expr, struct IRModule *module, struct IRFunct
 }
 
 struct IRExpr irMember(struct Expr *expr, struct IRModule *module, struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
+  if (expr->expr_member.member->expr_identifier.symbol->kind == Symbol_EnumValue)
+    return irExpr(expr->expr_member.member->expr_identifier.symbol->symbol_enumvalue.expr, module, func, block, arena);
+
   struct IROperand obj = irExpr(expr->expr_member.obj, module, func, block, arena).operand;
 
   if (block->instructions[block->instructions_len - 1].opcode == OPCODE_LOAD) {

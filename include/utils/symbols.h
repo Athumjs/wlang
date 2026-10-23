@@ -39,6 +39,10 @@ struct Symbol {
     } symbol_enum;
 
     struct {
+      struct Expr *expr;
+    } symbol_enumvalue;
+
+    struct {
       struct Hashmap *items;
     } symbol_struct;
   };

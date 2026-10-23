@@ -80,9 +80,32 @@ void enumSymbol(struct SymbolTable *table, struct Decl *decl, uint8_t isPublic) 
   symbol->symbol_enum.items = hashmap_new(table->program->arena, 8);
   for (int i = 0; i < decl->decl_enum.elems_len; i++) {
     struct Element *elem = &decl->decl_enum.elems[i];
-    struct Symbol *eSymbol = newSymbol(table, Symbol_Enum, elem->line, elem->column, elem->name, symbol->type);
+
+    if (elem->expr == NULL) {
+      elem->expr = arena_alloc(table->program->arena, sizeof(struct Expr));
+      elem->expr->kind = Expr_Literal;
+
+      if (i > 0 && decl->decl_enum.elems[i - 1].expr->expr_literal.kind == LITERAL_INTEGER) {
+        elem->expr->expr_literal.kind = LITERAL_INTEGER;
+        elem->expr->expr_literal.literal.numInt = decl->decl_enum.elems[i - 1].expr->expr_literal.literal.numInt + 1;
+      } else if (i > 0) {
+        elem->expr->expr_literal.kind = LITERAL_UINTEGER;
+        elem->expr->expr_literal.literal.numUint = decl->decl_enum.elems[i - 1].expr->expr_literal.literal.numUint + 1;
+      } else {
+        elem->expr->expr_literal.kind = LITERAL_INTEGER;
+        elem->expr->expr_literal.literal.numInt = 0;
+      }
+
+      elem->expr->line = elem->line;
+      elem->expr->column = elem->column;
+    }
+
+    struct Symbol *eSymbol = newSymbol(table, Symbol_EnumValue, elem->line, elem->column, elem->name, type);
+    eSymbol->symbol_enumvalue.expr = elem->expr;
     hashmap_set(symbol->symbol_enum.items, &elem->name, eSymbol, table->program->arena);
   }
+
+  decl->decl_enum.symbol = symbol;
   addSymbol(table, symbol);
   if (isPublic) hashmap_set(table->exports, &decl->decl_enum.name, symbol, table->program->arena);
 }

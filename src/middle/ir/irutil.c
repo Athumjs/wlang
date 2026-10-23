@@ -44,6 +44,12 @@ struct IRType resolveTypeIR(struct Type *type, struct Arena *arena) {
     t.array.size = type->type_array.expr_resolved;
   }
 
+  else if (type->kind == Type_Named) {
+    if (type->type_named.type == NULL)
+      t.kind = IRTYPEK_NULL;
+    else t = resolveTypeIR(type->type_named.type, arena);
+  }
+
   return t;
 }
 

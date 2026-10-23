@@ -169,6 +169,13 @@ struct Type *typeExprLiteral(struct SymbolTable *table, struct Expr *expr) {
   else if (expr->expr_literal.kind == LITERAL_STRING) {
     struct Type *type = arena_alloc(table->program->arena, sizeof(struct Type));
 
+    if (table->scope->varType == NULL) {
+      type->kind = Type_Pointer;
+      type->type_pointer.base = typePrimitive(table, Primitive_Char);
+      expr->type = type;
+      return expr->type;
+    }
+
     if (table->scope->varType->kind != Type_Array && table->scope->varType->kind != Type_Auto) {
       type->kind = Type_Pointer;
       type->type_pointer.base = typePrimitive(table, Primitive_Char);
