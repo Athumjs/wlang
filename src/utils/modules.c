@@ -1,3 +1,4 @@
+#include "back/backs.h"
 #include <utils/modules.h>
 #include <front/semantic.h>
 #include <middle/irgen.h>
@@ -228,6 +229,7 @@ struct Hashmap *load_module(struct Module *modules, struct Arena *arena, char *p
   parser(&tokens, &program);
   semantic(&table, modules);
   loweringAST(&program, &ir);
+  backs(&ir, arena);
   showIR(&ir, arena);
   return table.exports;
 }
