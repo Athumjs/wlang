@@ -224,6 +224,19 @@ struct IRValue irValueGlobal(int64_t id, struct Expr *expr, struct IRModule *mod
     return irNumber(expr);
   }
 
+  if (expr->kind == Expr_Array) {
+    struct IRValue value = (struct IRValue){
+      .kind = Value_Array,
+      .a.elems = arena_alloc(arena, expr->expr_array.exprs_len * sizeof(struct IRValue)),
+      .a.elems_len = expr->expr_array.exprs_len
+    };
+
+    for (int i = 0; i < expr->expr_array.exprs_len; i++)
+      value.a.elems[i] = irValueGlobal(id, expr->expr_array.exprs[i], module, arena);
+
+    return value;
+  }
+
   if (module->init.blocks_len == 0)
     newBlock(&module->init, arena);
 

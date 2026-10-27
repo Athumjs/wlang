@@ -140,29 +140,29 @@ struct String getType(struct Type *type, struct Arena *arena) {
   };
 }
 
-uint8_t cmpTT(struct SymbolTable *table, struct Type *t1, struct Type *t2) {
+uint8_t cmpTT(struct Type *t1, struct Type *t2) {
   if (t1->kind == Type_Auto || t2->kind == Type_Auto) return 1;
 
   if (t1->kind != t2->kind) return 0;
 
-  if (t1->kind == Type_Primitive && t1->type_primitive.type == t2->type_primitive.type) return 1;
+  if (t1->kind == Type_Primitive) return t1->type_primitive.type == t2->type_primitive.type;
 
   if (t1->kind == Type_Named && t1->type_named.name.length == t2->type_named.name.length &&
         memcmp(t1->type_named.name.start, t2->type_named.name.start, t2->type_named.name.length) == 0) return 1;
 
   if (t1->kind == Type_Array) {
-    return cmpTT(table, t1->type_array.base, t2->type_array.base);
+    return cmpTT(t1->type_array.base, t2->type_array.base);
   }
 
   if (t1->kind == Type_Pointer) {
-    return cmpTT(table, t1->type_pointer.base, t2->type_pointer.base);
+    return cmpTT(t1->type_pointer.base, t2->type_pointer.base);
   }
 
   if (t1->kind == Type_Function) {
-    if (!cmpTT(table, t1->type_function.retType, t2->type_function.retType)) return 0;
+    if (!cmpTT(t1->type_function.retType, t2->type_function.retType)) return 0;
     if (t1->type_function.params_len != t2->type_function.params_len) return 0;
     for (int i = 0; i < t1->type_function.params_len; i++) {
-      if (!cmpTT(table, t1->type_function.params[i], t2->type_function.params[i])) return 0;
+      if (!cmpTT(t1->type_function.params[i], t2->type_function.params[i])) return 0;
     }
     return 1;
   }

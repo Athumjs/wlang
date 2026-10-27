@@ -1,5 +1,4 @@
 #include <back/liveness.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -162,10 +161,6 @@ void liveness(struct Live *live, struct IRFunction *func, struct Arena *arena) {
       if (bit_test(&liveOut[i * nw], j))
         live->intervals[j].end = max(live->intervals[j].end, lastPos[i]);
     }
-  }
-
-  for (int i = 0; i < live->length; i++) {
-    printf("%%%ld start: %d | end: %d\n", live->intervals[i].vreg, live->intervals[i].start, live->intervals[i].end);
   }
 
   free(firstPos);

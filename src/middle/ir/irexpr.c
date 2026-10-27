@@ -299,10 +299,17 @@ struct IRExpr irCast(struct Expr *expr, struct IRModule *module, struct IRFuncti
     opc = OPCODE_PTR2INT;
   else if (expr->expr_cast.type->kind == Type_Pointer && isInteger(expr->expr_cast.value->type))
     opc = OPCODE_INT2PTR;
-  else if (cmpTP(expr->expr_cast.value->type, Primitive_Char) && isInteger(expr->expr_cast.type))
-    opc = OPCODE_FPEXT;
-  else if (cmpTP(expr->expr_cast.type, Primitive_Char) && isInteger(expr->expr_cast.value->type))
-    opc = OPCODE_TRUNC;
+
+  else if (isInteger(expr->expr_cast.type) && isInteger(expr->expr_cast.value->type)) {
+    int rank_src = rankType(expr->expr_cast.value->type);
+    int rank_dst = rankType(expr->expr_cast.type);
+
+    if (rank_src < rank_dst) {
+      if (isUnsignedInteger(expr->expr_cast.value->type))
+        opc = OPCODE_ZEXT;
+      else opc = OPCODE_SEXT;
+    }
+  }
 
   struct IROperand operand = irExpr(expr->expr_cast.value, module, func, block, arena).operand;
   struct IRInstruction *inst = newInst(opc, expr->expr_cast.value->type, 1, 2, block, arena);

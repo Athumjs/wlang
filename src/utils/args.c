@@ -5,6 +5,10 @@
 #include <stdio.h>
 #include <getopt.h>
 
+enum {
+  OPT_SHOW_IR = 1000
+};
+
 struct Args *resolveArgs(int argc, char **argv, struct Arena *arena)
 {
   struct Args *args = arena_alloc(arena, sizeof(struct Args));
@@ -13,38 +17,14 @@ struct Args *resolveArgs(int argc, char **argv, struct Arena *arena)
   int current_op = 0;
   struct option options[] = {
       {"help", no_argument, 0, 'h'},
+      {"only-asm", no_argument, 0, 'S'},
+      {"show-ir", no_argument, 0, OPT_SHOW_IR},
       {"version", no_argument, 0, 'v'},
       {"output", required_argument, 0, 'o'},
       {0, 0, 0, 0} //
   };
 
-  for (int i = 1; i < argc; i++)
-  {
-    if (strcmp(argv[i], "--") == 0)
-      break;
-
-    if (argv[i][0] == '-')
-    {
-      int option_found = 0;
-      for (int j = 0; options[j].name != NULL; j++)
-      {
-        if ((strncmp(argv[i], "--", 2) == 0 && strcmp(argv[i] + 2, options[j].name) == 0) ||
-            (options[j].val != 0 && argv[i][1] == options[j].val &&
-             argv[i][2] == '\0'))
-        {
-          option_found = 1;
-          if (options[j].has_arg == required_argument)
-            i++;
-          break;
-        }
-      }
-
-      if (!option_found)
-        errorGeneric("Invalid argument: %s", argv[i]);
-    }
-  }
-
-  while ((current_op = getopt_long(argc, argv, "hvo:", options, NULL)) != -1)
+  while ((current_op = getopt_long(argc, argv, "hvo:S", options, NULL)) != -1)
   {
     switch (current_op)
     {
@@ -53,15 +33,25 @@ struct Args *resolveArgs(int argc, char **argv, struct Arena *arena)
       printf("\t--help or -h: Lists the commands.\n");
       printf("\t--version or -v: W compiler and language version.\n");
       printf("\t--output or -o: Specifies the path to the output file.\n");
+      printf("\t--only-asm or -S: Generate only the assembly code.\n");
+      printf("\t--show-ir: show intermediate representation.\n");
       exit(0);
       break;
     case 'o':
       args->output_file = optarg;
       break;
 
+    case 'S':
+      args->only_asm = 1;
+      break;
+
     case 'v':
       printf("Compiler: v%s\n", WCOMPILER_VERSION_STR);
       exit(0);
+      break; 
+
+    case OPT_SHOW_IR:
+      args->show_ir = 1;
       break;
 
     case '?':
@@ -82,6 +72,11 @@ struct Args *resolveArgs(int argc, char **argv, struct Arena *arena)
   {
     errorGeneric("No input file specified.\n");
   }
+
+  if (args->output_file == NULL)
+    args->output_file = "a.out";
+  else if (args->only_asm)
+    errorGeneric("cannot specify '-o' with '-S'.");
 
   return args;
 }

@@ -72,13 +72,13 @@ static inline uint8_t isChar(struct Type *type) {
   return type->kind == Type_Primitive && type->type_primitive.type == Primitive_Char;
 }
 
-static inline uint8_t canImplicitConvert(struct SymbolTable *table, struct Type *t1, struct Type *t2) {
-  if (cmpTT(table, t1, t2)) return 1;
+static inline uint8_t canImplicitConvert(struct Type *t1, struct Type *t2) {
+  if (cmpTT(t1, t2)) return 1;
   if (isFunction(t1) && isFunction(t2))
-    return canImplicitConvert(table, t1->type_function.retType, t2->type_function.retType);
+    return canImplicitConvert(t1->type_function.retType, t2->type_function.retType);
 
   if (isPointer(t1) && isPointer(t2))
-    return canImplicitConvert(table, t1->type_pointer.base, t2->type_pointer.base);
+    return canImplicitConvert(t1->type_pointer.base, t2->type_pointer.base);
 
   if (isSignedInteger(t1) && isSignedInteger(t2))
     return rankType(t1) <= rankType(t2);

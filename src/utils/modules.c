@@ -1,4 +1,5 @@
 #include "back/backs.h"
+#include <stdlib.h>
 #include <utils/modules.h>
 #include <front/semantic.h>
 #include <middle/irgen.h>
@@ -51,6 +52,15 @@ void printValue(struct IRValue *value) {
     printf("%f", value->d);
   else if (value->kind == Value_String)
     printf("\"%.*s\\0\"", value->s->length, value->s->start);
+
+  else if (value->kind == Value_Array) {
+    printf("{ ");
+    for (int i = 0; i < value->a.elems_len; i++) {
+      if (i > 0) printf(", ");
+      printValue(&value->a.elems[i]);
+    }
+    printf(" }");
+  }
 }
 
 void printOperand(struct IROperand *op, struct Arena *arena);
@@ -229,7 +239,15 @@ struct Hashmap *load_module(struct Module *modules, struct Arena *arena, char *p
   parser(&tokens, &program);
   semantic(&table, modules);
   loweringAST(&program, &ir);
-  backs(&ir, arena);
-  showIR(&ir, arena);
+  struct Back back = backs(&ir, &program, modules->args->only_asm);
+  modules->folder_name = back.folder_name;
+
+  if (modules->objs_len == modules->objs_cap) {
+    modules->objs_cap *= 2;
+    modules->objs = realloc(modules->objs, modules->objs_cap * sizeof(char *));
+  }
+
+  modules->objs[modules->objs_len++] = back.obj_name;
+  if (modules->args->show_ir) showIR(&ir, arena);
   return table.exports;
 }

@@ -15,7 +15,12 @@ void typeVar(struct SymbolTable *table, struct Decl *decl) {
         var->type = ret;
       }
 
-      if (!canImplicitConvert(table, ret, var->type)) {
+      if (isInteger(var->type)  && isInteger(ret)) {
+        var->expr->type = var->type;
+        ret = var->type;
+      }
+
+      if (!canImplicitConvert(ret, var->type)) {
         struct String s1 = getType(ret, table->program->arena);
         struct String s2 = getType(var->type, table->program->arena);
         errorLang(table->program->filename, decl->line, decl->column, "type '%.*s' is not assignable to type '%.*s'",
@@ -27,7 +32,12 @@ void typeVar(struct SymbolTable *table, struct Decl *decl) {
         lvalue->type = ret;
         var->type = ret;
       }
+    } else if (var->type->kind == Type_Array) {
+      var->type->type_array.expr_resolved = resolveSizeArray(var->type->type_array.expr);
+      struct Symbol *lvalue = findSymbol(table->scope, &var->name);
+      lvalue->type = var->type;
     }
+
     table->scope->varType = NULL;
   }
 }

@@ -19,7 +19,7 @@ struct Type *typeExprCall(struct SymbolTable *table, struct Expr *expr) {
     struct Type *param = callee->type_function.params[i];
     struct Type *arg = typeExpr(table, expr->expr_call.args[i]);
 
-    if (!cmpTT(table, arg, param) && !canImplicitConvert(table, arg, param)) {
+    if (!cmpTT(arg, param) && !canImplicitConvert(arg, param)) {
       struct String s1 = getType(arg, table->program->arena);
       struct String s2 = getType(param, table->program->arena);
       errorLang(table->program->filename, expr->line, expr->column, "type '%.*s' is not assignable to type '%.*s'",

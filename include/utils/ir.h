@@ -133,7 +133,8 @@ enum IRValueKind {
   Value_UInt,
   Value_Float,
   Value_Double,
-  Value_String
+  Value_String,
+  Value_Array
 };
 
 struct IRValue {
@@ -145,6 +146,11 @@ struct IRValue {
     float f;
     double d;
     struct String *s;
+
+    struct {
+      struct IRValue *elems;
+      size_t elems_len;
+    } a;
   };
 };
 

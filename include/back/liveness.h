@@ -6,6 +6,7 @@ struct Interval {
   int64_t vreg;
   int start, end;
   int phys;
+  int size;
   int spillSlot;
 };
 

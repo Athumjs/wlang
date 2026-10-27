@@ -56,11 +56,20 @@ static struct Flow stmtReturn(struct SymbolTable *table, struct Stmt *stmt) {
   if (table->scope->expectType->kind == Type_Auto)
     table->scope->expectType = table->scope->retType;
 
-  if (!cmpTT(table, table->scope->expectType, table->scope->retType) && !canImplicitConvert(table, table->scope->retType, table->scope->expectType)) {
-    struct String t1 = getType(table->scope->retType, table->program->arena);
-    struct String t2 = getType(table->scope->expectType, table->program->arena);
-    errorLang(table->program->filename, stmt->line, stmt->column, "type '%.*s' is not assignable to type '%.*s'",
+  if (!cmpTT(table->scope->expectType, table->scope->retType)) {
+    if (!canImplicitConvert(table->scope->retType, table->scope->expectType)) {
+      struct String t1 = getType(table->scope->retType, table->program->arena);
+      struct String t2 = getType(table->scope->expectType, table->program->arena);
+      errorLang(table->program->filename, stmt->line, stmt->column, "type '%.*s' is not assignable to type '%.*s'",
         t1.length, t1.start, t2.length, t2.start);
+    }
+
+    struct Expr *expr = arena_alloc(table->program->arena, sizeof(struct Expr));
+    expr->kind = Expr_Cast;
+    expr->type = table->scope->expectType;
+    expr->expr_cast.type = table->scope->expectType;
+    expr->expr_cast.value = stmt->stmt_return;
+    stmt->stmt_return = expr;
   }
 
   if (stmt->stmt_return != NULL)
