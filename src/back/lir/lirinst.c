@@ -1,4 +1,11 @@
 #include "lir.h"
+#include "../backs.h"
+
+void lirconst(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
+  struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena, &irinst->type);
+  liroperand(&inst->operands[0], &irinst->operands[0], ctx);
+  lirop_reg(&inst->operands[1], &ctx->live->intervals[irinst->vl], ctx);
+}
 
 void lirASM(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
   enum LIROpcodes opc = LIR_ADD;
@@ -83,7 +90,7 @@ void lirdiv(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct L
     inst->operands[1].mem.index_reg = -1;
   }
 
-  interval->reg = ctx->arch->div_register;
+  interval->reg = (irinst->opcode == OPCODE_SREM || irinst->opcode == OPCODE_UREM) ? ctx->arch->rem_register : ctx->arch->div_register;
   struct LIRInstruction *ext = lir_newInst(LIR_TARGET_SPECIFIC, 0, block, ctx->arena, &irinst->type);
   ext->target_extension = 0;
 
@@ -96,7 +103,7 @@ void lirdiv(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct L
     vl->operands[1].mem.disp = *ctx->stack_size;
     vl->operands[1].mem.index_reg = -1;
     struct LIRInstruction *inst = lir_newInst(LIR_DIV, 1, block, ctx->arena, &irinst->type); 
-    if (irinst->opcode == OPCODE_UDIV) inst->is_unsigned = 1;
+    if (irinst->opcode == OPCODE_UDIV || irinst->opcode == OPCODE_UREM) inst->is_unsigned = 1;
     inst->operands[0].kind = LIR_Address;
     inst->operands[0].mem.base_reg = ctx->arch->stack_register;
     inst->operands[0].mem.disp = *ctx->stack_size;
@@ -105,14 +112,29 @@ void lirdiv(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct L
   }
 
   struct LIRInstruction *inst = lir_newInst(LIR_DIV, 1, block, ctx->arena, &irinst->type); 
-  if (irinst->opcode == OPCODE_UDIV) inst->is_unsigned = 1;
+  if (irinst->opcode == OPCODE_UDIV || irinst->opcode == OPCODE_UREM) inst->is_unsigned = 1;
   liroperand(&inst->operands[0], &irinst->operands[1], ctx);
 }
 
-void lirconst(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
-  struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena, &irinst->type);
+void lirTC(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
+  enum LIROpcodes opc = LIR_CVT;
+
+  if (irinst->opcode == OPCODE_TRUNC || irinst->opcode == OPCODE_FPTRUNC)
+    opc = LIR_TRUNC;
+
+  struct LIRInstruction *inst = lir_newInst(opc, 2, block, ctx->arena, &irinst->operands[1].type);
   liroperand(&inst->operands[0], &irinst->operands[0], ctx);
+  if (irinst->opcode == OPCODE_FPTRUNC || irinst->opcode == OPCODE_FP2SI || irinst->opcode == OPCODE_FP2UI)
+    inst->operands[0].size = sizeOf(&irinst->type);
   lirop_reg(&inst->operands[1], &ctx->live->intervals[irinst->vl], ctx);
+}
+
+void lirext(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
+  struct LIRInstruction *inst = lir_newInst(LIR_EXT, 2, block, ctx->arena, &irinst->operands[1].type);
+  liroperand(&inst->operands[0], &irinst->operands[0], ctx);
+  inst->operands[0].size = sizeOf(&irinst->type);
+  lirop_reg(&inst->operands[1], &ctx->live->intervals[irinst->vl], ctx);
+  if (irinst->opcode == OPCODE_ZEXT) inst->is_unsigned = 1;
 }
 
 void lirret(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
@@ -130,6 +152,11 @@ void lirinst(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct 
   if (irinst->opcode == OPCODE_CONST) lirconst(block, irinst, ctx);
   else if (irinst->opcode == OPCODE_ADD || irinst->opcode == OPCODE_SUB || irinst->opcode == OPCODE_MUL) lirASM(block, irinst, ctx);
   else if (irinst->opcode == OPCODE_FADD || irinst->opcode == OPCODE_FSUB || irinst->opcode == OPCODE_FMUL) lirASM(block, irinst, ctx);
-  else if (irinst->opcode == OPCODE_SDIV || irinst->opcode == OPCODE_UDIV || irinst->opcode == OPCODE_FDIV) lirdiv(block, irinst, ctx);
+  else if (irinst->opcode == OPCODE_SDIV || irinst->opcode == OPCODE_UDIV || irinst->opcode == OPCODE_FDIV || 
+      irinst->opcode == OPCODE_SREM || irinst->opcode == OPCODE_UREM) lirdiv(block, irinst, ctx);
+  else if (irinst->opcode == OPCODE_TRUNC || irinst->opcode == OPCODE_FPTRUNC ||
+      irinst->opcode == OPCODE_FP2SI || irinst->opcode == OPCODE_FP2UI ||
+      irinst->opcode == OPCODE_SI2FP || irinst->opcode == OPCODE_UI2FP) lirTC(block, irinst, ctx);
+  else if (irinst->opcode == OPCODE_SEXT || irinst->opcode == OPCODE_ZEXT || irinst->opcode == OPCODE_FPEXT) lirext(block, irinst, ctx);
   else if (irinst->opcode == OPCODE_RET) lirret(block, irinst, ctx);
 }

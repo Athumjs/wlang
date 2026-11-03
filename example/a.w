@@ -1,8 +1,9 @@
 set main() {
-  var a = 21;
-  var x = 10;
-  var y = 2;
-  var z = a + 9;
-  var xx = (x / y) * z;
-  return xx;
+  var x = 10.5;
+  var y = x + 2.5f;
+  var z = y as int;
+  var xx = z * 20;
+  var yy = 2;
+  var res = xx / yy;
+  return res;
 }

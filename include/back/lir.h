@@ -9,6 +9,9 @@
   X(LIR_SUB, "sub") \
   X(LIR_MUL, "mul") \
   X(LIR_DIV, "div") \
+  X(LIR_TRUNC, "trunc") \
+  X(LIR_EXT, "ext") \
+  X(LIR_CVT, "cvt") \
   X(LIR_CMP, "cmp") \
   X(LIR_JMP, "jmp") \
   X(LIR_JCOND, "jcond") \
@@ -67,4 +70,5 @@ struct LIRFunction {
   struct LIRBasicBlocks *blocks;
   size_t blocks_len;
   size_t stack_size;
+  uint64_t saved_regs;
 };

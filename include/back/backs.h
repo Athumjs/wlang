@@ -16,6 +16,9 @@ struct Arch {
   const int64_t *arg_registers;
   size_t arg_registers_len;
 
+  const int64_t *callee_saved_registers;
+  size_t callee_saved_registers_len;
+
   uint8_t is_3_operands;
 
   int64_t ret_register;

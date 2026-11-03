@@ -85,12 +85,15 @@ void liveness(struct Live *live, struct IRFunction *func, struct Arena *arena) {
 
       if (func->blocks[i].instructions[j].vl == -1) continue;
       bit_set(&def[i * nw], func->blocks[i].instructions[j].vl);
+      struct IRType *type = &func->blocks[i].instructions[j].type;
+      struct IROperand *lastoperand = &func->blocks[i].instructions[j].operands[func->blocks[i].instructions[j].operands_len - 1];
+      if (lastoperand->kind == Operand_Type)
+        type = &lastoperand->type;
       live->intervals[func->blocks[i].instructions[j].vl] = (struct Interval){
         .vreg = func->blocks[i].instructions[j].vl,
         .start = pos,
         .end = pos,
-        .is_float = func->blocks[i].instructions[j].type.kind == IRTYPEK_OTHER &&
-          (func->blocks[i].instructions[j].type.other == IRTYPE_f32 || func->blocks[i].instructions[j].type.other == IRTYPE_f64)
+        .is_float = type->kind == IRTYPEK_OTHER && (type->other == IRTYPE_f32 || type->other == IRTYPE_f64)
       };
     }
     lastPos[i] = pos;

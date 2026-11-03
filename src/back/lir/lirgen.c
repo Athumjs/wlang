@@ -32,6 +32,17 @@ void lirgen(struct LIRFunction *func, struct Arch *arch, struct IRFunction *irfu
     .arena = arena
   };
 
+  for (int i = 0; i < live->length; i++) {
+    int64_t reg = live->intervals[i].reg;
+    if (reg == -1) continue;
+
+    for (int j = 0; j < arch->callee_saved_registers_len; j++) {
+      if (arch->callee_saved_registers[j] != reg) continue;
+      func->saved_regs |= (1ULL << reg);
+      break;
+    }
+  }
+
   for (int i = 0; i < irfunc->blocks_len; i++) {
     func->blocks[i].instructions = arena_alloc(arena, irfunc->blocks[i].instructions_len * sizeof(struct LIRInstruction));
     func->blocks[i].instructions_cap = irfunc->blocks[i].instructions_len;

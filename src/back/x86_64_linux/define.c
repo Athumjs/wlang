@@ -20,13 +20,19 @@ void x86_64_linux_define(struct Arch *arch) {
     {28, 0, 8}, {29, 0, 8}, {30, 0, 8}, {31, 0, 8},
   };
 
+  static const int64_t args[6] = {5, 4, 3, 2, 8, 9};
+  static const int64_t callee_saved[5] = {1, 12, 13, 14, 15};
+
   *arch = (struct Arch){
     .registers = regs,
     .iregisters_len = 16,
     .fregisters_len = 16,
 
-    .arg_registers = (int64_t[6]){5, 4, 3, 2, 8, 9},
+    .arg_registers = args,
     .arg_registers_len = 6,
+
+    .callee_saved_registers = callee_saved,
+    .callee_saved_registers_len = 5,
 
     .is_3_operands = 0,
 
