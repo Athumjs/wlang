@@ -161,11 +161,6 @@ void showIR(struct IRModule *ir, struct Arena *arena) {
     printf("\n");
   }
 
-  if (ir->init.blocks[0].instructions_len > 0) printf("\n#init:\n    ");
-  for (int i = 0; i < ir->init.blocks[0].instructions_len; i++)
-    printInst(&ir->init.blocks[0].instructions[i], arena);
-
-  printf("\n");
   for (int i = 0; i < ir->functions_len; i++) {
     printf("define %.*s(", ir->functions[i].name->length, ir->functions[i].name->start);
     for (int j = 0; j < ir->functions[i].params_len; j++) {
@@ -228,9 +223,6 @@ struct Hashmap *load_module(struct Module *modules, struct Arena *arena, char *p
   ir.globals_cap = 4;
   ir.globals = arena_alloc(arena, ir.globals_cap * sizeof(struct IRGlobal));
   ir.globals_len = 0;
-  ir.init.blocks_cap = 1;
-  ir.init.blocks = arena_alloc(arena, sizeof(struct IRBasicBlock));
-  ir.init.blocks_len = 0;
   ir.functions_cap = 4;
   ir.functions = arena_alloc(arena, ir.functions_cap * sizeof(struct IRFunction));
   ir.functions_len = 0;
@@ -239,15 +231,14 @@ struct Hashmap *load_module(struct Module *modules, struct Arena *arena, char *p
   parser(&tokens, &program);
   semantic(&table, modules);
   loweringAST(&program, &ir);
-  struct Back back = backs(&ir, &program, modules->args->only_asm);
-  modules->folder_name = back.folder_name;
+  char *obj_name = backs(&ir, &program, modules->folder_name, modules->args->only_asm);
 
   if (modules->objs_len == modules->objs_cap) {
     modules->objs_cap *= 2;
     modules->objs = realloc(modules->objs, modules->objs_cap * sizeof(char *));
   }
 
-  modules->objs[modules->objs_len++] = back.obj_name;
+  modules->objs[modules->objs_len++] = obj_name;
   if (modules->args->show_ir) showIR(&ir, arena);
   return table.exports;
 }

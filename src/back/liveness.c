@@ -1,4 +1,4 @@
-#include <back/liveness.h>
+#include <back/reg_alloc.h> 
 #include <stdlib.h>
 #include <string.h>
 
@@ -68,7 +68,8 @@ void liveness(struct Live *live, struct IRFunction *func, struct Arena *arena) {
     live->intervals[func->params[i].vl] = (struct Interval){
       .vreg = func->params[i].vl,
       .start = 0,
-      .end = 0
+      .end = 0,
+      .is_float = func->params[i].type.kind == IRTYPEK_OTHER && (func->params[i].type.other == IRTYPE_f32 || func->params[i].type.other == IRTYPE_f64)
     };
   }
 
@@ -87,7 +88,9 @@ void liveness(struct Live *live, struct IRFunction *func, struct Arena *arena) {
       live->intervals[func->blocks[i].instructions[j].vl] = (struct Interval){
         .vreg = func->blocks[i].instructions[j].vl,
         .start = pos,
-        .end = pos
+        .end = pos,
+        .is_float = func->blocks[i].instructions[j].type.kind == IRTYPEK_OTHER &&
+          (func->blocks[i].instructions[j].type.other == IRTYPE_f32 || func->blocks[i].instructions[j].type.other == IRTYPE_f64)
       };
     }
     lastPos[i] = pos;

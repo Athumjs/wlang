@@ -89,12 +89,16 @@ struct Type *typeExprBinary(struct SymbolTable *table, struct Expr *expr) {
           tk_names[expr->expr_binary.op], s1.length, s1.start, s2.length, s2.start);
   }
 
+
   if (!cmpTT(left, right)) {
-    if (canImplicitConvert(left, right)) {
-      expr->expr_binary.left->type = right;
-      expr->type = right;
-      return right;
-    } else expr->expr_binary.right->type = left;
+    struct Expr *exp = arena_alloc(table->program->arena, sizeof(struct Expr));
+    exp->kind = Expr_Cast;
+    exp->type = right;
+    exp->expr_cast.type = right;
+    exp->expr_cast.value = expr->expr_binary.left;
+    expr->expr_binary.left = exp;
+    expr->type = right;
+    return right;
   }
 
   expr->type = left;

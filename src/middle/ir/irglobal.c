@@ -57,7 +57,7 @@ void irVar(struct Decl *decl, struct IRModule *module, struct Arena *arena) {
           .kind = Operand_Global,
           .ref = global2.vl
         };
-      } else global.value.constant = irValueGlobal(global.vl, var->expr, module, arena);
+      } else global.value.constant = irValueGlobal(var->expr, arena);
     }
 
     var->symbol->isGlobal = 1;

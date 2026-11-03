@@ -210,7 +210,14 @@ struct IRValue irNumber(struct Expr *expr) {
   return value;
 }
 
-struct IRValue irValueGlobal(int64_t id, struct Expr *expr, struct IRModule *module, struct Arena *arena) {
+struct IRValue irValueGlobal(struct Expr *expr, struct Arena *arena) {
+  if (expr == NULL) {
+    return (struct IRValue){
+      .kind = Value_Int,
+      .i = 0
+    };
+  }
+
   if (expr->kind == Expr_Literal) {
     if (expr->expr_literal.kind == LITERAL_STRING) {
       if (expr->type->kind == Type_Array) {
@@ -232,25 +239,65 @@ struct IRValue irValueGlobal(int64_t id, struct Expr *expr, struct IRModule *mod
     };
 
     for (int i = 0; i < expr->expr_array.exprs_len; i++)
-      value.a.elems[i] = irValueGlobal(id, expr->expr_array.exprs[i], module, arena);
+      value.a.elems[i] = irValueGlobal(expr->expr_array.exprs[i], arena);
 
     return value;
   }
 
-  if (module->init.blocks_len == 0)
-    newBlock(&module->init, arena);
+  struct IRValue value = {0};
+  struct IRValue lvalue = irValueGlobal(expr->expr_binary.left, arena);
+  struct IRValue rvalue = irValueGlobal(expr->expr_binary.right, arena);
+  value.kind = lvalue.kind;
 
-  if (module->init.blocks[0].term)
-    module->init.blocks[0].instructions_len--;
+  if (expr->expr_binary.op == TOKEN_PLUS) {
+    if (value.kind == Value_Int)
+      value.i = lvalue.i + rvalue.i;
+    else if (value.kind == Value_UInt)
+      value.u = lvalue.u + rvalue.u;
+    else if (value.kind == Value_Float)
+      value.f = lvalue.f + rvalue.f;
+    else value.d = lvalue.d + rvalue.d;
+  }
 
-  struct IROperand ref = irExpr(expr, module, &module->init, &module->init.blocks[0], arena).operand;
-  struct IRInstruction *inst = newInst(OPCODE_STORE, expr->type, 0, 2, &module->init.blocks[0], arena);
-  inst->operands[inst->operands_len++] = ref;
-  addOperandRef(1, id, inst);
-  newInst(OPCODE_RET, NULL, 0, 0, &module->init.blocks[0], arena);
-  module->init.blocks[0].term = 1;
-  return (struct IRValue){
-    .kind = Value_Int,
-    .i = 0
-  };
+  if (expr->expr_binary.op == TOKEN_MINUS) {
+    if (value.kind == Value_Int)
+      value.i = lvalue.i - rvalue.i;
+    else if (value.kind == Value_UInt)
+      value.u = lvalue.u - rvalue.u;
+    else if (value.kind == Value_Float)
+      value.f = lvalue.f - rvalue.f;
+    else value.d = lvalue.d - rvalue.d;
+  }
+
+  if (expr->expr_binary.op == TOKEN_ASTERISK) {
+    if (value.kind == Value_Int)
+      value.i = lvalue.i * rvalue.i;
+    else if (value.kind == Value_UInt)
+      value.u = lvalue.u * rvalue.u;
+    else if (value.kind == Value_Float)
+      value.f = lvalue.f * rvalue.f;
+    else value.d = lvalue.d * rvalue.d;
+  }
+
+  if (expr->expr_binary.op == TOKEN_SLASH) {
+    if (value.kind == Value_Int)
+      value.i = lvalue.i / rvalue.i;
+    else if (value.kind == Value_UInt)
+      value.u = lvalue.u / rvalue.u;
+    else if (value.kind == Value_Float)
+      value.f = lvalue.f / rvalue.f;
+    else value.d = lvalue.d / rvalue.d;
+  }
+
+  if (expr->expr_binary.op == TOKEN_MOD) {
+    if (value.kind == Value_Int)
+      value.i = lvalue.i % rvalue.i;
+    else if (value.kind == Value_UInt)
+      value.u = lvalue.u % rvalue.u;
+    else if (value.kind == Value_Float)
+      value.f = fmodf(lvalue.f, rvalue.f);
+    else value.d = fmod(lvalue.d, rvalue.d);
+  }
+
+  return value;
 }

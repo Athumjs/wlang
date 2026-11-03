@@ -17,10 +17,12 @@ int main(int argc, char **argv)
       .objs = malloc(sizeof(char *)),
       .objs_cap = 1,
       .objs_len = 0,
-      .folder_name = NULL,
+      .folder_name = malloc(strlen("/tmp/wl-XXXXXX") + 1),
       .args = args
   };
 
+  strcpy(modules.folder_name, "/tmp/wl-XXXXXX");
+  mkdtemp(modules.folder_name);
   load_module(&modules, &arena, args->input_file);
 
   if (args->only_asm) {

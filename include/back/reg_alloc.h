@@ -1,13 +1,13 @@
 #pragma once
 
-#include <middle/irgen.h>
+#include <back/backs.h>
 
 struct Interval {
   int64_t vreg;
   int start, end;
-  int phys;
-  int size;
+  int reg;
   int spillSlot;
+  uint8_t is_float;
 };
 
 struct Live {
@@ -16,3 +16,4 @@ struct Live {
 };
 
 void liveness(struct Live *live, struct IRFunction *func, struct Arena *arena);
+void register_allocation(struct Live *live, struct Arch *arch);

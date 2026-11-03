@@ -21,12 +21,25 @@ void addSymbolVar(struct SymbolTable *table, struct Var *var, uint8_t isConst, u
   var->symbol = symbol;
 }
 
+uint8_t is_constexpr(struct Expr *expr) {
+  if (expr->kind == Expr_Literal) return 1;
+  if (expr->kind == Expr_Binary)
+    return is_constexpr(expr->expr_binary.left) && is_constexpr(expr->expr_binary.right);
+  if (expr->kind == Expr_Array) {
+    for (int i = 0; i < expr->expr_array.exprs_len; i++)
+      return is_constexpr(expr->expr_array.exprs[i]);
+  }
+  return 0;
+}
+
 void varSymbol(struct SymbolTable *table, struct Decl *decl, uint8_t isPublic) {
   for (int i = 0; i < decl->decl_variable.vars_len; i++) {
     struct Var *var = &decl->decl_variable.vars[i];
     addSymbolVar(table, var, decl->decl_variable.isConst, isPublic);
     table->scope->varType = var->type;
     if (var->expr != NULL) {
+      if (var->symbol->isGlobal && !is_constexpr(var->expr)) errorLang(table->program->filename, decl->line, decl->column, "Initializer element is not a compile-time constant");
+
       struct Symbol *symbol = resolveExpr(table, var->expr);
       if (symbol != NULL && !(var->expr->kind == Expr_Unary && var->expr->expr_unary.op == TOKEN_ASTERISK))
         var->symbol->isPtr = symbol->isPtr;

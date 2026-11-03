@@ -58,4 +58,4 @@ struct IRDef *getCurrentDef(struct Hashmap *hmap, struct String *str, struct IRB
 int getNumCase(int num);
 struct String getName(struct String *str, int block_index, struct Arena *arena);
 struct IRValue irNumber(struct Expr *expr);
-struct IRValue irValueGlobal(int64_t id, struct Expr *expr, struct IRModule *module, struct Arena *arena);
+struct IRValue irValueGlobal(struct Expr *expr, struct Arena *arena);
