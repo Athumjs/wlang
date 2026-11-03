@@ -20,6 +20,7 @@ void x86_64_linux_code(struct IRGlobal *globals, size_t globals_len, struct LIRF
 
 // lir
 void lirgen(struct LIRFunction *func, struct Arch *arch, struct IRFunction *irfunc, struct Arena *arena, struct Live *live, struct Floats *floats);
+void showLIR(struct LIRFunction *funcs, size_t funcs_len);
 
 // util.c
 FILE *create_as(const char *folder_name, const char *filename, char **name, int *name_len);

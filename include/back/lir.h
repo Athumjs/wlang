@@ -3,27 +3,31 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define LIROPCODES \
+  X(LIR_COPY, "copy") \
+  X(LIR_ADD, "add") \
+  X(LIR_SUB, "sub") \
+  X(LIR_MUL, "mul") \
+  X(LIR_DIV, "div") \
+  X(LIR_CMP, "cmp") \
+  X(LIR_JMP, "jmp") \
+  X(LIR_JCOND, "jcond") \
+  X(LIR_CALL, "call") \
+  X(LIR_RET, "ret") \
+  X(LIR_TARGET_SPECIFIC, "text")
+
 enum LIROpcodes {
-  LIR_COPY,
-  LIR_ADD,
-  LIR_SUB,
-  LIR_MUL,
-  LIR_DIV,
-  LIR_LOAD,
-  LIR_STORE,
-  LIR_CMP,
-  LIR_JMP,
-  LIR_JCOND,
-  LIR_CALL,
-  LIR_RET,
-  LIR_TARGET_SPECIFIC
+#define X(name, str) name,
+  LIROPCODES
+#undef X
 };
 
 enum LIROperandKind {
   LIR_Register,
   LIR_Immediate,
   LIR_Address,
-  LIR_Label
+  LIR_Label,
+  LIR_Float
 };
 
 struct LIROperand {

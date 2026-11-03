@@ -59,3 +59,6 @@ int getNumCase(int num);
 struct String getName(struct String *str, int block_index, struct Arena *arena);
 struct IRValue irNumber(struct Expr *expr);
 struct IRValue irValueGlobal(struct Expr *expr, struct Arena *arena);
+
+// irprint.c
+void showIR(struct IRModule *ir);

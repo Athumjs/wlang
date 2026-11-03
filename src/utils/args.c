@@ -6,7 +6,7 @@
 #include <getopt.h>
 
 enum {
-  OPT_SHOW_IR = 1000
+  OPT_SHOW = 1000
 };
 
 struct Args *resolveArgs(int argc, char **argv, struct Arena *arena)
@@ -18,7 +18,7 @@ struct Args *resolveArgs(int argc, char **argv, struct Arena *arena)
   struct option options[] = {
       {"help", no_argument, 0, 'h'},
       {"only-asm", no_argument, 0, 'S'},
-      {"show-ir", no_argument, 0, OPT_SHOW_IR},
+      {"show", required_argument, 0, OPT_SHOW},
       {"version", no_argument, 0, 'v'},
       {"output", required_argument, 0, 'o'},
       {0, 0, 0, 0} //
@@ -34,7 +34,7 @@ struct Args *resolveArgs(int argc, char **argv, struct Arena *arena)
       printf("\t--version or -v: W compiler and language version.\n");
       printf("\t--output or -o: Specifies the path to the output file.\n");
       printf("\t--only-asm or -S: Generate only the assembly code.\n");
-      printf("\t--show-ir: show intermediate representation.\n");
+      printf("\t--show=[mir|lir]: show specific intermediate representation.\n");
       exit(0);
       break;
     case 'o':
@@ -50,12 +50,34 @@ struct Args *resolveArgs(int argc, char **argv, struct Arena *arena)
       exit(0);
       break; 
 
-    case OPT_SHOW_IR:
-      args->show_ir = 1;
+    case OPT_SHOW: {
+      char *show_arg = strdup(optarg);
+      char *token = strtok(show_arg, ",");
+      int tokens_len = 0;
+
+      while (token != NULL) {
+        if (strcmp(token, "mir") == 0)
+          args->show_mir = 1;
+        else if (strcmp(token, "lir") == 0)
+          args->show_lir = 1;
+        else {
+          free(show_arg);
+          errorGeneric("invalid argument for --emit. choose 'mir' or 'lir'.");
+        }
+
+        tokens_len++;
+        token = strtok(NULL, ",");
+      }
+
+      if (tokens_len == 0)
+        errorGeneric("--emit requires at least one values ('mir' or 'lir').");
+
+      free(show_arg);
       break;
+    }
 
     case '?':
-      errorGeneric("Invalid argument.\n");
+      errorGeneric("invalid argument.");
       break;
 
     default:
@@ -70,7 +92,7 @@ struct Args *resolveArgs(int argc, char **argv, struct Arena *arena)
   }
   else
   {
-    errorGeneric("No input file specified.\n");
+    errorGeneric("no input file specified.\n");
   }
 
   if (args->output_file == NULL)

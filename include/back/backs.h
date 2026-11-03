@@ -25,4 +25,4 @@ struct Arch {
   int64_t rem_register;
 };
 
-char *backs(struct IRModule *ir, struct Program *program, const char *folder_name, uint8_t only_asm);
+char *backs(struct IRModule *ir, struct Program *program, const char *folder_name, uint8_t only_asm, uint8_t show_lir);

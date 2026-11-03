@@ -36,4 +36,5 @@ void lirop_reg(struct LIROperand *operand, struct Interval *interval, struct LIR
   interval->spillSlot = *ctx->stack_size;
   *ctx->stack_size += (operand->size + 15) & ~15;
   operand->mem.disp = interval->spillSlot;
+  operand->mem.index_reg = -1;
 }

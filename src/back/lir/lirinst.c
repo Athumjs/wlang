@@ -54,6 +54,7 @@ void lirdiv(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct L
       interval_reg->spillSlot = *ctx->stack_size;
       *ctx->stack_size += (inst->operands[1].size + 15) & ~15;
       inst->operands[1].mem.disp = interval_reg->spillSlot;
+      inst->operands[1].mem.index_reg = -1;
     }
 
     struct LIRInstruction *op = lir_newInst(LIR_COPY, 2, block, ctx->arena, &irinst->type);
@@ -79,6 +80,7 @@ void lirdiv(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct L
     interval_reg->spillSlot = *ctx->stack_size;
     *ctx->stack_size += (inst->operands[1].size + 15) & ~15;
     inst->operands[1].mem.disp = interval_reg->spillSlot;
+    inst->operands[1].mem.index_reg = -1;
   }
 
   interval->reg = ctx->arch->div_register;
@@ -92,11 +94,13 @@ void lirdiv(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct L
     vl->operands[1].mem.base_reg = ctx->arch->stack_register;
     *ctx->stack_size += (vl->operands[1].size + 15) & ~15;
     vl->operands[1].mem.disp = *ctx->stack_size;
+    vl->operands[1].mem.index_reg = -1;
     struct LIRInstruction *inst = lir_newInst(LIR_DIV, 1, block, ctx->arena, &irinst->type); 
     if (irinst->opcode == OPCODE_UDIV) inst->is_unsigned = 1;
     inst->operands[0].kind = LIR_Address;
     inst->operands[0].mem.base_reg = ctx->arch->stack_register;
     inst->operands[0].mem.disp = *ctx->stack_size;
+    inst->operands[0].mem.index_reg = -1;
     return;
   }
 

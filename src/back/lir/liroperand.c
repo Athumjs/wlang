@@ -2,9 +2,10 @@
 
 void op_const(struct LIROperand *operand, struct IRValue *value, struct LIRContext *ctx) {
   if (value->kind == Value_Float || value->kind == Value_Double) {
-    operand->kind = LIR_Address;
+    operand->kind = LIR_Float;
     operand->mem.base_reg = ctx->arch->inst_register;
     operand->mem.disp = (*ctx->floats_len)++;
+    operand->mem.index_reg = -1;
     return;
   }
 
@@ -24,6 +25,7 @@ void op_reg(struct LIROperand *operand, int64_t value, struct LIRContext *ctx) {
   operand->kind = LIR_Address;
   operand->mem.base_reg = ctx->arch->stack_register;
   operand->mem.disp = interval->spillSlot;
+  operand->mem.index_reg = -1;
 }
 
 void liroperand(struct LIROperand *operand, struct IROperand *iroperand, struct LIRContext *ctx) {

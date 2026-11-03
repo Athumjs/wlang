@@ -2,7 +2,7 @@
 #include <back/reg_alloc.h>
 #include <stdlib.h>
 
-char *backs(struct IRModule *ir, struct Program *program, const char *folder_name, uint8_t only_asm) {
+char *backs(struct IRModule *ir, struct Program *program, const char *folder_name, uint8_t only_asm, uint8_t show_lir) {
   struct Arch arch = {0};
 
 #if defined(__x86_64__) || defined(_M_X64)
@@ -25,6 +25,8 @@ char *backs(struct IRModule *ir, struct Program *program, const char *folder_nam
     lirgen(&func, &arch, &ir->functions[i], program->arena, &live, &floats);
     functions[i] = func;
   }
+
+  if (show_lir) showLIR(functions, ir->functions_len);
 
   char *name = NULL;
   int name_len = 0;
