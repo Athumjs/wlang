@@ -51,9 +51,9 @@ void lirdiv(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct L
       inst->operands[1].kind = LIR_Address;
       inst->operands[1].mem.base_reg = ctx->arch->stack_register;
       interval_reg->reg = -1;
+      *ctx->stack_size += inst->operands[1].size;
       interval_reg->spillSlot = *ctx->stack_size;
-      *ctx->stack_size += (inst->operands[1].size + 15) & ~15;
-      inst->operands[1].mem.disp = interval_reg->spillSlot;
+      inst->operands[1].mem.disp = -interval_reg->spillSlot;
       inst->operands[1].mem.index_reg = -1;
     }
 
@@ -77,9 +77,9 @@ void lirdiv(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct L
     inst->operands[1].kind = LIR_Address;
     inst->operands[1].mem.base_reg = ctx->arch->stack_register;
     interval_reg->reg = -1;
+    *ctx->stack_size += inst->operands[1].size;
     interval_reg->spillSlot = *ctx->stack_size;
-    *ctx->stack_size += (inst->operands[1].size + 15) & ~15;
-    inst->operands[1].mem.disp = interval_reg->spillSlot;
+    inst->operands[1].mem.disp = -interval_reg->spillSlot;
     inst->operands[1].mem.index_reg = -1;
   }
 

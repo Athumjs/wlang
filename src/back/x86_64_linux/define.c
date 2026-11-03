@@ -31,7 +31,7 @@ void x86_64_linux_define(struct Arch *arch) {
     .is_3_operands = 0,
 
     .ret_register = 0,
-    .stack_register = 7,
+    .stack_register = 6,
     .inst_register = 100,
     .div_register = 0,
     .rem_register = 3

@@ -24,7 +24,7 @@ void op_reg(struct LIROperand *operand, int64_t value, struct LIRContext *ctx) {
 
   operand->kind = LIR_Address;
   operand->mem.base_reg = ctx->arch->stack_register;
-  operand->mem.disp = interval->spillSlot;
+  operand->mem.disp = -interval->spillSlot;
   operand->mem.index_reg = -1;
 }
 
