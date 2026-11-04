@@ -9,6 +9,12 @@
   X(LIR_SUB, "sub") \
   X(LIR_MUL, "mul") \
   X(LIR_DIV, "div") \
+  X(LIR_AND, "and") \
+  X(LIR_XOR, "xor") \
+  X(LIR_OR, "or") \
+  X(LIR_SHL, "shl") \
+  X(LIR_ASR, "asr") \
+  X(LIR_LSR, "lsr") \
   X(LIR_TRUNC, "trunc") \
   X(LIR_EXT, "ext") \
   X(LIR_CVT, "cvt") \

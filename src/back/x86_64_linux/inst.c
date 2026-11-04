@@ -6,6 +6,12 @@ void x86_64_linux_inst(struct LIRInstruction *inst, FILE *file, struct Arch *arc
   else if (inst->opcode == LIR_SUB) fprintf(file, "  sub");
   else if (inst->opcode == LIR_MUL) fprintf(file, "  imul");
   else if (inst->opcode == LIR_DIV) fprintf(file, "  %s", inst->is_unsigned ? "div" : "idiv");
+  else if (inst->opcode == LIR_AND) fprintf(file, "  and");
+  else if (inst->opcode == LIR_XOR) fprintf(file, "  xor");
+  else if (inst->opcode == LIR_OR) fprintf(file, "  or");
+  else if (inst->opcode == LIR_SHL) fprintf(file, "  shl");
+  else if (inst->opcode == LIR_ASR) fprintf(file, "  sar");
+  else if (inst->opcode == LIR_LSR) fprintf(file, "  shr");
 
   else if (inst->opcode == LIR_TRUNC) {
     uint8_t is_float = inst->operands[inst->operands_len - 1].reg >= arch->iregisters_len;
