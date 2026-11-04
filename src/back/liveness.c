@@ -1,4 +1,4 @@
-#include <back/reg_alloc.h> 
+#include "backs.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -69,7 +69,8 @@ void liveness(struct Live *live, struct IRFunction *func, struct Arena *arena) {
       .vreg = func->params[i].vl,
       .start = 0,
       .end = 0,
-      .is_float = func->params[i].type.kind == IRTYPEK_OTHER && (func->params[i].type.other == IRTYPE_f32 || func->params[i].type.other == IRTYPE_f64)
+      .is_float = func->params[i].type.kind == IRTYPEK_OTHER && (func->params[i].type.other == IRTYPE_f32 || func->params[i].type.other == IRTYPE_f64),
+      .size = sizeOf(&func->params[i].type)
     };
   }
 
@@ -93,7 +94,9 @@ void liveness(struct Live *live, struct IRFunction *func, struct Arena *arena) {
         .vreg = func->blocks[i].instructions[j].vl,
         .start = pos,
         .end = pos,
-        .is_float = type->kind == IRTYPEK_OTHER && (type->other == IRTYPE_f32 || type->other == IRTYPE_f64)
+        .spill_force = func->blocks[i].instructions[j].opcode == OPCODE_ALLOCA,
+        .is_float = type->kind == IRTYPEK_OTHER && (type->other == IRTYPE_f32 || type->other == IRTYPE_f64),
+        .size = sizeOf(&func->blocks[i].instructions[j].type)
       };
     }
     lastPos[i] = pos;

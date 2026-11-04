@@ -124,13 +124,6 @@ void addOperandRef(uint8_t type, int64_t ref, struct IRInstruction *inst) {
   inst->operands[inst->operands_len++] = op;
 }
 
-void addOperandConst(struct Expr *expr, struct IRInstruction *inst) {
-  inst->operands[inst->operands_len++] = (struct IROperand){
-    .kind = Operand_Constant,
-    .constant = irNumber(expr)
-  };
-}
-
 void addOperandPhi(int64_t value, struct IRBasicBlock *block, struct IRInstruction *inst) {
   inst->operands[inst->operands_len++] = (struct IROperand){
     .kind = Operand_Phi,

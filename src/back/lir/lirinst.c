@@ -1,10 +1,34 @@
 #include "lir.h"
 #include "../backs.h"
 
-void lirconst(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
+void lirCL(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
   struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena, &irinst->type);
   liroperand(&inst->operands[0], &irinst->operands[0], ctx);
+
+  if (irinst->opcode == OPCODE_LOAD) {
+    int64_t reg = inst->operands[0].reg;
+    inst->operands[0].kind = LIR_Address;
+    inst->operands[0].mem.base_reg = reg;
+    inst->operands[0].mem.index_reg = -1;
+  }
+
   lirop_reg(&inst->operands[1], &ctx->live->intervals[irinst->vl], ctx);
+}
+
+void lirstore(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
+  if (irinst->operands[0].kind == Operand_Register && ctx->live->intervals[irinst->operands[0].ref].reg == -1) {
+    struct LIRInstruction *inst = lir_newInst(LIR_LOAD, 2, block, ctx->arena, &irinst->type);
+    liroperand(&inst->operands[0], &irinst->operands[0], ctx);
+    lirop_reg(&inst->operands[1], &ctx->live->intervals[irinst->vl], ctx);
+    struct LIRInstruction *op = lir_newInst(LIR_STORE, 2, block, ctx->arena, &irinst->type);
+    lirop_reg(&op->operands[0], &ctx->live->intervals[irinst->vl], ctx);
+    liroperand(&op->operands[1], &irinst->operands[1], ctx);
+    return;
+  }
+
+  struct LIRInstruction *inst = lir_newInst(LIR_STORE, 2, block, ctx->arena, &irinst->type);
+  liroperand(&inst->operands[0], &irinst->operands[0], ctx);
+  liroperand(&inst->operands[1], &irinst->operands[1], ctx);
 }
 
 void lirASM(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
@@ -232,6 +256,11 @@ void lirSAL(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct L
   op->operands[1] = inst->operands[1];
 }
 
+void liralloca(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
+  *ctx->stack_size += sizeOf(&irinst->type);
+  ctx->live->intervals[irinst->vl].spillSlot = *ctx->stack_size;
+}
+
 void lirret(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
   if (irinst->operands_len == 1 && (irinst->operands[0].kind != Operand_Register || ctx->live->intervals[irinst->operands[0].ref].reg != ctx->arch->ret_register)) {
     struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena, &irinst->type);
@@ -244,7 +273,8 @@ void lirret(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct L
 }
 
 void lirinst(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
-  if (irinst->opcode == OPCODE_CONST) lirconst(block, irinst, ctx);
+  if (irinst->opcode == OPCODE_CONST || irinst->opcode == OPCODE_LOAD) lirCL(block, irinst, ctx);
+  else if (irinst->opcode == OPCODE_STORE) lirstore(block, irinst, ctx);
   else if (irinst->opcode == OPCODE_ADD || irinst->opcode == OPCODE_SUB || irinst->opcode == OPCODE_MUL) lirASM(block, irinst, ctx);
   else if (irinst->opcode == OPCODE_FADD || irinst->opcode == OPCODE_FSUB || irinst->opcode == OPCODE_FMUL) lirASM(block, irinst, ctx);
   else if (irinst->opcode == OPCODE_SDIV || irinst->opcode == OPCODE_UDIV || irinst->opcode == OPCODE_FDIV || 
@@ -255,5 +285,6 @@ void lirinst(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct 
   else if (irinst->opcode == OPCODE_SEXT || irinst->opcode == OPCODE_ZEXT || irinst->opcode == OPCODE_FPEXT) lirext(block, irinst, ctx);
   else if (irinst->opcode == OPCODE_BIT_AND || irinst->opcode == OPCODE_BIT_XOR || irinst->opcode == OPCODE_BIT_OR) lirAXO(block, irinst, ctx);
   else if (irinst->opcode == OPCODE_BIT_SHL || irinst->opcode == OPCODE_BIT_ASHR || irinst->opcode == OPCODE_BIT_LSHR) lirSAL(block, irinst, ctx);
+  else if (irinst->opcode == OPCODE_ALLOCA) liralloca(block, irinst, ctx);
   else if (irinst->opcode == OPCODE_RET) lirret(block, irinst, ctx);
 }

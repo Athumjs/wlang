@@ -20,6 +20,11 @@ void actives_clean(struct Interval **actives, size_t *actives_len, struct Interv
 }
 
 void alloc_ireg(struct Interval **actives, size_t *actives_len, struct Interval *interval, uint8_t *free_regs, size_t regs_len) {
+  if (interval->spill_force) {
+    interval->reg = -1;
+    return;
+  }
+
   for (size_t i = 0; i < regs_len; i++) {
     if (!free_regs[i]) continue;
     free_regs[i] = 0;
@@ -45,6 +50,11 @@ void alloc_ireg(struct Interval **actives, size_t *actives_len, struct Interval 
 }
 
 void alloc_freg(struct Interval **actives, size_t *actives_len, struct Interval *interval, uint8_t *free_regs, size_t iregs_len, size_t fregs_len) {
+  if (interval->spill_force) {
+    interval->reg = -1;
+    return;
+  }
+
   for (size_t i = iregs_len; i < iregs_len + fregs_len; i++) {
     if (!free_regs[i]) continue;
     free_regs[i] = 0;

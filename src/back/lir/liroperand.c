@@ -15,6 +15,7 @@ void op_const(struct LIROperand *operand, struct IRValue *value, struct LIRConte
 
 void op_reg(struct LIROperand *operand, int64_t value, struct LIRContext *ctx) {
   struct Interval *interval = &ctx->live->intervals[value];
+  operand->size = interval->size;
 
   if (interval->reg != -1) {
     operand->kind = LIR_Register;
