@@ -86,6 +86,7 @@ void liveness(struct Live *live, struct IRFunction *func, struct Arena *arena) {
 
       if (func->blocks[i].instructions[j].vl == -1) continue;
       bit_set(&def[i * nw], func->blocks[i].instructions[j].vl);
+      uint8_t size = 0;
       struct IRType *type = &func->blocks[i].instructions[j].type;
       struct IROperand *lastoperand = &func->blocks[i].instructions[j].operands[func->blocks[i].instructions[j].operands_len - 1];
       if (lastoperand->kind == Operand_Type)
@@ -96,7 +97,7 @@ void liveness(struct Live *live, struct IRFunction *func, struct Arena *arena) {
         .end = pos,
         .spill_force = func->blocks[i].instructions[j].opcode == OPCODE_ALLOCA,
         .is_float = type->kind == IRTYPEK_OTHER && (type->other == IRTYPE_f32 || type->other == IRTYPE_f64),
-        .size = sizeOf(&func->blocks[i].instructions[j].type)
+        .size = sizeOf(type)
       };
     }
     lastPos[i] = pos;

@@ -150,6 +150,7 @@ void lirTC(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LI
   liroperand(&inst->operands[0], &irinst->operands[0], ctx);
   if (irinst->opcode == OPCODE_FPTRUNC || irinst->opcode == OPCODE_FP2SI || irinst->opcode == OPCODE_FP2UI)
     inst->operands[0].size = sizeOf(&irinst->type);
+  else inst->operands[0].size = inst->operands[1].size;
   lirop_reg(&inst->operands[1], &ctx->live->intervals[irinst->vl], ctx);
 }
 
@@ -159,6 +160,25 @@ void lirext(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct L
   inst->operands[0].size = sizeOf(&irinst->type);
   lirop_reg(&inst->operands[1], &ctx->live->intervals[irinst->vl], ctx);
   if (irinst->opcode == OPCODE_ZEXT) inst->is_unsigned = 1;
+}
+
+void lirP2I(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
+  if (irinst->operands[1].type.other == IRTYPE_i64)
+    return lirCL(block, irinst, ctx);
+  struct LIRInstruction *inst = lir_newInst(LIR_TRUNC, 2, block, ctx->arena, &irinst->operands[1].type);
+  liroperand(&inst->operands[0], &irinst->operands[0], ctx);
+  inst->operands[0].size = inst->operands[1].size;
+  lirop_reg(&inst->operands[1], &ctx->live->intervals[irinst->vl], ctx);
+}
+
+void lirI2P(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
+  if (irinst->type.other == IRTYPE_i64)
+    return lirCL(block, irinst, ctx);
+  struct LIRInstruction *inst = lir_newInst(LIR_EXT, 2, block, ctx->arena, &irinst->operands[1].type);
+  liroperand(&inst->operands[0], &irinst->operands[0], ctx);
+  inst->operands[0].size = sizeOf(&irinst->type);
+  lirop_reg(&inst->operands[1], &ctx->live->intervals[irinst->vl], ctx);
+  if (irinst->opcode == OPCODE_UI2PTR) inst->is_unsigned = 1;
 }
 
 void lirAXO(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
@@ -283,6 +303,8 @@ void lirinst(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct 
       irinst->opcode == OPCODE_FP2SI || irinst->opcode == OPCODE_FP2UI ||
       irinst->opcode == OPCODE_SI2FP || irinst->opcode == OPCODE_UI2FP) lirTC(block, irinst, ctx);
   else if (irinst->opcode == OPCODE_SEXT || irinst->opcode == OPCODE_ZEXT || irinst->opcode == OPCODE_FPEXT) lirext(block, irinst, ctx);
+  else if (irinst->opcode == OPCODE_PTR2INT) lirP2I(block, irinst, ctx);
+  else if (irinst->opcode == OPCODE_SI2PTR || irinst->opcode == OPCODE_UI2PTR) lirI2P(block, irinst, ctx);
   else if (irinst->opcode == OPCODE_BIT_AND || irinst->opcode == OPCODE_BIT_XOR || irinst->opcode == OPCODE_BIT_OR) lirAXO(block, irinst, ctx);
   else if (irinst->opcode == OPCODE_BIT_SHL || irinst->opcode == OPCODE_BIT_ASHR || irinst->opcode == OPCODE_BIT_LSHR) lirSAL(block, irinst, ctx);
   else if (irinst->opcode == OPCODE_ALLOCA) liralloca(block, irinst, ctx);

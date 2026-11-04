@@ -297,8 +297,10 @@ struct IRExpr irCast(struct Expr *expr, struct IRModule *module, struct IRFuncti
 
   else if (expr->expr_cast.value->type->kind == Type_Pointer && isInteger(expr->expr_cast.type))
     opc = OPCODE_PTR2INT;
-  else if (expr->expr_cast.type->kind == Type_Pointer && isInteger(expr->expr_cast.value->type))
-    opc = OPCODE_INT2PTR;
+  else if (expr->expr_cast.type->kind == Type_Pointer && isSignedInteger(expr->expr_cast.value->type))
+    opc = OPCODE_SI2PTR;
+  else if (expr->expr_cast.type->kind == Type_Pointer && isUnsignedInteger(expr->expr_cast.value->type))
+    opc = OPCODE_UI2PTR;
 
   else if (isInteger(expr->expr_cast.type) && isInteger(expr->expr_cast.value->type)) {
     int rank_src = rankType(expr->expr_cast.value->type);

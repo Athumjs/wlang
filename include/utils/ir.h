@@ -42,7 +42,8 @@
   X(OPCODE_UI2FP, "ui2fp") \
   X(OPCODE_SI2FP, "si2fp") \
   X(OPCODE_PTR2INT, "ptr2int") \
-  X(OPCODE_INT2PTR, "int2ptr") \
+  X(OPCODE_SI2PTR, "si2ptr") \
+  X(OPCODE_UI2PTR, "ui2ptr") \
   X(OPCODE_GEP, "gep") \
   X(OPCODE_MEMCPY, "memcpy") \
   X(OPCODE_RET, "ret")
