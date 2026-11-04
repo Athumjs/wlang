@@ -123,14 +123,14 @@ void lirdiv(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct L
     liroperand(&vl->operands[0], &irinst->operands[1], ctx);
     vl->operands[1].kind = LIR_Address;
     vl->operands[1].mem.base_reg = ctx->arch->stack_register;
-    *ctx->stack_size += (vl->operands[1].size + 15) & ~15;
-    vl->operands[1].mem.disp = *ctx->stack_size;
+    *ctx->stack_size += vl->operands[1].size;
+    vl->operands[1].mem.disp = -(*ctx->stack_size);
     vl->operands[1].mem.index_reg = -1;
     struct LIRInstruction *inst = lir_newInst(LIR_DIV, 1, block, ctx->arena, &irinst->type); 
     if (irinst->opcode == OPCODE_UDIV || irinst->opcode == OPCODE_UREM) inst->is_unsigned = 1;
     inst->operands[0].kind = LIR_Address;
     inst->operands[0].mem.base_reg = ctx->arch->stack_register;
-    inst->operands[0].mem.disp = *ctx->stack_size;
+    inst->operands[0].mem.disp = -(*ctx->stack_size);
     inst->operands[0].mem.index_reg = -1;
     return;
   }
