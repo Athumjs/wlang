@@ -24,4 +24,7 @@ void x86_64_linux_operand(struct LIROperand *operand, FILE *file) {
 
     fprintf(file, ")");
   }
+
+  else if (operand->kind == LIR_Label)
+    fprintf(file, ".Lb%ld", operand->label);
 }

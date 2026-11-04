@@ -59,3 +59,4 @@ void x86_64_linux_extension(uint64_t ext, uint8_t size, FILE *file);
 
 // util.c
 char *x86_64_linux_inst_size(uint8_t size, uint8_t is_float);
+char *x86_64_linux_conds(enum LIRCmp cmp);

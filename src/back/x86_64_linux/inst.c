@@ -13,6 +13,22 @@ void x86_64_linux_inst(struct LIRInstruction *inst, FILE *file, struct Arch *arc
   else if (inst->opcode == LIR_SHL) fprintf(file, "  shl");
   else if (inst->opcode == LIR_ASR) fprintf(file, "  sar");
   else if (inst->opcode == LIR_LSR) fprintf(file, "  shr");
+  else if (inst->opcode == LIR_CMP) fprintf(file, "  cmp");
+  else if (inst->opcode == LIR_FCMP) fprintf(file, "  comi");
+  
+  else if (inst->opcode == LIR_JCOND) {
+    fprintf(file, "  j%s ", x86_64_linux_conds(inst->operands[0].imm));
+    x86_64_linux_operand(&inst->operands[1], file);
+    fprintf(file, "\n");
+    return;
+  }
+
+  else if (inst->opcode == LIR_JMP) {
+    fprintf(file, "  jmp ");
+    x86_64_linux_operand(&inst->operands[0], file);
+    fprintf(file, "\n");
+    return;
+  }
 
   else if (inst->opcode == LIR_TRUNC) {
     uint8_t is_float = inst->operands[inst->operands_len - 1].reg >= arch->iregisters_len;

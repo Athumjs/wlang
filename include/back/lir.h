@@ -21,11 +21,25 @@
   X(LIR_EXT, "ext") \
   X(LIR_CVT, "cvt") \
   X(LIR_CMP, "cmp") \
+  X(LIR_FCMP, "fcmp") \
   X(LIR_JMP, "jmp") \
   X(LIR_JCOND, "jcond") \
   X(LIR_CALL, "call") \
   X(LIR_RET, "ret") \
   X(LIR_TARGET_SPECIFIC, "text")
+
+enum LIRCmp {
+  LIRCMP_Eq,
+  LIRCMP_Ne,
+  LIRCMP_SGt,
+  LIRCMP_SGe,
+  LIRCMP_SLt,
+  LIRCMP_SLe,
+  LIRCMP_UGt,
+  LIRCMP_UGe,
+  LIRCMP_ULt,
+  LIRCMP_ULe
+};
 
 enum LIROpcodes {
 #define X(name, str) name,

@@ -1,5 +1,8 @@
 set main() {
-  var a = 10;
-  var b = &a;
-  return b as int;
+  var weight = 59.5;
+
+  if (weight >= 60.0)
+    return 1;
+
+  return 0;
 }

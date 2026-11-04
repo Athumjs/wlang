@@ -29,9 +29,16 @@ void op_reg(struct LIROperand *operand, int64_t value, struct LIRContext *ctx) {
   operand->mem.index_reg = -1;
 }
 
+void op_block(struct LIROperand *operand, int64_t value, struct LIRContext *ctx) {
+  operand->kind = LIR_Label;
+  operand->label = value;
+}
+
 void liroperand(struct LIROperand *operand, struct IROperand *iroperand, struct LIRContext *ctx) {
   if (iroperand->kind == Operand_Constant)
     op_const(operand, &iroperand->constant, ctx);
   else if (iroperand->kind == Operand_Register)
     op_reg(operand, iroperand->ref, ctx);
+  else if (iroperand->kind == Operand_Block)
+    op_block(operand, iroperand->ref, ctx);
 }

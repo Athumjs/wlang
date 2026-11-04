@@ -151,16 +151,14 @@ struct IRExpr irCompare(struct Expr *expr, struct IRModule *module, struct IRFun
     if (expr->expr_binary.op == TOKEN_NE)
       opc = FCMP_ONe;
 
-    else if (isSignedInteger(expr->type)) {
-      if (expr->expr_binary.op == TOKEN_GT)
-        opc = FCMP_OGt;
-      else if (expr->expr_binary.op == TOKEN_GE)
-        opc = FCMP_OGe;
-      else if (expr->expr_binary.op == TOKEN_LT)
-        opc = FCMP_OLt;
-      else if (expr->expr_binary.op == TOKEN_LE)
-        opc = FCMP_OLe;
-    }
+    if (expr->expr_binary.op == TOKEN_GT)
+      opc = FCMP_OGt;
+    else if (expr->expr_binary.op == TOKEN_GE)
+      opc = FCMP_OGe;
+    else if (expr->expr_binary.op == TOKEN_LT)
+      opc = FCMP_OLt;
+    else if (expr->expr_binary.op == TOKEN_LE)
+      opc = FCMP_OLe;
 
     addOperandFCmp(opc, inst);
   }
