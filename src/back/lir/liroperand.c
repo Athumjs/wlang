@@ -1,4 +1,5 @@
 #include "lir.h"
+#include "../backs.h"
 
 void op_const(struct LIROperand *operand, struct IRValue *value, struct LIRContext *ctx) {
   if (value->kind == Value_Float || value->kind == Value_Double) {
@@ -15,7 +16,8 @@ void op_const(struct LIROperand *operand, struct IRValue *value, struct LIRConte
 
 void op_reg(struct LIROperand *operand, int64_t value, struct LIRContext *ctx) {
   struct Interval *interval = &ctx->live->intervals[value];
-  operand->size = interval->size;
+  struct IRInstruction *inst = getInst(ctx->func, value);
+  operand->size = sizeOf(&inst->type);
 
   if (interval->reg != -1) {
     operand->kind = LIR_Register;

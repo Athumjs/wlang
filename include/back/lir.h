@@ -22,6 +22,7 @@
   X(LIR_CVT, "cvt") \
   X(LIR_CMP, "cmp") \
   X(LIR_FCMP, "fcmp") \
+  X(LIR_SETCC, "setcc") \
   X(LIR_JMP, "jmp") \
   X(LIR_JCOND, "jcond") \
   X(LIR_CALL, "call") \

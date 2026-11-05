@@ -59,3 +59,29 @@ size_t alignOf(struct IRType *type) {
     return alignOf(type->array.type);
   return sizeOf(type);
 }
+
+struct IRInstruction *getInst(struct IRFunction *func, int64_t vl) {
+  for (int i = 0; i < func->blocks_len; i++) {
+    for (int j = 0; j < func->blocks[i].instructions_len; j++) {
+      if (func->blocks[i].instructions[j].vl != vl) continue;
+      return &func->blocks[i].instructions[j];
+    }
+  }
+  return NULL;
+}
+
+struct FindInst findInst(struct IRFunction *func, int64_t vl) {
+    for (int i = 0; i < func->blocks_len; i++) {
+    for (int j = 0; j < func->blocks[i].instructions_len; j++) {
+      if (func->blocks[i].instructions[j].vl != vl) continue;
+      return (struct FindInst){
+        i,
+        j
+      };
+    }
+  }
+  return (struct FindInst){
+    -1,
+    -1
+  };
+}

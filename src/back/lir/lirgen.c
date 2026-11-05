@@ -29,7 +29,8 @@ void lirgen(struct LIRFunction *func, struct Arch *arch, struct IRFunction *irfu
     .arch = arch,
     .floats_len = &floats->values_len,
     .stack_size = &func->stack_size,
-    .arena = arena
+    .arena = arena,
+    .func = irfunc
   };
 
   for (int i = 0; i < live->length; i++) {

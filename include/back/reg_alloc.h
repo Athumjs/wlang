@@ -7,7 +7,6 @@ struct Interval {
   int start, end;
   int reg;
   int spillSlot;
-  uint8_t size;
   uint8_t spill_force;
   uint8_t is_float;
 };

@@ -22,8 +22,19 @@ void x86_64_linux_code(struct IRGlobal *globals, size_t globals_len, struct LIRF
 void lirgen(struct LIRFunction *func, struct Arch *arch, struct IRFunction *irfunc, struct Arena *arena, struct Live *live, struct Floats *floats);
 void showLIR(struct LIRFunction *funcs, size_t funcs_len);
 
+// ssa_destruction.c
+void ssa_destruction(struct IRFunction *func, struct Arena *arena);
+
+
+struct FindInst {
+  int64_t block_index;
+  int64_t inst_index;
+};
+
 // util.c
 FILE *create_as(const char *folder_name, const char *filename, char **name, int *name_len);
 char *run_assembler(const char *folder_name, const char *name, int name_len, FILE *file);
 size_t sizeOf(struct IRType *type);
 size_t alignOf(struct IRType *type);
+struct IRInstruction *getInst(struct IRFunction *func, int64_t vl);
+struct FindInst findInst(struct IRFunction *func, int64_t vl);

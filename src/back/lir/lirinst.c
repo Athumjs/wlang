@@ -150,7 +150,6 @@ void lirTC(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LI
   liroperand(&inst->operands[0], &irinst->operands[0], ctx);
   if (irinst->opcode == OPCODE_FPTRUNC || irinst->opcode == OPCODE_FP2SI || irinst->opcode == OPCODE_FP2UI)
     inst->operands[0].size = sizeOf(&irinst->type);
-  else inst->operands[0].size = inst->operands[1].size;
   lirop_reg(&inst->operands[1], &ctx->live->intervals[irinst->vl], ctx);
 }
 
@@ -167,7 +166,6 @@ void lirP2I(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct L
     return lirCL(block, irinst, ctx);
   struct LIRInstruction *inst = lir_newInst(LIR_TRUNC, 2, block, ctx->arena, &irinst->operands[1].type);
   liroperand(&inst->operands[0], &irinst->operands[0], ctx);
-  inst->operands[0].size = inst->operands[1].size;
   lirop_reg(&inst->operands[1], &ctx->live->intervals[irinst->vl], ctx);
 }
 
@@ -283,74 +281,133 @@ void liralloca(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struc
 
 void lircmp(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
   struct LIRInstruction *inst = lir_newInst(irinst->opcode == OPCODE_ICMP ? LIR_CMP : LIR_FCMP, 2, block, ctx->arena, &irinst->type);
+  liroperand(&inst->operands[0], &irinst->operands[2], ctx);
+  liroperand(&inst->operands[1], &irinst->operands[1], ctx);
 
-  if (irinst->opcode == OPCODE_ICMP) {
+  struct FindInst find = findInst(ctx->func, irinst->vl);
+  struct IRBasicBlock *b = &ctx->func->blocks[find.block_index];
+
+  if (b->instructions[find.inst_index + 1].opcode != OPCODE_BR) {
+    struct LIRInstruction *inst = lir_newInst(LIR_SETCC, 2, block, ctx->arena, &irinst->type);
+    enum LIRCmp cond = LIRCMP_Ne;
     switch (irinst->operands[0].cmp.icmp) {
       case ICMP_Eq:
-        ctx->last_cond = LIRCMP_Eq;
+        cond = LIRCMP_Eq;
         break;
       case ICMP_Ne:
-        ctx->last_cond = LIRCMP_Ne;
+        cond = LIRCMP_Ne;
         break;
       case ICMP_SGt:
-        ctx->last_cond = LIRCMP_SGt;
+        cond = LIRCMP_SGt;
         break;
       case ICMP_SGe:
-        ctx->last_cond = LIRCMP_SGe;
+        cond = LIRCMP_SGe;
         break;
       case ICMP_SLt:
-        ctx->last_cond = LIRCMP_SLt;
+        cond = LIRCMP_SLt;
         break;
       case ICMP_SLe:
-        ctx->last_cond = LIRCMP_SLe;
+        cond = LIRCMP_SLe;
         break;
       case ICMP_UGt:
-        ctx->last_cond = LIRCMP_UGt;
+        cond = LIRCMP_UGt;
         break;
       case ICMP_UGe:
-        ctx->last_cond = LIRCMP_UGe;
+        cond = LIRCMP_UGe;
         break;
       case ICMP_ULt:
-        ctx->last_cond = LIRCMP_ULt;
+        cond = LIRCMP_ULt;
         break;
       case ICMP_ULe:
-        ctx->last_cond = LIRCMP_ULe;
+        cond = LIRCMP_ULe;
         break;
     }
-  } else {
-    switch (irinst->operands[0].cmp.fcmp) {
+    inst->operands[0].kind = LIR_Immediate;
+    inst->operands[0].imm = cond;
+    lirop_reg(&inst->operands[1], &ctx->live->intervals[irinst->vl], ctx);
+  }
+}
+
+void lirbr(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
+  struct IRInstruction *ircond = getInst(ctx->func, irinst->operands[0].ref);
+  enum LIRCmp cond = LIRCMP_Eq;
+
+  if (ircond->opcode != OPCODE_ICMP && ircond->opcode != OPCODE_FCMP) {
+    struct LIRInstruction *inst = lir_newInst(LIR_CMP, 2, block, ctx->arena, &ircond->type);
+    inst->operands[0].kind = LIR_Immediate;
+    inst->operands[0].imm = 0;
+    liroperand(&inst->operands[1], &ircond->operands[0], ctx);
+    cond = LIRCMP_Ne;
+  }
+
+  struct LIRInstruction *inst = lir_newInst(LIR_JCOND, 2, block, ctx->arena, &irinst->type);
+
+  if (ircond->opcode == OPCODE_ICMP) {
+    switch (ircond->operands[0].cmp.icmp) {
+      case ICMP_Eq:
+        cond = LIRCMP_Eq;
+        break;
+      case ICMP_Ne:
+        cond = LIRCMP_Ne;
+        break;
+      case ICMP_SGt:
+        cond = LIRCMP_SGt;
+        break;
+      case ICMP_SGe:
+        cond = LIRCMP_SGe;
+        break;
+      case ICMP_SLt:
+        cond = LIRCMP_SLt;
+        break;
+      case ICMP_SLe:
+        cond = LIRCMP_SLe;
+        break;
+      case ICMP_UGt:
+        cond = LIRCMP_UGt;
+        break;
+      case ICMP_UGe:
+        cond = LIRCMP_UGe;
+        break;
+      case ICMP_ULt:
+        cond = LIRCMP_ULt;
+        break;
+      case ICMP_ULe:
+        cond = LIRCMP_ULe;
+        break;
+    }
+  } else if (ircond->opcode == OPCODE_FCMP) {
+    switch (ircond->operands[0].cmp.fcmp) {
       case FCMP_OEq:
-        ctx->last_cond = LIRCMP_Eq;
+        cond = LIRCMP_Eq;
         break;
       case FCMP_ONe:
-        ctx->last_cond = LIRCMP_Ne;
+        cond = LIRCMP_Ne;
         break;
       case FCMP_OGt:
-        ctx->last_cond = LIRCMP_UGt;
+        cond = LIRCMP_UGt;
         break;
       case FCMP_OGe:
-        ctx->last_cond = LIRCMP_UGe;
+        cond = LIRCMP_UGe;
         break;
       case FCMP_OLt:
-        ctx->last_cond = LIRCMP_ULt;
+        cond = LIRCMP_ULt;
         break;
       case FCMP_OLe:
-        ctx->last_cond = LIRCMP_ULe;
+        cond = LIRCMP_ULe;
         break;
     }
   }
 
-  liroperand(&inst->operands[0], &irinst->operands[2], ctx);
-  liroperand(&inst->operands[1], &irinst->operands[1], ctx);
-}
-
-void lirbr(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
-  struct LIRInstruction *inst = lir_newInst(LIR_JCOND, 2, block, ctx->arena, &irinst->type);
   inst->operands[0].kind = LIR_Immediate;
-  inst->operands[0].imm = ctx->last_cond;
+  inst->operands[0].imm = cond;
   liroperand(&inst->operands[1], &irinst->operands[1], ctx);
   struct LIRInstruction *op = lir_newInst(LIR_JMP, 1, block, ctx->arena, &irinst->type);
   liroperand(&op->operands[0], &irinst->operands[2], ctx);
+}
+
+void lirjmp(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
+  struct LIRInstruction *op = lir_newInst(LIR_JMP, 1, block, ctx->arena, &irinst->type);
+  liroperand(&op->operands[0], &irinst->operands[0], ctx);
 }
 
 void lirret(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
@@ -382,5 +439,6 @@ void lirinst(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct 
   else if (irinst->opcode == OPCODE_ALLOCA) liralloca(block, irinst, ctx);
   else if (irinst->opcode == OPCODE_ICMP || irinst->opcode == OPCODE_FCMP) lircmp(block, irinst, ctx);
   else if (irinst->opcode == OPCODE_BR) lirbr(block, irinst, ctx);
+  else if (irinst->opcode == OPCODE_JMP) lirjmp(block, irinst, ctx);
   else if (irinst->opcode == OPCODE_RET) lirret(block, irinst, ctx);
 }

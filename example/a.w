@@ -1,8 +1,10 @@
 set main() {
-  var weight = 59.5;
+  var old = 26;
+  var res = 2;
 
-  if (weight >= 60.0)
-    return 1;
+  if (old >= 18 && old <= 25)
+    res = 1;
+  else res = 0;
 
-  return 0;
+  return res;
 }
