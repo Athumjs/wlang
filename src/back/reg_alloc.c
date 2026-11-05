@@ -87,7 +87,7 @@ void register_allocation(struct Live *live, struct Arch *arch) {
   for (size_t i = 0; i < arch->iregisters_len + arch->fregisters_len; i++)
     free_regs[i] = !arch->registers[i].reserve;
 
-  struct Interval **actives = calloc(arch->iregisters_len, sizeof(struct Interval *));
+  struct Interval **actives = calloc(arch->iregisters_len + arch->fregisters_len, sizeof(struct Interval *));
   size_t actives_len = 0;
 
   for (int i = 0; i < live->length; i++) {
