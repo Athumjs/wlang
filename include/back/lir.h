@@ -63,7 +63,7 @@ struct LIROperand {
   union {
     int64_t reg;
     int64_t imm;
-    int64_t label;
+    char *label;
 
     struct {
       int64_t base_reg;

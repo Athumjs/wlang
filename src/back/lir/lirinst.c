@@ -2,7 +2,7 @@
 #include "../backs.h"
 
 void lirCL(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
-  struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena, &irinst->type);
+  struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena);
   liroperand(&inst->operands[0], &irinst->operands[0], ctx);
 
   if (irinst->opcode == OPCODE_LOAD) {
@@ -12,21 +12,21 @@ void lirCL(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LI
     inst->operands[0].mem.index_reg = -1;
   }
 
-  lirop_reg(&inst->operands[1], &ctx->live->intervals[irinst->vl], ctx);
+  lirop_reg(&inst->operands[1], irinst, ctx);
 }
 
 void lirstore(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
   if (irinst->operands[0].kind == Operand_Register && ctx->live->intervals[irinst->operands[0].ref].reg == -1) {
-    struct LIRInstruction *inst = lir_newInst(LIR_LOAD, 2, block, ctx->arena, &irinst->type);
+    struct LIRInstruction *inst = lir_newInst(LIR_LOAD, 2, block, ctx->arena);
     liroperand(&inst->operands[0], &irinst->operands[0], ctx);
-    lirop_reg(&inst->operands[1], &ctx->live->intervals[irinst->vl], ctx);
-    struct LIRInstruction *op = lir_newInst(LIR_STORE, 2, block, ctx->arena, &irinst->type);
-    lirop_reg(&op->operands[0], &ctx->live->intervals[irinst->vl], ctx);
+    lirop_reg(&inst->operands[1], irinst, ctx);
+    struct LIRInstruction *op = lir_newInst(LIR_STORE, 2, block, ctx->arena);
+    lirop_reg(&op->operands[0], irinst, ctx);
     liroperand(&op->operands[1], &irinst->operands[1], ctx);
     return;
   }
 
-  struct LIRInstruction *inst = lir_newInst(LIR_STORE, 2, block, ctx->arena, &irinst->type);
+  struct LIRInstruction *inst = lir_newInst(LIR_STORE, 2, block, ctx->arena);
   liroperand(&inst->operands[0], &irinst->operands[0], ctx);
   liroperand(&inst->operands[1], &irinst->operands[1], ctx);
 }
@@ -40,30 +40,30 @@ void lirASM(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct L
     opc = LIR_MUL;
 
   if (ctx->arch->is_3_operands) {
-    struct LIRInstruction *inst = lir_newInst(opc, 3, block, ctx->arena, &irinst->type);
+    struct LIRInstruction *inst = lir_newInst(opc, 3, block, ctx->arena);
     liroperand(&inst->operands[0], &irinst->operands[1], ctx);
     liroperand(&inst->operands[1], &irinst->operands[0], ctx);
-    lirop_reg(&inst->operands[2], &ctx->live->intervals[irinst->vl], ctx); 
+    lirop_reg(&inst->operands[2], irinst, ctx); 
     return;
   }
 
-  struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena, &irinst->type);
+  struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena);
   liroperand(&inst->operands[0], &irinst->operands[0], ctx);
-  lirop_reg(&inst->operands[1], &ctx->live->intervals[irinst->vl], ctx); 
+  lirop_reg(&inst->operands[1], irinst, ctx); 
 
-  struct LIRInstruction *op = lir_newInst(opc, 2, block, ctx->arena, &irinst->type);
+  struct LIRInstruction *op = lir_newInst(opc, 2, block, ctx->arena);
   liroperand(&op->operands[0], &irinst->operands[1], ctx);
-  lirop_reg(&op->operands[1], &ctx->live->intervals[irinst->vl], ctx);
+  lirop_reg(&op->operands[1], irinst, ctx);
 }
 
 void lirdiv(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
   struct Interval *interval = &ctx->live->intervals[irinst->vl];
 
   if (ctx->arch->is_3_operands) {
-    struct LIRInstruction *inst = lir_newInst(LIR_DIV, 3, block, ctx->arena, &irinst->type);
+    struct LIRInstruction *inst = lir_newInst(LIR_DIV, 3, block, ctx->arena);
     liroperand(&inst->operands[0], &irinst->operands[1], ctx);
     liroperand(&inst->operands[1], &irinst->operands[0], ctx);
-    lirop_reg(&inst->operands[2], interval, ctx);
+    lirop_reg(&inst->operands[2], irinst, ctx);
     return;
   }
 
@@ -76,7 +76,7 @@ void lirdiv(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct L
 
   if (irinst->operands[0].kind != Operand_Register || interval_reg->vreg != irinst->operands[0].ref) {
     if (interval_reg != NULL) {
-      struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena, &irinst->type);
+      struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena);
       inst->operands[0].kind = LIR_Register;
       inst->operands[0].reg = ctx->arch->div_register;
       inst->operands[1].kind = LIR_Address;
@@ -88,7 +88,7 @@ void lirdiv(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct L
       inst->operands[1].mem.index_reg = -1;
     }
 
-    struct LIRInstruction *op = lir_newInst(LIR_COPY, 2, block, ctx->arena, &irinst->type);
+    struct LIRInstruction *op = lir_newInst(LIR_COPY, 2, block, ctx->arena);
     liroperand(&op->operands[0], &irinst->operands[0], ctx);
     op->operands[1].kind = LIR_Register;
     op->operands[1].reg = ctx->arch->div_register;
@@ -102,7 +102,7 @@ void lirdiv(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct L
   }
 
   if (interval_reg != NULL) {
-    struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena, &irinst->type);
+    struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena);
     inst->operands[0].kind = LIR_Register;
     inst->operands[0].reg = ctx->arch->rem_register;
     inst->operands[1].kind = LIR_Address;
@@ -115,18 +115,18 @@ void lirdiv(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct L
   }
 
   interval->reg = (irinst->opcode == OPCODE_SREM || irinst->opcode == OPCODE_UREM) ? ctx->arch->rem_register : ctx->arch->div_register;
-  struct LIRInstruction *ext = lir_newInst(LIR_TARGET_SPECIFIC, 0, block, ctx->arena, &irinst->type);
+  struct LIRInstruction *ext = lir_newInst(LIR_TARGET_SPECIFIC, 0, block, ctx->arena);
   ext->target_extension = 0;
 
   if (irinst->operands[1].kind != Operand_Register) {
-    struct LIRInstruction *vl = lir_newInst(LIR_COPY, 2, block, ctx->arena, &irinst->type);
+    struct LIRInstruction *vl = lir_newInst(LIR_COPY, 2, block, ctx->arena);
     liroperand(&vl->operands[0], &irinst->operands[1], ctx);
     vl->operands[1].kind = LIR_Address;
     vl->operands[1].mem.base_reg = ctx->arch->stack_register;
     *ctx->stack_size += vl->operands[1].size;
     vl->operands[1].mem.disp = -(*ctx->stack_size);
     vl->operands[1].mem.index_reg = -1;
-    struct LIRInstruction *inst = lir_newInst(LIR_DIV, 1, block, ctx->arena, &irinst->type); 
+    struct LIRInstruction *inst = lir_newInst(LIR_DIV, 1, block, ctx->arena); 
     if (irinst->opcode == OPCODE_UDIV || irinst->opcode == OPCODE_UREM) inst->is_unsigned = 1;
     inst->operands[0].kind = LIR_Address;
     inst->operands[0].mem.base_reg = ctx->arch->stack_register;
@@ -135,7 +135,7 @@ void lirdiv(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct L
     return;
   }
 
-  struct LIRInstruction *inst = lir_newInst(LIR_DIV, 1, block, ctx->arena, &irinst->type); 
+  struct LIRInstruction *inst = lir_newInst(LIR_DIV, 1, block, ctx->arena); 
   if (irinst->opcode == OPCODE_UDIV || irinst->opcode == OPCODE_UREM) inst->is_unsigned = 1;
   liroperand(&inst->operands[0], &irinst->operands[1], ctx);
 }
@@ -146,36 +146,32 @@ void lirTC(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LI
   if (irinst->opcode == OPCODE_TRUNC || irinst->opcode == OPCODE_FPTRUNC)
     opc = LIR_TRUNC;
 
-  struct LIRInstruction *inst = lir_newInst(opc, 2, block, ctx->arena, &irinst->operands[1].type);
+  struct LIRInstruction *inst = lir_newInst(opc, 2, block, ctx->arena);
   liroperand(&inst->operands[0], &irinst->operands[0], ctx);
-  if (irinst->opcode == OPCODE_FPTRUNC || irinst->opcode == OPCODE_FP2SI || irinst->opcode == OPCODE_FP2UI)
-    inst->operands[0].size = sizeOf(&irinst->type);
-  lirop_reg(&inst->operands[1], &ctx->live->intervals[irinst->vl], ctx);
+  lirop_reg(&inst->operands[1], irinst, ctx);
 }
 
 void lirext(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
-  struct LIRInstruction *inst = lir_newInst(LIR_EXT, 2, block, ctx->arena, &irinst->operands[1].type);
+  struct LIRInstruction *inst = lir_newInst(LIR_EXT, 2, block, ctx->arena);
   liroperand(&inst->operands[0], &irinst->operands[0], ctx);
-  inst->operands[0].size = sizeOf(&irinst->type);
-  lirop_reg(&inst->operands[1], &ctx->live->intervals[irinst->vl], ctx);
+  lirop_reg(&inst->operands[1], irinst, ctx);
   if (irinst->opcode == OPCODE_ZEXT) inst->is_unsigned = 1;
 }
 
 void lirP2I(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
   if (irinst->operands[1].type.other == IRTYPE_i64)
     return lirCL(block, irinst, ctx);
-  struct LIRInstruction *inst = lir_newInst(LIR_TRUNC, 2, block, ctx->arena, &irinst->operands[1].type);
+  struct LIRInstruction *inst = lir_newInst(LIR_TRUNC, 2, block, ctx->arena);
   liroperand(&inst->operands[0], &irinst->operands[0], ctx);
-  lirop_reg(&inst->operands[1], &ctx->live->intervals[irinst->vl], ctx);
+  lirop_reg(&inst->operands[1], irinst, ctx);
 }
 
 void lirI2P(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
-  if (irinst->type.other == IRTYPE_i64)
+  if (irinst->operands[0].op_type.other == IRTYPE_i64)
     return lirCL(block, irinst, ctx);
-  struct LIRInstruction *inst = lir_newInst(LIR_EXT, 2, block, ctx->arena, &irinst->operands[1].type);
+  struct LIRInstruction *inst = lir_newInst(LIR_EXT, 2, block, ctx->arena);
   liroperand(&inst->operands[0], &irinst->operands[0], ctx);
-  inst->operands[0].size = sizeOf(&irinst->type);
-  lirop_reg(&inst->operands[1], &ctx->live->intervals[irinst->vl], ctx);
+  lirop_reg(&inst->operands[1], irinst, ctx);
   if (irinst->opcode == OPCODE_UI2PTR) inst->is_unsigned = 1;
 }
 
@@ -188,19 +184,19 @@ void lirAXO(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct L
     opc = LIR_OR;
 
   if (ctx->arch->is_3_operands) {
-    struct LIRInstruction *op = lir_newInst(opc, 3, block, ctx->arena, &irinst->type);
+    struct LIRInstruction *op = lir_newInst(opc, 3, block, ctx->arena);
     liroperand(&op->operands[0], &irinst->operands[1], ctx);
     liroperand(&op->operands[0], &irinst->operands[0], ctx);
-    lirop_reg(&op->operands[1], &ctx->live->intervals[irinst->vl], ctx);
+    lirop_reg(&op->operands[1], irinst, ctx);
     return;
   }
 
-  struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena, &irinst->type);
+  struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena);
   liroperand(&inst->operands[0], &irinst->operands[0], ctx);
-  lirop_reg(&inst->operands[1], &ctx->live->intervals[irinst->vl], ctx);
-  struct LIRInstruction *op = lir_newInst(opc, 2, block, ctx->arena, &irinst->type);
+  lirop_reg(&inst->operands[1], irinst, ctx);
+  struct LIRInstruction *op = lir_newInst(opc, 2, block, ctx->arena);
   liroperand(&op->operands[0], &irinst->operands[1], ctx);
-  lirop_reg(&op->operands[1], &ctx->live->intervals[irinst->vl], ctx);
+  lirop_reg(&op->operands[1], irinst, ctx);
 }
 
 void lirSAL(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
@@ -212,14 +208,14 @@ void lirSAL(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct L
     opc = LIR_LSR;
 
   if (ctx->arch->is_3_operands) {
-    struct LIRInstruction *op = lir_newInst(opc, 3, block, ctx->arena, &irinst->type);
+    struct LIRInstruction *op = lir_newInst(opc, 3, block, ctx->arena);
     liroperand(&op->operands[0], &irinst->operands[1], ctx);
     liroperand(&op->operands[1], &irinst->operands[0], ctx);
-    lirop_reg(&op->operands[2], &ctx->live->intervals[irinst->vl], ctx);
+    lirop_reg(&op->operands[2], irinst, ctx);
     return;
   }
 
-  struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena, &irinst->type);
+  struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena);
   liroperand(&inst->operands[0], &irinst->operands[0], ctx);
 
   struct Interval *interval = &ctx->live->intervals[irinst->vl];
@@ -228,7 +224,7 @@ void lirSAL(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct L
     interval->reg = -1;
 
     if (ctx->live->intervals[irinst->operands[1].ref].reg != ctx->arch->shift_register) {
-      struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena, &irinst->type);
+      struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena);
       liroperand(&inst->operands[0], &irinst->operands[1], ctx);
       inst->operands[0].size = 1;
       inst->operands[1].kind = LIR_Register;
@@ -245,7 +241,7 @@ void lirSAL(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct L
     }
 
     if (interval_reg != NULL) {
-      struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena, &irinst->type);
+      struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena);
       inst->operands[0].kind = LIR_Register;
       inst->operands[0].reg = ctx->arch->shift_register;
       inst->operands[1].kind = LIR_Address;
@@ -257,7 +253,7 @@ void lirSAL(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct L
       inst->operands[1].mem.index_reg = -1;
     }
 
-    struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena, &irinst->type);
+    struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena);
     liroperand(&inst->operands[0], &irinst->operands[1], ctx);
     inst->operands[0].size = 1;
     inst->operands[1].kind = LIR_Register;
@@ -267,20 +263,20 @@ void lirSAL(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct L
     ctx->live->intervals[irinst->operands[1].ref].reg = ctx->arch->shift_register;
   }
 
-  lirop_reg(&inst->operands[1], interval, ctx);
-  struct LIRInstruction *op = lir_newInst(opc, 2, block, ctx->arena, &irinst->type);
+  lirop_reg(&inst->operands[1], irinst, ctx);
+  struct LIRInstruction *op = lir_newInst(opc, 2, block, ctx->arena);
   liroperand(&op->operands[0], &irinst->operands[1], ctx);
   if (irinst->operands[1].kind == Operand_Register) op->operands[0].size = 1;
   op->operands[1] = inst->operands[1];
 }
 
 void liralloca(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
-  *ctx->stack_size += sizeOf(&irinst->type);
+  *ctx->stack_size += sizeOf(&irinst->operands[0].op_type);
   ctx->live->intervals[irinst->vl].spillSlot = *ctx->stack_size;
 }
 
 void lircmp(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
-  struct LIRInstruction *inst = lir_newInst(irinst->opcode == OPCODE_ICMP ? LIR_CMP : LIR_FCMP, 2, block, ctx->arena, &irinst->type);
+  struct LIRInstruction *inst = lir_newInst(irinst->opcode == OPCODE_ICMP ? LIR_CMP : LIR_FCMP, 2, block, ctx->arena);
   liroperand(&inst->operands[0], &irinst->operands[2], ctx);
   liroperand(&inst->operands[1], &irinst->operands[1], ctx);
 
@@ -288,7 +284,7 @@ void lircmp(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct L
   struct IRBasicBlock *b = &ctx->func->blocks[find.block_index];
 
   if (b->instructions[find.inst_index + 1].opcode != OPCODE_BR) {
-    struct LIRInstruction *inst = lir_newInst(LIR_SETCC, 2, block, ctx->arena, &irinst->type);
+    struct LIRInstruction *inst = lir_newInst(LIR_SETCC, 2, block, ctx->arena);
     enum LIRCmp cond = LIRCMP_Ne;
     switch (irinst->operands[0].cmp.icmp) {
       case ICMP_Eq:
@@ -324,7 +320,7 @@ void lircmp(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct L
     }
     inst->operands[0].kind = LIR_Immediate;
     inst->operands[0].imm = cond;
-    lirop_reg(&inst->operands[1], &ctx->live->intervals[irinst->vl], ctx);
+    lirop_reg(&inst->operands[1], irinst, ctx);
   }
 }
 
@@ -333,14 +329,14 @@ void lirbr(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LI
   enum LIRCmp cond = LIRCMP_Eq;
 
   if (ircond->opcode != OPCODE_ICMP && ircond->opcode != OPCODE_FCMP) {
-    struct LIRInstruction *inst = lir_newInst(LIR_CMP, 2, block, ctx->arena, &ircond->type);
+    struct LIRInstruction *inst = lir_newInst(LIR_CMP, 2, block, ctx->arena);
     inst->operands[0].kind = LIR_Immediate;
     inst->operands[0].imm = 0;
     liroperand(&inst->operands[1], &ircond->operands[0], ctx);
     cond = LIRCMP_Ne;
   }
 
-  struct LIRInstruction *inst = lir_newInst(LIR_JCOND, 2, block, ctx->arena, &irinst->type);
+  struct LIRInstruction *inst = lir_newInst(LIR_JCOND, 2, block, ctx->arena);
 
   if (ircond->opcode == OPCODE_ICMP) {
     switch (ircond->operands[0].cmp.icmp) {
@@ -401,24 +397,25 @@ void lirbr(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LI
   inst->operands[0].kind = LIR_Immediate;
   inst->operands[0].imm = cond;
   liroperand(&inst->operands[1], &irinst->operands[1], ctx);
-  struct LIRInstruction *op = lir_newInst(LIR_JMP, 1, block, ctx->arena, &irinst->type);
+  struct LIRInstruction *op = lir_newInst(LIR_JMP, 1, block, ctx->arena);
   liroperand(&op->operands[0], &irinst->operands[2], ctx);
 }
 
 void lirjmp(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
-  struct LIRInstruction *op = lir_newInst(LIR_JMP, 1, block, ctx->arena, &irinst->type);
+  struct LIRInstruction *op = lir_newInst(LIR_JMP, 1, block, ctx->arena);
   liroperand(&op->operands[0], &irinst->operands[0], ctx);
 }
 
 void lirret(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
   if (irinst->operands_len == 1 && (irinst->operands[0].kind != Operand_Register || ctx->live->intervals[irinst->operands[0].ref].reg != ctx->arch->ret_register)) {
-    struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena, &irinst->type);
+    struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena);
     liroperand(&inst->operands[0], &irinst->operands[0], ctx);
     inst->operands[1].kind = LIR_Register;
     inst->operands[1].reg = ctx->arch->ret_register;
+    inst->operands[1].size = sizeOf(&irinst->operands[0].op_type);
   }
 
-  lir_newInst(LIR_RET, 0, block, ctx->arena, &irinst->type);
+  lir_newInst(LIR_RET, 0, block, ctx->arena);
 }
 
 void lirinst(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {

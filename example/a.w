@@ -1,5 +1,5 @@
 set main() {
-  var old = 26;
+  var old = 25;
   var res = 2;
 
   if (old >= 18 && old <= 25)

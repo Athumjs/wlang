@@ -2,7 +2,7 @@
 #include "../backs.h"
 #include <string.h>
 
-struct LIRInstruction *lir_newInst(enum LIROpcodes opcode, int operands_len, struct LIRBasicBlocks *block, struct Arena *arena, struct IRType *type) {
+struct LIRInstruction *lir_newInst(enum LIROpcodes opcode, int operands_len, struct LIRBasicBlocks *block, struct Arena *arena) {
   if (block->instructions_len == block->instructions_cap) {
     size_t oldCap = block->instructions_cap;
     block->instructions_cap *= 2;
@@ -17,14 +17,14 @@ struct LIRInstruction *lir_newInst(enum LIROpcodes opcode, int operands_len, str
     .operands_len = operands_len
   };
 
-  for (int i = 0; i < operands_len; i++)
-    inst.operands[i].size = sizeOf(type);
-
   block->instructions[block->instructions_len] = inst;
   return &block->instructions[block->instructions_len++];
 }
 
-void lirop_reg(struct LIROperand *operand, struct Interval *interval, struct LIRContext *ctx) {
+void lirop_reg(struct LIROperand *operand, struct IRInstruction *inst, struct LIRContext *ctx) {
+  struct Interval *interval = &ctx->live->intervals[inst->vl];
+  operand->size = sizeOf(&inst->operands[0].op_type);
+
   if (interval->reg != -1) {
     operand->kind = LIR_Register;
     operand->reg = interval->reg;

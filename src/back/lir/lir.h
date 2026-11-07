@@ -21,5 +21,5 @@ void lirinst(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct 
 void liroperand(struct LIROperand *operand, struct IROperand *iroperand, struct LIRContext *ctx);
 
 // lirutil.c
-struct LIRInstruction *lir_newInst(enum LIROpcodes opcode, int operands_len, struct LIRBasicBlocks *block, struct Arena *arena, struct IRType *type);
-void lirop_reg(struct LIROperand *operand, struct Interval *interval, struct LIRContext *ctx);
+struct LIRInstruction *lir_newInst(enum LIROpcodes opcode, int operands_len, struct LIRBasicBlocks *block, struct Arena *arena);
+void lirop_reg(struct LIROperand *operand, struct IRInstruction *inst, struct LIRContext *ctx);

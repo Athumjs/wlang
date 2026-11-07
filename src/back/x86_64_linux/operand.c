@@ -1,4 +1,5 @@
 #include "x86_64_linux.h"
+#include <stdlib.h>
 
 void x86_64_linux_operand(struct LIROperand *operand, FILE *file) {
   if (operand->kind == LIR_Immediate)
@@ -25,6 +26,8 @@ void x86_64_linux_operand(struct LIROperand *operand, FILE *file) {
     fprintf(file, ")");
   }
 
-  else if (operand->kind == LIR_Label)
-    fprintf(file, ".Lb%ld", operand->label);
+  else if (operand->kind == LIR_Label) {
+    fprintf(file, "%s", operand->label);
+    free(operand->label);
+  }
 }

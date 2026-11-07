@@ -51,7 +51,6 @@ void critic_edge(struct IRFunction *func, int64_t i_org_block, int64_t i_dst_blo
 
   struct IRInstruction inst = (struct IRInstruction){
     .opcode = OPCODE_JMP,
-    .type.kind = IRTYPEK_NULL,
     .vl = -1,
     .operands = arena_alloc(arena, sizeof(struct IROperand)),
     .operands_len = 1
@@ -59,6 +58,7 @@ void critic_edge(struct IRFunction *func, int64_t i_org_block, int64_t i_dst_blo
 
   inst.operands[0] = (struct IROperand){
     .kind = Operand_Block,
+    .op_type = IRTYPE_NULL,
     .ref = i_dst_block
   };
 
@@ -188,7 +188,6 @@ void addInst(struct IRBasicBlock *block, struct IRInstruction *inst, int64_t reg
 
   struct IRInstruction cp = (struct IRInstruction){
     .opcode = OPCODE_CONST,
-    .type = inst->type,
     .vl = reg,
     .operands = arena_alloc(arena, sizeof(struct IROperand)),
     .operands_len = 1
@@ -196,6 +195,7 @@ void addInst(struct IRBasicBlock *block, struct IRInstruction *inst, int64_t reg
 
   cp.operands[0] = (struct IROperand){
     .kind = Operand_Register,
+    .op_type = inst->operands[0].op_type,
     .ref = inst->vl
   };
 

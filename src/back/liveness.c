@@ -74,10 +74,8 @@ void liveness(struct Live *live, struct IRFunction *func, struct Arena *arena) {
   }
 
   int pos = 0;
-  int *firstPos = calloc(func->blocks_len, sizeof(int));
   int *lastPos = calloc(func->blocks_len, sizeof(int));
   for (int i = 0; i < func->blocks_len; i++) {
-    firstPos[i] = pos + 1;
     for (int j = 0; j < func->blocks[i].instructions_len; j++) {
       pos++;
       for (int k = 0; k < func->blocks[i].instructions[j].operands_len; k++)
@@ -86,7 +84,7 @@ void liveness(struct Live *live, struct IRFunction *func, struct Arena *arena) {
       if (func->blocks[i].instructions[j].vl == -1) continue;
       bit_set(&def[i * nw], func->blocks[i].instructions[j].vl);
       uint8_t size = 0;
-      struct IRType *type = &func->blocks[i].instructions[j].type;
+      struct IRType *type = &func->blocks[i].instructions[j].operands[0].op_type;
       struct IROperand *lastoperand = &func->blocks[i].instructions[j].operands[func->blocks[i].instructions[j].operands_len - 1];
       if (lastoperand->kind == Operand_Type)
         type = &lastoperand->type;
@@ -153,7 +151,6 @@ void liveness(struct Live *live, struct IRFunction *func, struct Arena *arena) {
     }
   }
 
-  free(firstPos);
   free(lastPos);
   free(use);
   free(def);

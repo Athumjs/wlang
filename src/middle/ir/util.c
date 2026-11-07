@@ -1,4 +1,5 @@
 #include "ir.h"
+#include <utils/numeric.h>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -67,11 +68,11 @@ void resolvePhi(struct IRFunction *func, struct IRBasicBlock *block, struct Aren
     }
 
     if (equal) continue;
-    struct IRInstruction *inst = newInst(OPCODE_PHI, NULL, 1, block->prevs_len, block, arena);
+    struct IRInstruction *inst = newInst(OPCODE_PHI, 1, block->prevs_len, block, arena);
     for (int j = 0; j < block->prevs_len; j++) {
       struct IRDef *pdef = getCurrentDef(func->ssa, &func->defs[i]->name, block->prevs[j], arena);
-      if (pdef->isParam) addOperandPhi(pdef->param->vl, pdef->block, inst);
-      else addOperandPhi(pdef->inst->vl, pdef->block, inst);
+      if (pdef->isParam) addOperandPhi(pdef->param->vl, pdef->param->type, pdef->block, inst);
+      else addOperandPhi(pdef->inst->vl, pdef->inst->operands[0].op_type, pdef->block, inst);
     }
     setCurrentDef(func->ssa, &func->defs[i]->name, 0, inst, block, arena);
   }
@@ -103,11 +104,11 @@ void resolvePhiIncompletes(struct IRFunction *func, struct IRBasicBlock *block, 
 
 void addPhiImcompletes(struct IRFunction *func, struct IRBasicBlock *prevBlock, struct IRBasicBlock *block, struct IRBasicBlock *nextBlock, struct Arena *arena, struct IRInstruction ***phis) {
   for (int i = 0; i < func->defs_len; i++) {
-    struct IRInstruction *inst = newInst(OPCODE_PHI, NULL, 1, block->prevs_len, block, arena);
+    struct IRInstruction *inst = newInst(OPCODE_PHI, 1, block->prevs_len, block, arena);
     struct IRDef *def = getCurrentDef(func->ssa, &func->defs[i]->name, prevBlock, arena);
-    if (def->isParam) addOperandPhi(def->param->vl, def->block, inst);
-    else addOperandPhi(def->inst->vl, def->block, inst);
-    addOperandPhi(-1, nextBlock, inst);
+    if (def->isParam) addOperandPhi(def->param->vl, def->param->type, def->block, inst);
+    else addOperandPhi(def->inst->vl, def->inst->operands[0].op_type, def->block, inst);
+    addOperandPhi(-1, IRTYPE_NULL, nextBlock, inst);
     setCurrentDef(func->ssa, &func->defs[i]->name, 0, inst, block, arena);
     (*phis)[i] = inst;
   }
@@ -151,21 +152,16 @@ struct IRDef *getCurrentDef(struct Hashmap *hmap, struct String *str, struct IRB
         return pdef;
 
       if (i == 0)
-        inst = newInst(OPCODE_PHI, NULL, 1, block->prevs_len, block, arena);
+        inst = newInst(OPCODE_PHI, 1, block->prevs_len, block, arena);
 
-      if (pdef->isParam) addOperandPhi(pdef->param->vl, pdef->block, inst);
-      else addOperandPhi(pdef->inst->vl, pdef->block, inst);
+      if (pdef->isParam) addOperandPhi(pdef->param->vl, pdef->param->type, pdef->block, inst);
+      else addOperandPhi(pdef->inst->vl, pdef->inst->operands[0].op_type, pdef->block, inst);
     }
 
     return setCurrentDef(hmap, str, 0, inst, block, arena);
   }
 
   return def;
-}
-
-int getNumCase(int num) {
-  if (num <= 0) return 1;
-  return (int)log10(num) + 1;
 }
 
 struct String getName(struct String *str, int block_index, struct Arena *arena) {

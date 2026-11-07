@@ -45,7 +45,6 @@
   X(OPCODE_SI2PTR, "si2ptr") \
   X(OPCODE_UI2PTR, "ui2ptr") \
   X(OPCODE_GEP, "gep") \
-  X(OPCODE_MEMCPY, "memcpy") \
   X(OPCODE_RET, "ret")
 
 #define IRTYPES \
@@ -89,6 +88,8 @@ struct IRType {
     } struct_;
   };
 };
+
+#define IRTYPE_NULL (struct IRType){ IRTYPEK_NULL }
 
 enum IRCMPKind {
   CMP_INT,
@@ -175,6 +176,7 @@ enum IROperandKind {
 
 struct IROperand {
   enum IROperandKind kind;
+  struct IRType op_type;
 
   union {
     int64_t ref;
@@ -195,7 +197,6 @@ enum IROpcode {
 
 struct IRInstruction {
   enum IROpcode opcode;
-  struct IRType type;
   int64_t vl;
   struct IROperand *operands;
   size_t operands_len;
@@ -242,6 +243,5 @@ struct IRFunction {
 
 struct IRGlobal {
   int64_t vl;
-  struct IRType type;
   struct IROperand value;
 };

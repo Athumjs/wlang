@@ -66,7 +66,6 @@ static void printInst(struct IRInstruction *inst) {
 
   enum IROpcode opcode = inst->opcode;
   printOpcode(opcode);
-  printType(&inst->type);
 
   for (int l = 0; l < inst->operands_len; l++) {
     if (l > 0) printf(", ");
@@ -78,6 +77,8 @@ static void printInst(struct IRInstruction *inst) {
 }
 
 static void printOperand(struct IROperand *op) {
+  printType(&op->op_type);
+
   if (op->kind == Operand_Global)
     printf("@%ld", op->ref);
   else if (op->kind == Operand_Register)
@@ -151,7 +152,6 @@ void showIR(struct IRModule *ir) {
   printf("MIR\n\n");
   for (int i = 0; i < ir->globals_len; i++) {
     printf("@%ld = ", ir->globals[i].vl);
-    printType(&ir->globals[i].type);
     printOperand(&ir->globals[i].value);
     printf("\n");
   }

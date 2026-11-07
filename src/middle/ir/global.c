@@ -1,5 +1,6 @@
 #include "ir.h"
 #include <stdio.h>
+#include <utils/numeric.h>
 #include <string.h>
 
 void irVar(struct Decl *decl, struct IRModule *module, struct Arena *arena) {
@@ -15,9 +16,10 @@ void irVar(struct Decl *decl, struct IRModule *module, struct Arena *arena) {
 
     struct IRGlobal global = (struct IRGlobal){
       .vl = module->globals_len++,
-      .type = resolveTypeIR(var->type, arena),
       .value = (struct IROperand){
         .kind = Operand_Constant,
+        .op_type.kind = IRTYPEK_OTHER,
+        .op_type.other = IRTYPE_i32,
         .constant = 0
       }
     };
@@ -42,9 +44,10 @@ void irVar(struct Decl *decl, struct IRModule *module, struct Arena *arena) {
 
         struct IRGlobal global2 = (struct IRGlobal){
           .vl = module->globals_len,
-          .type = type,
           .value = (struct IROperand){
             .kind = Operand_Constant,
+            .op_type.kind = IRTYPEK_OTHER,
+            .op_type.other = IRTYPE_ptr,
             .constant = (struct IRValue){
               .kind = Value_String,
               .s = &var->expr->expr_literal.literal.string
@@ -55,6 +58,7 @@ void irVar(struct Decl *decl, struct IRModule *module, struct Arena *arena) {
         module->globals[module->globals_len++] = global2;
         global.value = (struct IROperand){
           .kind = Operand_Global,
+          .op_type = global2.value.op_type,
           .ref = global2.vl
         };
       } else global.value.constant = irValueGlobal(var->expr, arena);
@@ -68,10 +72,18 @@ void irVar(struct Decl *decl, struct IRModule *module, struct Arena *arena) {
 
 void irFunc(struct Decl *decl, struct IRModule *module, struct Arena *arena) {
   struct IRFunction *func = newFunc(&decl->decl_function.name, decl->decl_function.params_len, &decl->decl_function.params, module, arena);
-  irStmt(decl->decl_function.body, module, func, &func->blocks[0], arena);
+
+  struct MIRContext ctx = {
+    module,
+    func,
+    &func->blocks[0],
+    arena
+  };
+
+  irStmt(decl->decl_function.body, &ctx);
 
   if (!func->blocks[func->blocks_len - 1].term) {
-    struct IRInstruction *inst = newInst(OPCODE_RET, NULL, 0, 0, &func->blocks[func->blocks_len - 1], arena);
+    struct IRInstruction *inst = newInst(OPCODE_RET, 0, 0, &func->blocks[func->blocks_len - 1], arena);
     func->blocks[func->blocks_len - 1].term = 1;
   }
 }
@@ -95,9 +107,9 @@ void irStruct(struct Decl *decl, struct IRModule *module, struct Arena *arena) {
 
   struct IRGlobal global = (struct IRGlobal){
     .vl = module->globals_len++,
-    .type = resolveTypeIR(NULL, arena),
     .value = (struct IROperand){
       .kind = Operand_Type,
+      .op_type = IRTYPE_NULL,
       .type = type
     }
   };
@@ -135,9 +147,16 @@ void irStruct(struct Decl *decl, struct IRModule *module, struct Arena *arena) {
       setCurrentDef(func->ssa, &method->params[j].name, 1, &func->params[j], &func->blocks[0], arena);
     }
 
-    irStmt(method->body, module, func, &func->blocks[0], arena);
+    struct MIRContext ctx = {
+      module,
+      func,
+      &func->blocks[0],
+      arena
+    };
+
+    irStmt(method->body, &ctx);
     if (!func->blocks[func->blocks_len - 1].term) {
-      struct IRInstruction *inst = newInst(OPCODE_RET, NULL, 0, 0, &func->blocks[func->blocks_len - 1], arena);
+      struct IRInstruction *inst = newInst(OPCODE_RET, 0, 0, &func->blocks[func->blocks_len - 1], arena);
       func->blocks[func->blocks_len - 1].term = 1;
     }
   }

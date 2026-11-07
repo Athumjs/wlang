@@ -1,4 +1,10 @@
 #include <utils/numeric.h>
+#include <math.h>
+
+int getNumCase(int num) {
+  if (num <= 0) return 1;
+  return (int)log10(num) + 1;
+}
 
 uint8_t rankType(struct Type *type) {
   if (type->kind != Type_Primitive) return 0;

@@ -87,7 +87,7 @@ void newDef(struct Symbol *symbol, struct IRFunction *func, struct Arena *arena)
   func->defs[func->defs_len++] = symbol;
 }
 
-struct IRInstruction *newInst(enum IROpcode opcode, struct Type *type, uint8_t isVl, size_t operands_len, struct IRBasicBlock *block, struct Arena *arena) {
+struct IRInstruction *newInst(enum IROpcode opcode, uint8_t isVl, size_t operands_len, struct IRBasicBlock *block, struct Arena *arena) {
   if (block->instructions_len == block->instructions_cap) {
     size_t oldCap = block->instructions_cap;
     block->instructions_cap *= 2;
@@ -98,7 +98,6 @@ struct IRInstruction *newInst(enum IROpcode opcode, struct Type *type, uint8_t i
 
   block->instructions[block->instructions_len++] = (struct IRInstruction){
     .opcode = opcode,
-    .type = resolveTypeIR(type, arena),
     .vl = isVl ? (*block->reg)++ : -1,
     .operands = arena_alloc(arena, operands_len * sizeof(struct IROperand)),
     .operands_len = 0
@@ -110,9 +109,10 @@ struct IRInstruction *newInst(enum IROpcode opcode, struct Type *type, uint8_t i
 /**
  * type = 1 : Global | type = 2 : Block | type > 2 : Register
 **/
-void addOperandRef(uint8_t type, int64_t ref, struct IRInstruction *inst) {
+void addOperandRef(uint8_t type, int64_t ref, struct IRType op_type, struct IRInstruction *inst) {
   struct IROperand op = (struct IROperand){
-    .ref = ref
+    .ref = ref,
+    .op_type = op_type
   };
 
   if (type == 1)
@@ -124,19 +124,21 @@ void addOperandRef(uint8_t type, int64_t ref, struct IRInstruction *inst) {
   inst->operands[inst->operands_len++] = op;
 }
 
-void addOperandPhi(int64_t value, struct IRBasicBlock *block, struct IRInstruction *inst) {
+void addOperandPhi(int64_t value, struct IRType type, struct IRBasicBlock *block, struct IRInstruction *inst) {
   inst->operands[inst->operands_len++] = (struct IROperand){
     .kind = Operand_Phi,
+    .op_type = type,
     .phi = (struct IRPhi){
-      .block = block,
-      .value = value
+      value,
+      block,
     }
   };
 }
 
-void addOperandICmp(enum IRICMP opcode, struct IRInstruction *inst) {
+void addOperandICmp(enum IRICMP opcode, struct IRType type, struct IRInstruction *inst) {
   inst->operands[inst->operands_len++] = (struct IROperand){
     .kind = Operand_Cmp,
+    .op_type = type,
     .cmp = (struct IRCMP){
       .kind = CMP_INT,
       .icmp = opcode
@@ -144,9 +146,10 @@ void addOperandICmp(enum IRICMP opcode, struct IRInstruction *inst) {
   };
 }
 
-void addOperandFCmp(enum IRFCMP opcode, struct IRInstruction *inst) {
+void addOperandFCmp(enum IRFCMP opcode, struct IRType type, struct IRInstruction *inst) {
   inst->operands[inst->operands_len++] = (struct IROperand){
     .kind = Operand_Cmp,
+    .op_type = type,
     .cmp = (struct IRCMP){
       .kind = CMP_FLOAT,
       .fcmp = opcode
@@ -157,6 +160,7 @@ void addOperandFCmp(enum IRFCMP opcode, struct IRInstruction *inst) {
 void addOperandType(struct Type *type, struct IRInstruction *inst, struct Arena *arena) {
   inst->operands[inst->operands_len++] = (struct IROperand){
     .kind = Operand_Type,
+    .op_type = IRTYPE_NULL,
     .type = resolveTypeIR(type, arena)
   };
 }

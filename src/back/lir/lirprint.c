@@ -15,7 +15,7 @@ static void printOperand(struct LIROperand *op) {
   else if (op->kind == LIR_Register)
     printf("R%ld", op->reg);
   else if (op->kind == LIR_Label)
-    printf("%ld", op->label);
+    printf("%s", op->label);
 
   else if (op->kind == LIR_Float) {
     printf("float_%ld(R%ld)", op->mem.disp, op->mem.base_reg);

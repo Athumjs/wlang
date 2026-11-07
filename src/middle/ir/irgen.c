@@ -1,4 +1,3 @@
-#include <middle/irgen.h>
 #include "ir.h"
 
 void loweringAST(struct Program *program, struct IRModule *ir, uint8_t show_mir) {
