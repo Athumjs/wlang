@@ -99,8 +99,7 @@ struct IRExpr irCall(struct Expr *expr, struct MIRContext *ctx) {
   if (expr->expr_call.callee->kind == Expr_Member) {
     *operand.call.operand = (struct IROperand){
       .kind = Operand_String,
-      .op_type.kind = IRTYPEK_OTHER,
-      .op_type.other = IRTYPE_ptr,
+      .op_type = resolveTypeIR(expr->expr_call.callee->expr_member.member->expr_identifier.symbol->type, ctx->arena),
       .string = &expr->expr_call.callee->expr_member.member->expr_identifier.symbol->name
     };
 
@@ -131,6 +130,8 @@ struct IRExpr irCall(struct Expr *expr, struct MIRContext *ctx) {
     return (struct IRExpr){0};
   }
 
+  operand.op_type = operand.call.operand->op_type;
+  operand.call.operand->op_type = IRTYPE_NULL;
   struct IRInstruction *inst = newInst(OPCODE_CALL, 1, 1, ctx->block, ctx->arena);
   inst->operands[inst->operands_len++] = operand;
 

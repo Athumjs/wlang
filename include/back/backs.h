@@ -14,7 +14,8 @@ struct Arch {
   size_t fregisters_len;
 
   const int64_t *arg_registers;
-  size_t arg_registers_len;
+  size_t arg_iregisters_len;
+  size_t arg_fregisters_len;
 
   const int64_t *callee_saved_registers;
   size_t callee_saved_registers_len;
@@ -22,7 +23,8 @@ struct Arch {
   uint8_t is_3_operands;
 
   int64_t ret_register;
-  int64_t stack_register;
+  int64_t stack_top_register;
+  int64_t stack_base_register;
   int64_t inst_register;
   int64_t div_register;
   int64_t rem_register;

@@ -94,4 +94,5 @@ struct LIRFunction {
   size_t blocks_len;
   size_t stack_size;
   uint64_t saved_regs;
+  uint8_t has_call;
 };

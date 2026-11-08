@@ -21,9 +21,8 @@ struct LIRInstruction *lir_newInst(enum LIROpcodes opcode, int operands_len, str
   return &block->instructions[block->instructions_len++];
 }
 
-void lirop_reg(struct LIROperand *operand, struct IRInstruction *inst, struct LIRContext *ctx) {
-  struct Interval *interval = &ctx->live->intervals[inst->vl];
-  operand->size = sizeOf(&inst->operands[0].op_type);
+void lirop_reg(struct LIROperand *operand, struct Interval *interval, struct IRType *type, struct LIRContext *ctx) {
+  operand->size = sizeOf(type);
 
   if (interval->reg != -1) {
     operand->kind = LIR_Register;
@@ -32,9 +31,11 @@ void lirop_reg(struct LIROperand *operand, struct IRInstruction *inst, struct LI
   }
 
   operand->kind = LIR_Address;
-  operand->mem.base_reg = ctx->arch->stack_register;
-  *ctx->stack_size += operand->size;
-  interval->spillSlot = *ctx->stack_size;
-  operand->mem.disp = -interval->spillSlot;
+  if (interval->spillSlot == 0) {
+    *ctx->stack_size += operand->size;
+    interval->spillSlot = *ctx->stack_size;
+  }
+  operand->mem.base_reg = ctx->arch->stack_base_register;
+  operand->mem.disp = interval->spill_param ? interval->spillSlot : -interval->spillSlot;
   operand->mem.index_reg = -1;
 }

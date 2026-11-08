@@ -26,8 +26,8 @@ void op_reg(struct LIROperand *operand, int64_t value, struct LIRContext *ctx) {
   }
 
   operand->kind = LIR_Address;
-  operand->mem.base_reg = ctx->arch->stack_register;
-  operand->mem.disp = -interval->spillSlot;
+  operand->mem.base_reg = ctx->arch->stack_base_register;
+  operand->mem.disp = interval->spill_param ? interval->spillSlot : -interval->spillSlot;
   operand->mem.index_reg = -1;
 }
 
@@ -36,6 +36,13 @@ void op_block(struct LIROperand *operand, int64_t value, struct LIRContext *ctx)
   int len = getNumCase(value) + 4;
   operand->label = malloc(len);
   snprintf(operand->label, len, ".Lb%ld", value);
+}
+
+void op_string(struct LIROperand *operand, struct String *str, struct LIRContext *ctx) {
+  operand->kind = LIR_Label;
+  int len = str->length + 1;
+  operand->label = malloc(len);
+  snprintf(operand->label, len, "%.*s", str->length, str->start);
 }
 
 void liroperand(struct LIROperand *operand, struct IROperand *iroperand, struct LIRContext *ctx) {
@@ -47,4 +54,6 @@ void liroperand(struct LIROperand *operand, struct IROperand *iroperand, struct 
     op_reg(operand, iroperand->ref, ctx);
   else if (iroperand->kind == Operand_Block)
     op_block(operand, iroperand->ref, ctx);
+  else if (iroperand->kind == Operand_String)
+    op_string(operand, iroperand->string, ctx);
 }

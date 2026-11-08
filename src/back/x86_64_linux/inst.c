@@ -16,6 +16,13 @@ void x86_64_linux_inst(struct LIRInstruction *inst, FILE *file, struct Arch *arc
   else if (inst->opcode == LIR_CMP) fprintf(file, "  cmp");
   else if (inst->opcode == LIR_FCMP) fprintf(file, "  comi");
 
+  else if (inst->opcode == LIR_CALL) {
+    fprintf(file, "  call ");
+    x86_64_linux_operand(&inst->operands[0], file);
+    fprintf(file, "\n");
+    return;
+  }
+
   else if (inst->opcode == LIR_SETCC) {
     fprintf(file, "  set%s ", x86_64_linux_conds(inst->operands[0].imm));
     x86_64_linux_operand(&inst->operands[1], file);

@@ -12,6 +12,7 @@ struct LIRContext {
   size_t *floats_len;
   struct IRFunction *func;
   int pos;
+  uint8_t has_call;
 };
 
 // lirinst.c
@@ -22,4 +23,4 @@ void liroperand(struct LIROperand *operand, struct IROperand *iroperand, struct 
 
 // lirutil.c
 struct LIRInstruction *lir_newInst(enum LIROpcodes opcode, int operands_len, struct LIRBasicBlocks *block, struct Arena *arena);
-void lirop_reg(struct LIROperand *operand, struct IRInstruction *inst, struct LIRContext *ctx);
+void lirop_reg(struct LIROperand *operand, struct Interval *interval, struct IRType *type, struct LIRContext *ctx);

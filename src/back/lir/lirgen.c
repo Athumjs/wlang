@@ -33,6 +33,7 @@ void lirgen(struct LIRFunction *func, struct Arch *arch, struct IRFunction *irfu
     .func = irfunc
   };
 
+  int saved_regs = 0;
   for (int i = 0; i < live->length; i++) {
     int64_t reg = live->intervals[i].reg;
     if (reg == -1) continue;
@@ -44,14 +45,55 @@ void lirgen(struct LIRFunction *func, struct Arch *arch, struct IRFunction *irfu
     }
   }
 
+  for (int i = arch->callee_saved_registers_len - 1; i >= 0; i--) {
+    int64_t reg = arch->callee_saved_registers[i];
+    if (!(func->saved_regs & (1ULL << reg))) continue;
+    saved_regs++;
+  }
+
+  func->stack_size = saved_regs * 8;
+  func->blocks[0].instructions = arena_alloc(arena, irfunc->blocks[0].instructions_len * sizeof(struct LIRInstruction));
+  func->blocks[0].instructions_cap = irfunc->blocks[0].instructions_len;
+  func->blocks[0].instructions_len = 0;
+
+  for (int i = 0; i < irfunc->params_len; i++) {
+    struct Interval *interval = &live->intervals[irfunc->params[i].vl];
+    if (interval->is_float) {
+      if (i >= arch->arg_fregisters_len) {
+        interval->spillSlot = 16 + ((i - arch->arg_fregisters_len) * 8);
+        interval->spill_param = 1;
+      } else interval->reg = arch->arg_registers[i + arch->arg_iregisters_len];
+    } else {
+      if (i >= arch->arg_iregisters_len) {
+        interval->spillSlot = 16 + ((i - arch->arg_iregisters_len) * 8);
+        interval->spill_param = 1;
+      } else interval->reg = arch->arg_registers[i];
+    }
+
+    if (interval->spill_force && interval->reg != -1) {
+      struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, &func->blocks[0], arena);
+      inst->operands[0].kind = LIR_Register;
+      inst->operands[0].reg = interval->reg;
+      inst->operands[0].size = sizeOf(&irfunc->params[i].type);
+      interval->reg = -1;
+      lirop_reg(&inst->operands[1], interval, &irfunc->params[i].type, &ctx);
+    }
+  }
+
   for (int i = 0; i < irfunc->blocks_len; i++) {
-    func->blocks[i].instructions = arena_alloc(arena, irfunc->blocks[i].instructions_len * sizeof(struct LIRInstruction));
-    func->blocks[i].instructions_cap = irfunc->blocks[i].instructions_len;
-    func->blocks[i].instructions_len = 0;
+    if (i > 0) {
+      func->blocks[i].instructions = arena_alloc(arena, irfunc->blocks[i].instructions_len * sizeof(struct LIRInstruction));
+      func->blocks[i].instructions_cap = irfunc->blocks[i].instructions_len;
+      func->blocks[i].instructions_len = 0;
+    } 
     for (int j = 0; j < irfunc->blocks[i].instructions_len; j++) {
       resolve_floats(floats, &irfunc->blocks[i].instructions[j]);
       lirinst(&func->blocks[i], &irfunc->blocks[i].instructions[j], &ctx);
       ctx.pos++;
     }
   }
+
+  func->stack_size -= saved_regs * 8;
+  func->has_call = ctx.has_call;
+  if (func->has_call) func->stack_size += 8;
 }

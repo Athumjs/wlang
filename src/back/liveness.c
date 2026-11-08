@@ -67,6 +67,7 @@ void liveness(struct Live *live, struct IRFunction *func, struct Arena *arena) {
     bit_set(&def[0], func->params[i].vl);
     live->intervals[func->params[i].vl] = (struct Interval){
       .vreg = func->params[i].vl,
+      .reg = -1,
       .start = 0,
       .end = 0,
       .is_float = func->params[i].type.kind == IRTYPEK_OTHER && (func->params[i].type.other == IRTYPE_f32 || func->params[i].type.other == IRTYPE_f64),
@@ -75,6 +76,9 @@ void liveness(struct Live *live, struct IRFunction *func, struct Arena *arena) {
 
   int pos = 0;
   int *lastPos = calloc(func->blocks_len, sizeof(int));
+  int *calls = malloc(sizeof(int));
+  size_t calls_cap = 1; 
+  size_t calls_len = 0; 
   for (int i = 0; i < func->blocks_len; i++) {
     for (int j = 0; j < func->blocks[i].instructions_len; j++) {
       pos++;
@@ -90,11 +94,19 @@ void liveness(struct Live *live, struct IRFunction *func, struct Arena *arena) {
         type = &lastoperand->type;
       live->intervals[func->blocks[i].instructions[j].vl] = (struct Interval){
         .vreg = func->blocks[i].instructions[j].vl,
+        .reg = -1,
         .start = pos,
         .end = pos,
         .spill_force = func->blocks[i].instructions[j].opcode == OPCODE_ALLOCA,
         .is_float = type->kind == IRTYPEK_OTHER && (type->other == IRTYPE_f32 || type->other == IRTYPE_f64),
       };
+      if (func->blocks[i].instructions[j].opcode != OPCODE_CALL) continue;
+      live->intervals[func->blocks[i].instructions[j].vl].reg = 0;
+      if (calls_len == calls_cap) {
+        calls_cap *= 2;
+        calls = realloc(calls, calls_cap * sizeof(int));
+      }
+      calls[calls_len++] = pos;
     }
     lastPos[i] = pos;
   }
@@ -151,6 +163,15 @@ void liveness(struct Live *live, struct IRFunction *func, struct Arena *arena) {
     }
   }
 
+  for (int i = 0; i < live->length; i++) {
+    struct Interval *interval = &live->intervals[i];
+    for (int j = 0; j < calls_len; j++) {
+      if (interval->start < calls[j] && interval->end > calls[j])
+        interval->spill_force = 1;
+    }
+  }
+
+  free(calls);
   free(lastPos);
   free(use);
   free(def);

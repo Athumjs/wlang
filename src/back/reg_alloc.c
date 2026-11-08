@@ -19,12 +19,7 @@ void actives_clean(struct Interval **actives, size_t *actives_len, struct Interv
   }
 }
 
-void alloc_ireg(struct Interval **actives, size_t *actives_len, struct Interval *interval, uint8_t *free_regs, size_t regs_len) {
-  if (interval->spill_force) {
-    interval->reg = -1;
-    return;
-  }
-
+void alloc_ireg(struct Interval **actives, size_t *actives_len, struct Interval *interval, uint8_t *free_regs, size_t regs_len) { 
   for (size_t i = 0; i < regs_len; i++) {
     if (!free_regs[i]) continue;
     free_regs[i] = 0;
@@ -50,11 +45,6 @@ void alloc_ireg(struct Interval **actives, size_t *actives_len, struct Interval 
 }
 
 void alloc_freg(struct Interval **actives, size_t *actives_len, struct Interval *interval, uint8_t *free_regs, size_t iregs_len, size_t fregs_len) {
-  if (interval->spill_force) {
-    interval->reg = -1;
-    return;
-  }
-
   for (size_t i = iregs_len; i < iregs_len + fregs_len; i++) {
     if (!free_regs[i]) continue;
     free_regs[i] = 0;
@@ -92,6 +82,12 @@ void register_allocation(struct Live *live, struct Arch *arch) {
 
   for (int i = 0; i < live->length; i++) {
     actives_clean(actives, &actives_len, &live->intervals[i], free_regs);
+
+    if (live->intervals[i].spill_force)
+      continue;
+
+    if (live->intervals[i].reg != -1)
+      continue;
 
     if (live->intervals[i].is_float)
       alloc_freg(actives, &actives_len, &live->intervals[i], free_regs, arch->iregisters_len, arch->fregisters_len);

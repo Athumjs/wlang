@@ -1,28 +1,31 @@
 #include "x86_64_linux.h"
 
-static void emit_prologue(struct LIRFunction *func, FILE *file, struct Arch *arch) {
+static void emit_prologue(struct LIRFunction *func, FILE *file, struct Arch *arch) { 
   if (func->stack_size > 0) {
     fprintf(file, "  pushq %%rbp\n");
     fprintf(file, "  movq %%rsp, %%rbp\n");
-    if (func->stack_size >= 120) fprintf(file, "  subq $%ld, %%rsp\n", (func->stack_size + 15) & ~15);
   }
 
   for (int i = 0; i < arch->callee_saved_registers_len; i++) {
     int64_t reg = arch->callee_saved_registers[i];
     if (!(func->saved_regs & (1ULL << reg))) continue;
     fprintf(file, "  pushq %%%s\n", reg_names[reg][8]);
-  }
+  } 
+
+  if (func->stack_size > 0)
+    if (func->stack_size >= 120 || func->has_call) fprintf(file, "  subq $%ld, %%rsp\n", (func->stack_size + 15) & ~15);
 }
 
-static void emit_epilogue(struct LIRFunction *func, FILE *file, struct Arch *arch) {
+static void emit_epilogue(struct LIRFunction *func, FILE *file, struct Arch *arch) {  
   for (int i = arch->callee_saved_registers_len - 1; i >= 0; i--) {
     int64_t reg = arch->callee_saved_registers[i];
     if (!(func->saved_regs & (1ULL << reg))) continue;
-    fprintf(file, "  popq %%%s\n", reg_names[reg][8]);
+    if (func->stack_size >= 120 || func->has_call) fprintf(file, "  movq -%d(%%rbp), %%%s\n", i * 8, reg_names[reg][8]);
+    else fprintf(file, "  popq %%%s\n", reg_names[reg][8]);
   }
 
   if (func->stack_size > 0) {
-    if (func->stack_size >= 120) fprintf(file, "  leave\n");
+    if (func->stack_size >= 120 || func->has_call) fprintf(file, "  leave\n");
     else fprintf(file, "  popq %%rbp\n");
   }
 }
