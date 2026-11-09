@@ -56,6 +56,9 @@ void irVarLocal(struct Decl *decl, struct MIRContext *ctx) {
         newDef(var->symbol, ctx->func, ctx->arena);
         setCurrentDef(ctx->func->ssa, &var->name, 0, inst, ctx->block, ctx->arena);
       } else {
+        if (expr_v.inst == NULL)
+          expr_v.inst = &ctx->block->instructions[ctx->block->instructions_len - 1];
+
         newDef(var->symbol, ctx->func, ctx->arena);
         setCurrentDef(ctx->func->ssa, &var->name, 0, expr_v.inst, ctx->block, ctx->arena);
       }
