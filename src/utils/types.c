@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <utils/types.h>
 #include <front/semantic.h>
 #include <utils/error.h>
@@ -143,12 +144,15 @@ struct String getType(struct Type *type, struct Arena *arena) {
 uint8_t cmpTT(struct Type *t1, struct Type *t2) {
   if (t1->kind == Type_Auto || t2->kind == Type_Auto) return 1;
 
+  if (t1->kind == Type_Named && t1->type_named.type != NULL)
+    return cmpTT(t1->type_named.type, t2);
+
   if (t1->kind != t2->kind) return 0;
 
   if (t1->kind == Type_Primitive) return t1->type_primitive.type == t2->type_primitive.type;
 
   if (t1->kind == Type_Named && t1->type_named.name.length == t2->type_named.name.length &&
-        memcmp(t1->type_named.name.start, t2->type_named.name.start, t2->type_named.name.length) == 0) return 1;
+        memcmp(t1->type_named.name.start, t2->type_named.name.start, t2->type_named.name.length) == 0) return 1; 
 
   if (t1->kind == Type_Array)
     return cmpTT(t1->type_array.base, t2->type_array.base);

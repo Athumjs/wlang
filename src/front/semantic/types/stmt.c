@@ -56,7 +56,7 @@ static struct Flow stmtReturn(struct SymbolTable *table, struct Stmt *stmt) {
   if (table->scope->expectType->kind == Type_Auto)
     table->scope->expectType = table->scope->retType;
 
-  if (!cmpTT(table->scope->expectType, table->scope->retType)) {
+  if (!cmpTT(table->scope->retType, table->scope->expectType)) {
     if (!canImplicitConvert(table->scope->retType, table->scope->expectType)) {
       struct String t1 = getType(table->scope->retType, table->program->arena);
       struct String t2 = getType(table->scope->expectType, table->program->arena);
