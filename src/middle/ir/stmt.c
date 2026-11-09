@@ -9,8 +9,8 @@ struct IRBasicBlock *irBr(struct Stmt *stmt, struct MIRContext *ctx) {
   int64_t tBlock = newBlock(ctx->func, ctx->arena);
   int64_t fBlock = newBlock(ctx->func, ctx->arena);
   int64_t mBlock = -1;
-  addOperandRef(2, tBlock, IRTYPE_NULL, inst);
-  addOperandRef(2, fBlock, IRTYPE_NULL, inst);
+  addOperandRef(1, tBlock, IRTYPE_NULL, inst);
+  addOperandRef(1, fBlock, IRTYPE_NULL, inst);
 
   struct IRBasicBlock *trueBlock = &ctx->func->blocks[tBlock];
   struct IRBasicBlock *falseBlock = &ctx->func->blocks[fBlock];
@@ -35,13 +35,13 @@ struct IRBasicBlock *irBr(struct Stmt *stmt, struct MIRContext *ctx) {
 
   if (!trueBlock->term) {
     struct IRInstruction *jmp = newInst(OPCODE_JMP, 0, 1, &ctx->func->blocks[trueBlock->index], ctx->arena);
-    addOperandRef(2, mBlock == -1 ? fBlock : mBlock, IRTYPE_NULL, jmp);
+    addOperandRef(1, mBlock == -1 ? fBlock : mBlock, IRTYPE_NULL, jmp);
     trueBlock->term = 1;
   }
 
   if (stmt->stmt_if.falseBody != NULL && !falseBlock->term) {
     struct IRInstruction *jmp = newInst(OPCODE_JMP, 0, 1, &ctx->func->blocks[falseBlock->index], ctx->arena);
-    addOperandRef(2, mBlock, IRTYPE_NULL, jmp);
+    addOperandRef(1, mBlock, IRTYPE_NULL, jmp);
     falseBlock->term = 1;
   }
 
@@ -56,7 +56,7 @@ struct IRBasicBlock *irDoWhile(struct Stmt *stmt, struct MIRContext *ctx) {
   int64_t bBlock = newBlock(ctx->func, ctx->arena);
   int64_t cBlock = newBlock(ctx->func, ctx->arena);
   int64_t eBlock = newBlock(ctx->func, ctx->arena);
-  addOperandRef(2, bBlock, IRTYPE_NULL, inst);
+  addOperandRef(1, bBlock, IRTYPE_NULL, inst);
 
   struct IRBasicBlock *bodyBlock = &ctx->func->blocks[bBlock];
   struct IRBasicBlock *condBlock = &ctx->func->blocks[cBlock];
@@ -84,7 +84,7 @@ struct IRBasicBlock *irDoWhile(struct Stmt *stmt, struct MIRContext *ctx) {
 
   if (!bodyBlock->term) {
     struct IRInstruction *jmp = newInst(OPCODE_JMP, 0, 1, bodyBlock, ctx->arena);
-    addOperandRef(2, cBlock, IRTYPE_NULL, jmp);
+    addOperandRef(1, cBlock, IRTYPE_NULL, jmp);
     bodyBlock->term = 1;
   }
 
@@ -94,8 +94,8 @@ struct IRBasicBlock *irDoWhile(struct Stmt *stmt, struct MIRContext *ctx) {
   condBlock = irexpr.block;
   struct IRInstruction *br = newInst(OPCODE_BR, 0, 3, condBlock, ctx->arena);
   br->operands[br->operands_len++] = irexpr.operand;
-  addOperandRef(2, bBlock, IRTYPE_NULL, br);
-  addOperandRef(2, eBlock, IRTYPE_NULL, br);
+  addOperandRef(1, bBlock, IRTYPE_NULL, br);
+  addOperandRef(1, eBlock, IRTYPE_NULL, br);
   condBlock->term = 1;
   resolvePhiIncompletes(ctx->func, bodyBlock, ctx->arena, &phis);
   free(phis);
@@ -112,7 +112,7 @@ struct IRBasicBlock *irWhile(struct Stmt *stmt, struct MIRContext *ctx) {
   int64_t cBlock = newBlock(ctx->func, ctx->arena);
   int64_t bBlock = newBlock(ctx->func, ctx->arena);
   int64_t eBlock = newBlock(ctx->func, ctx->arena);
-  addOperandRef(2, cBlock, IRTYPE_NULL, inst);
+  addOperandRef(1, cBlock, IRTYPE_NULL, inst);
 
   struct IRBasicBlock *condBlock = &ctx->func->blocks[cBlock];
   struct IRBasicBlock *bodyBlock = &ctx->func->blocks[bBlock];
@@ -131,8 +131,8 @@ struct IRBasicBlock *irWhile(struct Stmt *stmt, struct MIRContext *ctx) {
   condBlock = irexpr.block;
   struct IRInstruction *br = newInst(OPCODE_BR, 0, 3, condBlock, ctx->arena);
   br->operands[br->operands_len++] = irexpr.operand;
-  addOperandRef(2, bBlock, IRTYPE_NULL, br);
-  addOperandRef(2, eBlock, IRTYPE_NULL, br);
+  addOperandRef(1, bBlock, IRTYPE_NULL, br);
+  addOperandRef(1, eBlock, IRTYPE_NULL, br);
   condBlock->term = 1;
 
   struct IRLoopContext loop = (struct IRLoopContext){
@@ -150,7 +150,7 @@ struct IRBasicBlock *irWhile(struct Stmt *stmt, struct MIRContext *ctx) {
 
   if (!bodyBlock->term) {
     struct IRInstruction *jmp = newInst(OPCODE_JMP, 0, 1, bodyBlock, ctx->arena);
-    addOperandRef(2, cBlock, IRTYPE_NULL, jmp);
+    addOperandRef(1, cBlock, IRTYPE_NULL, jmp);
     bodyBlock->term = 1;
   }
 
@@ -168,7 +168,7 @@ struct IRBasicBlock *irFor(struct Stmt *stmt, struct MIRContext *ctx) {
   int64_t bBlock = newBlock(ctx->func, ctx->arena);
   int64_t uBlock = newBlock(ctx->func, ctx->arena);
   int64_t eBlock = newBlock(ctx->func, ctx->arena);
-  addOperandRef(2, iBlock, IRTYPE_NULL, inst);
+  addOperandRef(1, iBlock, IRTYPE_NULL, inst);
 
   struct IRBasicBlock *initBlock = &ctx->func->blocks[iBlock];
   struct IRBasicBlock *condBlock = &ctx->func->blocks[cBlock];
@@ -189,7 +189,7 @@ struct IRBasicBlock *irFor(struct Stmt *stmt, struct MIRContext *ctx) {
   }
 
   struct IRInstruction *jmp = newInst(OPCODE_JMP, 0, 1, initBlock, ctx->arena);
-  addOperandRef(2, cBlock, IRTYPE_NULL, jmp);
+  addOperandRef(1, cBlock, IRTYPE_NULL, jmp);
   initBlock->term = 1;
 
   struct IRInstruction **phis = malloc(ctx->func->defs_len * sizeof(struct IRInstruction *));
@@ -201,8 +201,8 @@ struct IRBasicBlock *irFor(struct Stmt *stmt, struct MIRContext *ctx) {
   condBlock = irexpr.block;
   struct IRInstruction *br = newInst(OPCODE_BR, 0, 3, condBlock, ctx->arena);
   br->operands[br->operands_len++] = irexpr.operand;
-  addOperandRef(2, bBlock, IRTYPE_NULL, br);
-  addOperandRef(2, eBlock, IRTYPE_NULL, br);
+  addOperandRef(1, bBlock, IRTYPE_NULL, br);
+  addOperandRef(1, eBlock, IRTYPE_NULL, br);
   condBlock->term = 1;
 
   struct IRLoopContext loop = (struct IRLoopContext){
@@ -220,7 +220,7 @@ struct IRBasicBlock *irFor(struct Stmt *stmt, struct MIRContext *ctx) {
 
   if (!bodyBlock->term) {
     struct IRInstruction *jmp = newInst(OPCODE_JMP, 0, 1, bodyBlock, ctx->arena);
-    addOperandRef(2, uBlock, IRTYPE_NULL, jmp);
+    addOperandRef(1, uBlock, IRTYPE_NULL, jmp);
     bodyBlock->term = 1;
   }
 
@@ -231,7 +231,7 @@ struct IRBasicBlock *irFor(struct Stmt *stmt, struct MIRContext *ctx) {
   }
 
   struct IRInstruction *jmp2 = newInst(OPCODE_JMP, 0, 1, updateBlock, ctx->arena);
-  addOperandRef(2, cBlock, IRTYPE_NULL, jmp2);
+  addOperandRef(1, cBlock, IRTYPE_NULL, jmp2);
   updateBlock->term = 1;
 
   resolvePhiIncompletes(ctx->func, condBlock, ctx->arena, &phis);
@@ -256,14 +256,14 @@ struct IRBasicBlock *irRet(struct Stmt *stmt, struct MIRContext *ctx) {
 
 struct IRBasicBlock *irContinue(struct Stmt *stmt, struct MIRContext *ctx) {
   struct IRInstruction *inst = newInst(OPCODE_JMP, 0, 1, ctx->block, ctx->arena);
-  addOperandRef(2, ctx->func->loop->continueBlock->index, IRTYPE_NULL, inst);
+  addOperandRef(1, ctx->func->loop->continueBlock->index, IRTYPE_NULL, inst);
   ctx->block->term = 1;
   return ctx->func->loop->continueBlock;
 }
 
 struct IRBasicBlock *irBreak(struct Stmt *stmt, struct MIRContext *ctx) {
   struct IRInstruction *inst = newInst(OPCODE_JMP, 0, 1, ctx->block, ctx->arena);
-  addOperandRef(2, ctx->func->loop->breakBlock->index, IRTYPE_NULL, inst);
+  addOperandRef(1, ctx->func->loop->breakBlock->index, IRTYPE_NULL, inst);
   ctx->block->term = 1;
   return ctx->func->loop->breakBlock;
 }

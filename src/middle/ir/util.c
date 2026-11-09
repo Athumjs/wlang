@@ -165,9 +165,9 @@ struct IRDef *getCurrentDef(struct Hashmap *hmap, struct String *str, struct IRB
 }
 
 struct String getName(struct String *str, int block_index, struct Arena *arena) {
-  size_t len = str->length + 1 + getNumCase(block_index);
+  size_t len = str->length + getNumCase(block_index) + 2;
   char *buff = arena_alloc(arena, len);
-  snprintf(buff, len + 1, "%.*s:%d", str->length, str->start, block_index);
+  snprintf(buff, len, "%.*s:%d", str->length, str->start, block_index);
 
   return (struct String){
     .length = len,

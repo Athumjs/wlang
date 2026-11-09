@@ -12,7 +12,7 @@ struct IRExpr irStructExpr(struct Expr *expr, struct MIRContext *ctx) {
 
   for (int i = 0; i < expr->expr_struct.fields_len; i++) {
     struct IRInstruction *field = newInst(OPCODE_GEP, 1, 3, ctx->block, ctx->arena);
-    addOperandRef(3, inst->vl, inst->operands[0].type, field);
+    addOperandRef(2, inst->vl, inst->operands[0].type, field);
 
     field->operands[field->operands_len++] = (struct IROperand){
       .kind = Operand_Constant,
@@ -38,7 +38,7 @@ struct IRExpr irStructExpr(struct Expr *expr, struct MIRContext *ctx) {
     ctx->block = expr_o.block;
     struct IRInstruction *store = newInst(OPCODE_STORE, 0, 2, ctx->block, ctx->arena);
     store->operands[store->operands_len++] = expr_o.operand;
-    addOperandRef(3, field->vl, field->operands[0].op_type, store);
+    addOperandRef(2, field->vl, field->operands[0].op_type, store);
   }
 
   return (struct IRExpr){
@@ -54,7 +54,7 @@ struct IRExpr irStructExpr(struct Expr *expr, struct MIRContext *ctx) {
 void fillArray(int64_t vl, struct IRType *type, struct Expr *expr, struct MIRContext *ctx) {
   for (int i = 0; i < expr->expr_array.exprs_len; i++) {
     struct IRInstruction *gep = newInst(OPCODE_GEP, 1, 3, ctx->block, ctx->arena);
-    addOperandRef(3, vl, *type, gep);
+    addOperandRef(2, vl, *type, gep);
 
     gep->operands[gep->operands_len++] = (struct IROperand){
       .kind = Operand_Constant,
@@ -81,7 +81,7 @@ void fillArray(int64_t vl, struct IRType *type, struct Expr *expr, struct MIRCon
       ctx->block = expr_o.block;
       struct IRInstruction *store = newInst(OPCODE_STORE, 0, 2, ctx->block, ctx->arena);
       store->operands[store->operands_len++] = expr_o.operand;
-      addOperandRef(3, gep->vl, gep->operands[0].op_type, store);
+      addOperandRef(2, gep->vl, gep->operands[0].op_type, store);
     } else fillArray(gep->vl, &gep->operands[0].op_type, expr->expr_array.exprs[i], ctx);
   }
 }
@@ -129,7 +129,7 @@ struct IRExpr irId(struct Expr *expr, struct MIRContext *ctx) {
     } else {
       if (def->inst->opcode == OPCODE_ALLOCA) {
         struct IRInstruction *inst = newInst(OPCODE_LOAD, 1, 1, ctx->block, ctx->arena);
-        addOperandRef(3, def->inst->vl, def->inst->operands[0].type, inst);
+        addOperandRef(2, def->inst->vl, def->inst->operands[0].type, inst);
         vl = inst->vl;
         type = inst->operands[0].op_type;
       } else {
@@ -150,7 +150,7 @@ struct IRExpr irId(struct Expr *expr, struct MIRContext *ctx) {
 
 struct IRExpr irThis(struct Expr *expr, struct MIRContext *ctx) {
   struct IRInstruction *inst = newInst(OPCODE_GEP, 1, 3, ctx->block, ctx->arena);
-  addOperandRef(3, 0, ctx->func->params[0].type, inst);
+  addOperandRef(2, 0, ctx->func->params[0].type, inst);
 
   inst->operands[inst->operands_len++] = (struct IROperand){
     .kind = Operand_Constant,
@@ -174,7 +174,7 @@ struct IRExpr irThis(struct Expr *expr, struct MIRContext *ctx) {
   };
 
   struct IRInstruction *load = newInst(OPCODE_LOAD, 1, 1, ctx->block, ctx->arena);
-  addOperandRef(3, inst->vl, inst->operands[0].op_type, load);
+  addOperandRef(2, inst->vl, inst->operands[0].op_type, load);
 
   return (struct IRExpr){
     .operand = (struct IROperand){

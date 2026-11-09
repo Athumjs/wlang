@@ -37,7 +37,7 @@ struct IRExpr irMember(struct Expr *expr, struct MIRContext *ctx) {
   };
 
   struct IRInstruction *load = newInst(OPCODE_LOAD, 1, 1, ctx->block, ctx->arena);
-  addOperandRef(3, inst->vl, inst->operands[0].op_type, load);
+  addOperandRef(2, inst->vl, inst->operands[0].op_type, load);
 
   return (struct IRExpr){
     .operand = (struct IROperand){
@@ -75,7 +75,7 @@ struct IRExpr irIndex(struct Expr *expr, struct MIRContext *ctx) {
 
   inst->operands[inst->operands_len++] = expr_i.operand;
   struct IRInstruction *load = newInst(OPCODE_LOAD, 1, 1, ctx->block, ctx->arena);
-  addOperandRef(3, inst->vl, inst->operands[0].op_type, load);
+  addOperandRef(2, inst->vl, inst->operands[0].op_type, load);
 
   return (struct IRExpr){
     .operand = (struct IROperand){

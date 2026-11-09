@@ -32,7 +32,7 @@ struct IRExpr irAssign(struct Expr *expr, struct MIRContext *ctx) {
       if (!def->isParam && def->inst->opcode == OPCODE_ALLOCA) {
         struct IRInstruction *inst = newInst(OPCODE_STORE, 0, 2, ctx->block, ctx->arena);
         inst->operands[inst->operands_len++] = expr_r.operand;
-        addOperandRef(3, def->inst->vl, def->inst->operands[0].type, inst);
+        addOperandRef(2, def->inst->vl, def->inst->operands[0].type, inst);
         return (struct IRExpr){0};
       }
 
@@ -112,11 +112,11 @@ struct IRExpr irLogical(struct Expr *expr, struct MIRContext *ctx) {
   addPrevBlock(ctx->block, mergeBlock, ctx->arena);
 
   if (expr->expr_binary.op == TOKEN_AND) {
-    addOperandRef(2, nBlock, IRTYPE_NULL, inst);
-    addOperandRef(2, mBlock, IRTYPE_NULL, inst);
+    addOperandRef(1, nBlock, IRTYPE_NULL, inst);
+    addOperandRef(1, mBlock, IRTYPE_NULL, inst);
   } else {
-    addOperandRef(2, mBlock, IRTYPE_NULL, inst);
-    addOperandRef(2, nBlock, IRTYPE_NULL, inst);
+    addOperandRef(1, mBlock, IRTYPE_NULL, inst);
+    addOperandRef(1, nBlock, IRTYPE_NULL, inst);
   }
 
   struct IRBasicBlock *block = ctx->block;
@@ -127,7 +127,7 @@ struct IRExpr irLogical(struct Expr *expr, struct MIRContext *ctx) {
   addPrevBlock(newBlock, mergeBlock, ctx->arena);
 
   struct IRInstruction *jmp = newInst(OPCODE_JMP, 0, 1, newBlock, ctx->arena);
-  addOperandRef(2, mBlock, IRTYPE_NULL, jmp);
+  addOperandRef(1, mBlock, IRTYPE_NULL, jmp);
   newBlock->term = 1; 
 
   if (expr->expr_binary.op == TOKEN_AND)

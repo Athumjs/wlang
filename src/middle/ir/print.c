@@ -80,7 +80,7 @@ static void printOperand(struct IROperand *op) {
   printType(&op->op_type);
 
   if (op->kind == Operand_Global)
-    printf("@%ld", op->ref);
+    printf("%.*s", op->string->length, op->string->start);
   else if (op->kind == Operand_Register)
     printf("%%%ld", op->ref);
   else if (op->kind == Operand_Block)
