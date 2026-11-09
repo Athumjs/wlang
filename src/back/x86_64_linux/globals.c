@@ -45,7 +45,9 @@ void x86_64_linux_globals(struct IRGlobal *globals, size_t globals_len, FILE *fi
       continue;
     }
 
-    fprintf(file, "  g%ld: ", globals[i].vl);
+    if (globals[i].public) fprintf(file, ".globl %.*s\n", globals[i].name->length, globals[i].name->start);
+
+    fprintf(file, "  %.*s: ", globals[i].name->length, globals[i].name->start);
     if (globals[i].value.constant.kind == Value_String)
       fprintf(file, ".asciz");
     else resolveType_code(&globals[i].value.op_type, file);

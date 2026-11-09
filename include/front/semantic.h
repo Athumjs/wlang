@@ -11,4 +11,4 @@ struct SymbolTable {
   int loop;
 };
 
-void semantic(struct SymbolTable *table, struct Module *modules);
+void semantic(struct SymbolTable *table, struct Module *modules, uint8_t main_file);

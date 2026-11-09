@@ -22,7 +22,7 @@ void resolveImport(struct SymbolTable *table, struct Module *modules, struct Dec
       module = arena_alloc(table->program->arena, sizeof(struct Module));
       module->exports = table->exports;
       hashmap_set(modules->exports, &decl->decl_Import.import_local, module, table->program->arena);
-      module->exports = load_module(modules, table->program->arena, path);
+      module->exports = load_module(modules, table->program->arena, path, 0);
     }
 
     for (int i = 0; i < module->exports->capacity; i++) {

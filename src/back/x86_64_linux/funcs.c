@@ -32,6 +32,7 @@ static void emit_epilogue(struct LIRFunction *func, FILE *file, struct Arch *arc
 
 void x86_64_linux_functions(struct LIRFunction *funcs, size_t funcs_len, FILE *file, struct Arch *arch) {
   for (int i = 0; i < funcs_len; i++) {
+    if (funcs[i].public) fprintf(file, ".globl %.*s\n", funcs[i].name->length, funcs[i].name->start);
     fprintf(file, "%.*s:\n", funcs[i].name->length, funcs[i].name->start); 
     emit_prologue(&funcs[i], file, arch);
 

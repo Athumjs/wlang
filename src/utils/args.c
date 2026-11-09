@@ -6,7 +6,8 @@
 #include <getopt.h>
 
 enum {
-  OPT_SHOW = 1000
+  OPT_SHOW = 1000,
+  NO_ENTRY
 };
 
 struct Args *resolveArgs(int argc, char **argv, struct Arena *arena)
@@ -18,23 +19,27 @@ struct Args *resolveArgs(int argc, char **argv, struct Arena *arena)
   struct option options[] = {
       {"help", no_argument, 0, 'h'},
       {"only-asm", no_argument, 0, 'S'},
+      {"only-obj", no_argument, 0, 'c'},
       {"show", required_argument, 0, OPT_SHOW},
       {"version", no_argument, 0, 'v'},
       {"output", required_argument, 0, 'o'},
+      {"no-entry", no_argument, 0, NO_ENTRY},
       {0, 0, 0, 0} //
   };
 
-  while ((current_op = getopt_long(argc, argv, "hvo:S", options, NULL)) != -1)
+  while ((current_op = getopt_long(argc, argv, "hvo:Sc", options, NULL)) != -1)
   {
     switch (current_op)
     {
     case 'h':
       printf("Usage: wl [options] file...\n");
-      printf("\t--help or -h: Lists the commands.\n");
+      printf("\t--help or -h: lists the commands.\n");
       printf("\t--version or -v: W compiler and language version.\n");
-      printf("\t--output or -o: Specifies the path to the output file.\n");
-      printf("\t--only-asm or -S: Generate only the assembly code.\n");
+      printf("\t--output or -o: specifies the path to the output file.\n");
+      printf("\t--only-asm or -S: generate only the assembly code.\n");
+      printf("\t--only-obj or -c: generate only the object code.\n");
       printf("\t--show=[mir|lir]: show specific intermediate representation.\n");
+      printf("\t--no-entry: tells the compiler that there is no entry function.\n");
       exit(0);
       break;
     case 'o':
@@ -43,6 +48,10 @@ struct Args *resolveArgs(int argc, char **argv, struct Arena *arena)
 
     case 'S':
       args->only_asm = 1;
+      break;
+
+    case 'c':
+      args->only_obj = 1;
       break;
 
     case 'v':
@@ -76,6 +85,10 @@ struct Args *resolveArgs(int argc, char **argv, struct Arena *arena)
       break;
     }
 
+    case NO_ENTRY:
+      args->no_entry = 1;
+      break;
+
     case '?':
       errorGeneric("invalid argument.");
       break;
@@ -97,8 +110,8 @@ struct Args *resolveArgs(int argc, char **argv, struct Arena *arena)
 
   if (args->output_file == NULL)
     args->output_file = "a.out";
-  else if (args->only_asm)
-    errorGeneric("cannot specify '-o' with '-S'.");
+  else if (args->only_asm || args->only_obj)
+    errorGeneric("cannot specify '-o' with '-S' or '-c'.");
 
   return args;
 }

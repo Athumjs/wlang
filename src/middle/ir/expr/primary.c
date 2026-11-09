@@ -116,9 +116,9 @@ struct IRExpr irId(struct Expr *expr, struct MIRContext *ctx) {
   if (symbol->isGlobal) {
     struct IRGlobal *global = &ctx->module->globals[symbol->index];
     struct IRInstruction *inst = newInst(OPCODE_LOAD, 1, 1, ctx->block, ctx->arena);
-    addOperandRef(1, global->vl, global->value.op_type, inst);
+    addOperandRef(1, global->vl, resolveTypeIR(symbol->type, ctx->arena), inst);
     vl = inst->vl;
-    type = global->value.op_type;
+    type = inst->operands[0].op_type;
   } else {
     struct IRDef *def = getCurrentDef(ctx->func->ssa, &symbol->name, ctx->block, ctx->arena);
 

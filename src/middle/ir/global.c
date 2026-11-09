@@ -15,6 +15,7 @@ void irVar(struct Decl *decl, struct IRModule *module, struct Arena *arena) {
     }
 
     struct IRGlobal global = (struct IRGlobal){
+      .name = &var->name,
       .vl = module->globals_len++,
       .value = (struct IROperand){
         .kind = Operand_Constant,
@@ -106,6 +107,7 @@ void irStruct(struct Decl *decl, struct IRModule *module, struct Arena *arena) {
     type.struct_.types[i] = resolveTypeIR(decl->decl_struct.fields[i].type, arena);
 
   struct IRGlobal global = (struct IRGlobal){
+    .name = &decl->decl_struct.name,
     .vl = module->globals_len++,
     .value = (struct IROperand){
       .kind = Operand_Type,
@@ -165,6 +167,13 @@ void irStruct(struct Decl *decl, struct IRModule *module, struct Arena *arena) {
 void irGlobal(struct Decl *decl, struct IRModule *module, struct Arena *arena) {
   if (decl->kind == Decl_Variable) irVar(decl, module, arena);
   else if (decl->kind == Decl_Function) irFunc(decl, module, arena);
-  else if (decl->kind == Decl_Public) irGlobal(decl->decl_public, module, arena);
+
+  else if (decl->kind == Decl_Public) {
+    irGlobal(decl->decl_public, module, arena);
+    if (decl->decl_public->kind == Decl_Function)
+      module->functions[module->functions_len - 1].public = 1;
+    else module->globals[module->globals_len - 1].public = 1;
+  }
+
   else if (decl->kind == Decl_Struct) irStruct(decl, module, arena);
 }

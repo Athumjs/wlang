@@ -23,7 +23,7 @@ int main(int argc, char **argv)
 
   strcpy(modules.folder_name, "/tmp/wl-XXXXXX");
   mkdtemp(modules.folder_name);
-  load_module(&modules, &arena, args->input_file);
+  load_module(&modules, &arena, args->input_file, !args->no_entry);
 
   if (args->only_asm) {
     for (int i = 0; i < modules.objs_len; i++) {
@@ -35,21 +35,34 @@ int main(int argc, char **argv)
       free(command);
     }
   } else {
-    int len = strlen("ld -s -o ") + strlen(args->output_file) + 2;
-    for (int i = 0; i < modules.objs_len; i++)
-      len += strlen(modules.objs[i]) + 1;
+    if (args->only_obj) {
+      for (int i = 0; i < modules.objs_len; i++) {
+        char *filename = strrchr(modules.objs[i], '/');
+        filename++;
+        int len = strlen("cp ") + (strlen(modules.objs[i]) * 2) + 2;
+        char *command = malloc(len);
+        snprintf(command, len, "cp %s %s", modules.objs[i], filename);
+        system(command);
+        free(modules.objs[i]);
+        free(command);
+      }
+    } else {
+      int len = strlen("ld -s -o ") + strlen(args->output_file) + 2;
+      for (int i = 0; i < modules.objs_len; i++)
+        len += strlen(modules.objs[i]) + 1;
 
-    char *command = malloc(len);
-    snprintf(command, len, "ld -s -o %s ", args->output_file);
+      char *command = malloc(len);
+      snprintf(command, len, "ld -s -o %s ", args->output_file);
 
-    for (int i = 0; i < modules.objs_len; i++) {
-      strcat(command, modules.objs[i]);
-      strcat(command, " ");
-      free(modules.objs[i]);
-    }
+      for (int i = 0; i < modules.objs_len; i++) {
+        strcat(command, modules.objs[i]);
+        strcat(command, " ");
+        free(modules.objs[i]);
+      }
 
-    system(command);
-    free(command); 
+      system(command);
+      free(command);
+    } 
   }
 
   

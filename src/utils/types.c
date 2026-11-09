@@ -150,13 +150,11 @@ uint8_t cmpTT(struct Type *t1, struct Type *t2) {
   if (t1->kind == Type_Named && t1->type_named.name.length == t2->type_named.name.length &&
         memcmp(t1->type_named.name.start, t2->type_named.name.start, t2->type_named.name.length) == 0) return 1;
 
-  if (t1->kind == Type_Array) {
+  if (t1->kind == Type_Array)
     return cmpTT(t1->type_array.base, t2->type_array.base);
-  }
 
-  if (t1->kind == Type_Pointer) {
+  if (t1->kind == Type_Pointer)
     return cmpTT(t1->type_pointer.base, t2->type_pointer.base);
-  }
 
   if (t1->kind == Type_Function) {
     if (!cmpTT(t1->type_function.retType, t2->type_function.retType)) return 0;

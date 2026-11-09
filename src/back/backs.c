@@ -2,7 +2,7 @@
 #include <back/reg_alloc.h>
 #include <stdlib.h>
 
-char *backs(struct IRModule *ir, struct Program *program, const char *folder_name, uint8_t only_asm, uint8_t show_lir) {
+char *backs(struct IRModule *ir, struct Program *program, const char *folder_name, uint8_t only_asm, uint8_t show_lir, uint8_t main_file) {
   struct Arch arch = {0};
 
 #if defined(__x86_64__) || defined(_M_X64)
@@ -34,7 +34,7 @@ char *backs(struct IRModule *ir, struct Program *program, const char *folder_nam
   FILE *file = create_as(folder_name, program->filename, &name, &name_len);
 
 #if defined(__x86_64__) || defined(_M_X64)
-  x86_64_linux_code(ir->globals, ir->globals_len, functions, ir->functions_len, &floats, file, &arch);
+  x86_64_linux_code(ir->globals, ir->globals_len, functions, ir->functions_len, &floats, file, &arch, main_file);
 #endif
 
   free(floats.values);

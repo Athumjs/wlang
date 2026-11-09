@@ -7,9 +7,11 @@ void x86_64_linux_operand(struct LIROperand *operand, FILE *file) {
   else if (operand->kind == LIR_Register)
     fprintf(file, "%%%s", reg_names[operand->reg][operand->size]);
 
-  else if (operand->kind == LIR_Address || operand->kind == LIR_Float) {
+  else if (operand->kind == LIR_Address || operand->kind == LIR_Float || operand->kind == LIR_Global) {
     if (operand->kind == LIR_Float)
       fprintf(file, "float_%ld", operand->mem.disp);
+    else if (operand->kind == LIR_Global)
+      fprintf(file, "g%ld", operand->mem.disp);
     else if (operand->mem.disp != 0)
       fprintf(file, "%ld", operand->mem.disp);
 

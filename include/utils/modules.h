@@ -12,4 +12,4 @@ struct Module {
   struct Args *args;
 };
 
-struct Hashmap *load_module(struct Module *modules, struct Arena *arena, char *path);
+struct Hashmap *load_module(struct Module *modules, struct Arena *arena, char *path, uint8_t main_file);

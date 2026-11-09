@@ -88,7 +88,7 @@ struct IRExpr irIndex(struct Expr *expr, struct MIRContext *ctx) {
 struct IRExpr irCall(struct Expr *expr, struct MIRContext *ctx) {
   struct IROperand operand = (struct IROperand){
     .kind = Operand_Call,
-    .op_type = IRTYPE_NULL,
+    .op_type = resolveTypeIR(expr->type, ctx->arena),
     .call = (struct IRCall){
       .operand = arena_alloc(ctx->arena, sizeof(struct IROperand)),
       .args = NULL,
@@ -130,8 +130,6 @@ struct IRExpr irCall(struct Expr *expr, struct MIRContext *ctx) {
     return (struct IRExpr){0};
   }
 
-  operand.op_type = operand.call.operand->op_type;
-  operand.call.operand->op_type = IRTYPE_NULL;
   struct IRInstruction *inst = newInst(OPCODE_CALL, 1, 1, ctx->block, ctx->arena);
   inst->operands[inst->operands_len++] = operand;
 

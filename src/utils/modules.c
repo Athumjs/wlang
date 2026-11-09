@@ -3,7 +3,7 @@
 #include <utils/error.h>
 #include <stdio.h>
 
-struct Hashmap *load_module(struct Module *modules, struct Arena *arena, char *path) {
+struct Hashmap *load_module(struct Module *modules, struct Arena *arena, char *path, uint8_t main_file) {
   FILE *file = fopen(path, "r");
   if (file == NULL) errorGeneric("'%s' no such file or directory", path);
 
@@ -49,9 +49,9 @@ struct Hashmap *load_module(struct Module *modules, struct Arena *arena, char *p
 
   lexer(path, code, &tokens, arena);
   parser(&tokens, &program);
-  semantic(&table, modules);
+  semantic(&table, modules, main_file);
   loweringAST(&program, &ir, modules->args->show_mir);
-  char *obj_name = backs(&ir, &program, modules->folder_name, modules->args->only_asm, modules->args->show_lir);
+  char *obj_name = backs(&ir, &program, modules->folder_name, modules->args->only_asm, modules->args->show_lir, main_file);
 
   if (modules->objs_len == modules->objs_cap) {
     modules->objs_cap *= 2;

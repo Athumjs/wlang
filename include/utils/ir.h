@@ -239,9 +239,12 @@ struct IRFunction {
   size_t defs_len;
   size_t defs_cap;
   struct IRLoopContext *loop;
+  uint8_t public;
 };
 
 struct IRGlobal {
+  struct String *name;
   int64_t vl;
   struct IROperand value;
+  uint8_t public;
 };

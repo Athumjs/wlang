@@ -23,6 +23,7 @@ void lirgen(struct LIRFunction *func, struct Arch *arch, struct IRFunction *irfu
   func->blocks = arena_alloc(arena, irfunc->blocks_len * sizeof(struct LIRBasicBlocks));
   func->blocks_len = irfunc->blocks_len;
   func->stack_size = 0;
+  func->public = irfunc->public;
 
   struct LIRContext ctx = (struct LIRContext){
     .live = live,

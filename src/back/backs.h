@@ -16,7 +16,7 @@ struct Floats {
 
 // backs
 void x86_64_linux_define(struct Arch *arch);
-void x86_64_linux_code(struct IRGlobal *globals, size_t globals_len, struct LIRFunction *funcs, size_t funcs_len, struct Floats *floats, FILE *file, struct Arch *arch);
+void x86_64_linux_code(struct IRGlobal *globals, size_t globals_len, struct LIRFunction *funcs, size_t funcs_len, struct Floats *floats, FILE *file, struct Arch *arch, uint8_t main_file);
 
 // lir
 void lirgen(struct LIRFunction *func, struct Arch *arch, struct IRFunction *irfunc, struct Arena *arena, struct Live *live, struct Floats *floats);

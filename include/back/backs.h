@@ -31,4 +31,4 @@ struct Arch {
   int64_t shift_register;
 };
 
-char *backs(struct IRModule *ir, struct Program *program, const char *folder_name, uint8_t only_asm, uint8_t show_lir);
+char *backs(struct IRModule *ir, struct Program *program, const char *folder_name, uint8_t only_asm, uint8_t show_lir, uint8_t main_file);

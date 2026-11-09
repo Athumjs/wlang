@@ -53,7 +53,8 @@ enum LIROperandKind {
   LIR_Immediate,
   LIR_Address,
   LIR_Label,
-  LIR_Float
+  LIR_Float,
+  LIR_Global
 };
 
 struct LIROperand {
@@ -95,4 +96,5 @@ struct LIRFunction {
   size_t stack_size;
   uint64_t saved_regs;
   uint8_t has_call;
+  uint8_t public;
 };

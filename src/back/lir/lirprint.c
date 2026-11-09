@@ -17,11 +17,10 @@ static void printOperand(struct LIROperand *op) {
   else if (op->kind == LIR_Label)
     printf("%s", op->label);
 
-  else if (op->kind == LIR_Float) {
+  else if (op->kind == LIR_Float)
     printf("float_%ld(R%ld)", op->mem.disp, op->mem.base_reg);
-  }
 
-  else if (op->kind == LIR_Address) {
+  else if (op->kind == LIR_Address || op->kind == LIR_Global) {
     printf("%ld(R%ld", op->mem.disp, op->mem.base_reg);
 
     if (op->mem.index_reg != -1) {
@@ -33,7 +32,7 @@ static void printOperand(struct LIROperand *op) {
 
     printf(")");
   }
-
+  
   printf(":%d", op->size);
 }
 

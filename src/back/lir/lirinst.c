@@ -5,7 +5,7 @@ void lirCL(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LI
   struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena);
   liroperand(&inst->operands[0], &irinst->operands[0], ctx);
 
-  if (irinst->opcode == OPCODE_LOAD) {
+  if (irinst->opcode == OPCODE_LOAD && inst->operands[0].kind != LIR_Address && inst->operands[0].kind != LIR_Global) {
     int64_t reg = inst->operands[0].reg;
     inst->operands[0].kind = LIR_Address;
     inst->operands[0].mem.base_reg = reg;
