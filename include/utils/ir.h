@@ -244,7 +244,6 @@ struct IRFunction {
 
 struct IRGlobal {
   struct String *name;
-  int64_t vl;
   struct IROperand value;
   uint8_t public;
 };

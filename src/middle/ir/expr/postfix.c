@@ -29,6 +29,7 @@ struct IRExpr irMember(struct Expr *expr, struct MIRContext *ctx) {
 
   inst->operands[inst->operands_len++] = (struct IROperand){
     .kind = Operand_Constant,
+    .op_type = resolveTypeIR(expr->expr_member.member->expr_identifier.symbol->type, ctx->arena),
     .constant = (struct IRValue){
       .kind = Value_Int,
       .i = expr->expr_member.member->expr_identifier.symbol->index

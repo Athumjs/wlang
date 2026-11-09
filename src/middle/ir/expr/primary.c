@@ -1,4 +1,6 @@
 #include "expr.h"
+#include <stdio.h>
+#include <utils/numeric.h>
 #include <string.h>
 
 struct IRExpr irStructExpr(struct Expr *expr, struct MIRContext *ctx) {
@@ -22,10 +24,10 @@ struct IRExpr irStructExpr(struct Expr *expr, struct MIRContext *ctx) {
       }
     };
 
+    struct Symbol *symbol = hashmap_get(expr->expr_struct.symbol->symbol_struct.items, &expr->expr_struct.fields[i].name);
     field->operands[field->operands_len++] = (struct IROperand){
       .kind = Operand_Constant,
-      .op_type.kind = IRTYPEK_OTHER,
-      .op_type.other = IRTYPE_i32,
+      .op_type = resolveTypeIR(symbol->type, ctx->arena),
       .constant = (struct IRValue){
         .kind = Value_Int,
         .i = expr->expr_struct.fields[i].index
@@ -43,7 +45,7 @@ struct IRExpr irStructExpr(struct Expr *expr, struct MIRContext *ctx) {
     .inst = inst,
     .operand = (struct IROperand){
       .kind = Operand_Register,
-      .op_type = inst->operands[0].op_type,
+      .op_type = inst->operands[0].type,
       .ref = inst->vl
     }
   };
@@ -87,12 +89,12 @@ void fillArray(int64_t vl, struct IRType *type, struct Expr *expr, struct MIRCon
 struct IRExpr irArray(struct Expr *expr, struct MIRContext *ctx) {
   struct IRInstruction *inst = newInst(OPCODE_ALLOCA, 1, 0, ctx->block, ctx->arena); 
   addOperandType(expr->type, inst, ctx->arena);
-  fillArray(inst->vl, &inst->operands[0].op_type, expr, ctx);
+  fillArray(inst->vl, &inst->operands[0].type, expr, ctx);
   return (struct IRExpr){
     .inst = inst,
     .operand = (struct IROperand){
       .kind = Operand_Register,
-      .op_type = inst->operands[0].op_type,
+      .op_type = inst->operands[0].type,
       .ref = inst->vl
     }
   };
@@ -116,7 +118,7 @@ struct IRExpr irId(struct Expr *expr, struct MIRContext *ctx) {
   if (symbol->isGlobal) {
     struct IRGlobal *global = &ctx->module->globals[symbol->index];
     struct IRInstruction *inst = newInst(OPCODE_LOAD, 1, 1, ctx->block, ctx->arena);
-    addOperandRef(1, global->vl, resolveTypeIR(symbol->type, ctx->arena), inst);
+    addOperandGlobal(global->name, resolveTypeIR(symbol->type, ctx->arena), inst);
     vl = inst->vl;
     type = inst->operands[0].op_type;
   } else {
@@ -128,7 +130,7 @@ struct IRExpr irId(struct Expr *expr, struct MIRContext *ctx) {
     } else {
       if (def->inst->opcode == OPCODE_ALLOCA) {
         struct IRInstruction *inst = newInst(OPCODE_LOAD, 1, 1, ctx->block, ctx->arena);
-        addOperandRef(3, def->inst->vl, def->inst->operands[0].op_type, inst);
+        addOperandRef(3, def->inst->vl, def->inst->operands[0].type, inst);
         vl = inst->vl;
         type = inst->operands[0].op_type;
       } else {
@@ -149,7 +151,7 @@ struct IRExpr irId(struct Expr *expr, struct MIRContext *ctx) {
 
 struct IRExpr irThis(struct Expr *expr, struct MIRContext *ctx) {
   struct IRInstruction *inst = newInst(OPCODE_GEP, 1, 3, ctx->block, ctx->arena);
-  addOperandRef(3, 0, IRTYPE_NULL, inst);
+  addOperandRef(3, 0, ctx->func->params[0].type, inst);
 
   inst->operands[inst->operands_len++] = (struct IROperand){
     .kind = Operand_Constant,
@@ -165,8 +167,7 @@ struct IRExpr irThis(struct Expr *expr, struct MIRContext *ctx) {
 
   inst->operands[inst->operands_len++] = (struct IROperand){
     .kind = Operand_Constant,
-    .op_type.kind = IRTYPEK_OTHER,
-    .op_type.other = IRTYPE_i32,
+    .op_type = resolveTypeIR(symbol->type, ctx->arena),
     .constant = (struct IRValue){
       .kind = Value_Int,
       .i = symbol->index
@@ -203,8 +204,16 @@ struct IRExpr irLiteral(struct Expr *expr, struct MIRContext *ctx) {
     type.array.type = typebase;
     type.array.size = expr->expr_literal.literal.string.length + 1;
 
+    struct String *name = arena_alloc(ctx->arena, sizeof(struct String));
+    *name = (struct String){
+      .length = getNumCase(ctx->module->globals_len) + 2
+    };
+    char *str = arena_alloc(ctx->arena, name->length);
+    snprintf(str, name->length, "g%ld", ctx->module->globals_len);
+    name->start = str;
+
     struct IRGlobal global = (struct IRGlobal){
-      .vl = ctx->module->globals_len,
+      .name = name,
       .value = (struct IROperand){
         .kind = Operand_Constant,
         .op_type = type,
@@ -220,7 +229,7 @@ struct IRExpr irLiteral(struct Expr *expr, struct MIRContext *ctx) {
       .operand = (struct IROperand){
         .kind = Operand_Global,
         .op_type = global.value.op_type,
-        .ref = global.vl
+        .string = global.name
       }
     };
   }

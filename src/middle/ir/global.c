@@ -14,9 +14,9 @@ void irVar(struct Decl *decl, struct IRModule *module, struct Arena *arena) {
       module->globals = temp;
     }
 
+    int index = module->globals_len++;
     struct IRGlobal global = (struct IRGlobal){
       .name = &var->name,
-      .vl = module->globals_len++,
       .value = (struct IROperand){
         .kind = Operand_Constant,
         .op_type.kind = IRTYPEK_OTHER,
@@ -43,12 +43,19 @@ void irVar(struct Decl *decl, struct IRModule *module, struct Arena *arena) {
         type.array.type = typebase;
         type.array.size = var->expr->expr_literal.literal.string.length + 1;
 
+        struct String *name = arena_alloc(arena, sizeof(struct String));
+        *name = (struct String){
+          .length = getNumCase(module->globals_len) + 2
+        };
+        char *str = arena_alloc(arena, name->length);
+        snprintf(str, name->length, "g%ld", module->globals_len);
+        name->start = str;
+
         struct IRGlobal global2 = (struct IRGlobal){
-          .vl = module->globals_len,
+          .name = name,
           .value = (struct IROperand){
             .kind = Operand_Constant,
-            .op_type.kind = IRTYPEK_OTHER,
-            .op_type.other = IRTYPE_ptr,
+            .op_type = type,
             .constant = (struct IRValue){
               .kind = Value_String,
               .s = &var->expr->expr_literal.literal.string
@@ -60,14 +67,14 @@ void irVar(struct Decl *decl, struct IRModule *module, struct Arena *arena) {
         global.value = (struct IROperand){
           .kind = Operand_Global,
           .op_type = global2.value.op_type,
-          .ref = global2.vl
+          .string = global2.name
         };
       } else global.value.constant = irValueGlobal(var->expr, arena);
     }
 
     var->symbol->isGlobal = 1;
-    var->symbol->index = global.vl;
-    module->globals[global.vl] = global;
+    var->symbol->index = index;
+    module->globals[index] = global;
   }
 }
 
@@ -106,9 +113,9 @@ void irStruct(struct Decl *decl, struct IRModule *module, struct Arena *arena) {
   for (int i = 0; i < type.struct_.types_len; i++)
     type.struct_.types[i] = resolveTypeIR(decl->decl_struct.fields[i].type, arena);
 
+  int index = module->globals_len++;
   struct IRGlobal global = (struct IRGlobal){
     .name = &decl->decl_struct.name,
-    .vl = module->globals_len++,
     .value = (struct IROperand){
       .kind = Operand_Type,
       .op_type = IRTYPE_NULL,
@@ -117,8 +124,8 @@ void irStruct(struct Decl *decl, struct IRModule *module, struct Arena *arena) {
   };
   
   decl->decl_struct.symbol->isGlobal = 1;
-  decl->decl_struct.symbol->index = global.vl;
-  module->globals[global.vl] = global;
+  decl->decl_struct.symbol->index = index;
+  module->globals[index] = global;
 
   for (int i = 0; i < decl->decl_struct.methods_len; i++) {
     struct Method *method = &decl->decl_struct.methods[i];

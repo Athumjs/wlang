@@ -107,7 +107,7 @@ struct IRInstruction *newInst(enum IROpcode opcode, uint8_t isVl, size_t operand
 }
 
 /**
- * type = 1 : Global | type = 2 : Block | type > 2 : Register
+ * type = 1 : Block | type >= 2 : Register
 **/
 void addOperandRef(uint8_t type, int64_t ref, struct IRType op_type, struct IRInstruction *inst) {
   struct IROperand op = (struct IROperand){
@@ -116,12 +116,18 @@ void addOperandRef(uint8_t type, int64_t ref, struct IRType op_type, struct IRIn
   };
 
   if (type == 1)
-    op.kind = Operand_Global;
-  else if (type == 2)
     op.kind = Operand_Block;
   else op.kind = Operand_Register;
 
   inst->operands[inst->operands_len++] = op;
+}
+
+void addOperandGlobal(struct String *name, struct IRType type, struct IRInstruction *inst) {
+  inst->operands[inst->operands_len++] = (struct IROperand){
+    .kind = Operand_Global,
+    .string = name,
+    .op_type = type
+  };
 }
 
 void addOperandPhi(int64_t value, struct IRType type, struct IRBasicBlock *block, struct IRInstruction *inst) {

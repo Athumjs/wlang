@@ -60,7 +60,7 @@ struct Type *typeExprCompare(struct SymbolTable *table, struct Expr *expr) {
           tk_names[expr->expr_binary.op], s1.length, s1.start, s2.length, s2.start);
     }
 
-    if (canImplicitConvert(left, right)) {
+    if (canImplicitConvert(left, right) || canImplicitConvert(right, left)) {
       expr->expr_binary.left->type = right;
     } else expr->expr_binary.right->type = left;
   }
@@ -90,7 +90,7 @@ struct Type *typeExprBinary(struct SymbolTable *table, struct Expr *expr) {
   }
 
 
-  if (!cmpTT(left, right)) {
+  if (!cmpTT(right, left)) {
     struct Expr *exp = arena_alloc(table->program->arena, sizeof(struct Expr));
     exp->kind = Expr_Cast;
     exp->type = right;

@@ -32,6 +32,7 @@ struct IRFunction *newFunc(struct String *name, size_t params_len, struct Param 
 void newDef(struct Symbol *symbol, struct IRFunction *func, struct Arena *arena);
 struct IRInstruction *newInst(enum IROpcode opcode, uint8_t isVl, size_t operands_len, struct IRBasicBlock *block, struct Arena *arena);
 void addOperandRef(uint8_t type, int64_t ref, struct IRType op_type, struct IRInstruction *inst);
+void addOperandGlobal(struct String *name, struct IRType type, struct IRInstruction *inst);
 void addOperandPhi(int64_t value, struct IRType type, struct IRBasicBlock *block, struct IRInstruction *inst);
 void addOperandICmp(enum IRICMP opcode, struct IRType type, struct IRInstruction *inst);
 void addOperandFCmp(enum IRFCMP opcode, struct IRType type, struct IRInstruction *inst);

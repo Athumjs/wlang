@@ -38,6 +38,9 @@ uint8_t rankType(struct Type *type) {
 }
 
 uint8_t isInteger(struct Type *type) {
+  if (type->kind == Type_Named && type->type_named.type != NULL)
+    return isInteger(type->type_named.type);
+
   if (type->kind != Type_Primitive) return 0;
 
   switch (type->type_primitive.type) {
@@ -70,6 +73,9 @@ uint8_t isFloating(struct Type *type) {
 }
 
 uint8_t isSignedInteger(struct Type *type) {
+  if (type->kind == Type_Named && type->type_named.type != NULL)
+    return isInteger(type->type_named.type);
+
   if (type->kind != Type_Primitive) return 0;
 
   switch (type->type_primitive.type) {
@@ -85,6 +91,9 @@ uint8_t isSignedInteger(struct Type *type) {
 }
 
 uint8_t isUnsignedInteger(struct Type *type) {
+  if (type->kind == Type_Named && type->type_named.type != NULL)
+    return isInteger(type->type_named.type);
+
   if (type->kind != Type_Primitive) return 0;
 
   switch (type->type_primitive.type) {

@@ -19,7 +19,7 @@ void irVarLocal(struct Decl *decl, struct MIRContext *ctx) {
         addOperandType(var->symbol->type, inst, ctx->arena);
         struct IRInstruction *store = newInst(OPCODE_STORE, 0, 2, ctx->block, ctx->arena);
         store->operands[store->operands_len++] = expr_v.operand;
-        addOperandRef(3, inst->vl, inst->operands[0].op_type, store);
+        addOperandRef(3, inst->vl, inst->operands[0].type, store);
         newDef(var->symbol, ctx->func, ctx->arena);
         setCurrentDef(ctx->func->ssa, &var->name, 0, inst, ctx->block, ctx->arena);
         continue;
@@ -50,7 +50,7 @@ void irVarLocal(struct Decl *decl, struct MIRContext *ctx) {
         } else {
           struct IRInstruction *store = newInst(OPCODE_STORE, 0, 2, ctx->block, ctx->arena);
           store->operands[store->operands_len++] = expr_v.operand;
-          addOperandRef(3, inst->vl, inst->operands[0].op_type, store);
+          addOperandRef(3, inst->vl, inst->operands[0].type, store);
         }
 
         newDef(var->symbol, ctx->func, ctx->arena);

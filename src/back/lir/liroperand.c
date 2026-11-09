@@ -45,11 +45,11 @@ void op_string(struct LIROperand *operand, struct String *str, struct LIRContext
   snprintf(operand->label, len, "%.*s", str->length, str->start);
 }
 
-void op_global(struct LIROperand *operand, int64_t value, struct LIRContext *ctx) {
+void op_global(struct LIROperand *operand, struct String *str, struct LIRContext *ctx) {
   operand->kind = LIR_Global;
-  operand->mem.base_reg = ctx->arch->inst_register;
-  operand->mem.disp = value;
-  operand->mem.index_reg = -1;
+  int len = str->length + 1;
+  operand->label = malloc(len);
+  snprintf(operand->label, len, "%.*s", str->length, str->start);
 }
 
 void liroperand(struct LIROperand *operand, struct IROperand *iroperand, struct LIRContext *ctx) {
@@ -64,5 +64,5 @@ void liroperand(struct LIROperand *operand, struct IROperand *iroperand, struct 
   else if (iroperand->kind == Operand_String)
     op_string(operand, iroperand->string, ctx);
   else if (iroperand->kind == Operand_Global)
-    op_global(operand, iroperand->ref, ctx);
+    op_global(operand, iroperand->string, ctx);
 }

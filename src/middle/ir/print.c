@@ -151,7 +151,7 @@ static void printOperand(struct IROperand *op) {
 void showIR(struct IRModule *ir) {
   printf("MIR\n\n");
   for (int i = 0; i < ir->globals_len; i++) {
-    printf("@%ld = ", ir->globals[i].vl);
+    printf("%.*s = ", ir->globals[i].name->length, ir->globals[i].name->start);
     printOperand(&ir->globals[i].value);
     printf("\n");
   }

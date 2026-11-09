@@ -25,14 +25,14 @@ struct IRExpr irAssign(struct Expr *expr, struct MIRContext *ctx) {
 		  struct IRInstruction *inst = newInst(OPCODE_STORE, 0, 2, ctx->block, ctx->arena);
 		  inst->operands[inst->operands_len++] = expr_r.operand;
       struct IRGlobal *global = &ctx->module->globals[expr->expr_binary.left->expr_identifier.symbol->index];
-      addOperandRef(1, global->vl, global->value.op_type, inst);
+      addOperandGlobal(global->name, global->value.op_type, inst);
 		} else {
       struct IRDef *def = getCurrentDef(ctx->func->ssa, &expr->expr_binary.left->expr_identifier.name, ctx->block, ctx->arena);
 
       if (!def->isParam && def->inst->opcode == OPCODE_ALLOCA) {
         struct IRInstruction *inst = newInst(OPCODE_STORE, 0, 2, ctx->block, ctx->arena);
         inst->operands[inst->operands_len++] = expr_r.operand;
-        addOperandRef(3, def->inst->vl, def->inst->operands[0].op_type, inst);
+        addOperandRef(3, def->inst->vl, def->inst->operands[0].type, inst);
         return (struct IRExpr){0};
       }
 

@@ -7,7 +7,7 @@ void x86_64_linux_operand(struct LIROperand *operand, FILE *file) {
   else if (operand->kind == LIR_Register)
     fprintf(file, "%%%s", reg_names[operand->reg][operand->size]);
 
-  else if (operand->kind == LIR_Address || operand->kind == LIR_Float || operand->kind == LIR_Global) {
+  else if (operand->kind == LIR_Address || operand->kind == LIR_Float) {
     if (operand->kind == LIR_Float)
       fprintf(file, "float_%ld", operand->mem.disp);
     else if (operand->kind == LIR_Global)
@@ -28,8 +28,12 @@ void x86_64_linux_operand(struct LIROperand *operand, FILE *file) {
     fprintf(file, ")");
   }
 
-  else if (operand->kind == LIR_Label) {
+  else if (operand->kind == LIR_Label || operand->kind == LIR_Global) {
     fprintf(file, "%s", operand->label);
+
+    if (operand->kind == LIR_Global)
+      fprintf(file, "(%%rip)");
+
     free(operand->label);
   }
 }
