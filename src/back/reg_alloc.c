@@ -2,11 +2,7 @@
 #include <stdlib.h>
 
 int cmp_intervals_start(const void *x, const void *y) {
-  return ((struct Interval *)x)->start - ((struct Interval *)y)->start;
-}
-
-int cmp_intervals_vreg(const void *x, const void *y) {
-  return ((struct Interval *)x)->vreg - ((struct Interval *)y)->vreg;
+  return (*(struct Interval **)x)->start - (*(struct Interval **)y)->start;
 }
 
 void actives_clean(struct Interval **actives, size_t *actives_len, struct Interval *interval, uint8_t *free_regs) {
@@ -70,7 +66,10 @@ void alloc_freg(struct Interval **actives, size_t *actives_len, struct Interval 
 }
 
 void register_allocation(struct Live *live, struct Arch *arch) {
-  qsort(live->intervals, live->length, sizeof(struct Interval), cmp_intervals_start);
+  struct Interval *intervals[live->length];
+  for (int i = 0; i < live->length; i++)
+    intervals[i] = &live->intervals[i];
+  qsort(intervals, live->length, sizeof(struct Interval *), cmp_intervals_start);
 
   uint8_t *free_regs = malloc((arch->iregisters_len + arch->fregisters_len) * sizeof(uint8_t));
 
@@ -81,20 +80,19 @@ void register_allocation(struct Live *live, struct Arch *arch) {
   size_t actives_len = 0;
 
   for (int i = 0; i < live->length; i++) {
-    actives_clean(actives, &actives_len, &live->intervals[i], free_regs);
+    actives_clean(actives, &actives_len, intervals[i], free_regs);
 
-    if (live->intervals[i].spill_force)
+    if (intervals[i]->spill_force)
       continue;
 
-    if (live->intervals[i].reg != -1)
+    if (intervals[i]->reg != -1)
       continue;
 
-    if (live->intervals[i].is_float)
-      alloc_freg(actives, &actives_len, &live->intervals[i], free_regs, arch->iregisters_len, arch->fregisters_len);
-    else alloc_ireg(actives, &actives_len, &live->intervals[i], free_regs, arch->iregisters_len);
+    if (intervals[i]->is_float)
+      alloc_freg(actives, &actives_len, intervals[i], free_regs, arch->iregisters_len, arch->fregisters_len);
+    else alloc_ireg(actives, &actives_len, intervals[i], free_regs, arch->iregisters_len);
   }
 
-  qsort(live->intervals, live->length, sizeof(struct Interval), cmp_intervals_vreg);
   free(free_regs);
   free(actives);
 }
