@@ -1,7 +1,8 @@
-set main(num: int): int {
-  while (num > 0 && num < 100) {
-    num -= 1;
-  }
+set main(): int {
+  var num = 0;
 
-  return 0;
+  while (num < 100)
+    num++;
+
+  return num;
 }

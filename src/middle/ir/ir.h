@@ -52,11 +52,9 @@ struct IRExpr irExpr(struct Expr *expr, struct MIRContext *ctx);
 
 // util.c
 struct IRType resolveTypeIR(struct Type *type, struct Arena *arena);
-void resolvePhi(struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena);
-void resolvePhiIncompletes(struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena, struct IRInstruction ***phis);
-void addPhiImcompletes(struct IRFunction *func, struct IRBasicBlock *prevBlock, struct IRBasicBlock *block, struct IRBasicBlock *nextBlock, struct Arena *arena, struct IRInstruction ***phis);
 struct IRDef *setCurrentDef(struct Hashmap *hmap, struct String *str, uint8_t isParam, void *ptr, struct IRBasicBlock *block, struct Arena *arena);
-struct IRDef *getCurrentDef(struct Hashmap *hmap, struct String *str, struct IRBasicBlock *block, struct Arena *arena);
+struct IRDef *readVariable(struct Hashmap *hmap, struct String *str, struct IRType type, struct IRBasicBlock *block, struct Arena *arena);
+void sealBlock(struct Hashmap *hmap, struct IRBasicBlock *block, struct Arena *arena);
 struct String getName(struct String *str, int block_index, struct Arena *arena);
 struct IRValue irNumber(struct Expr *expr);
 struct IRValue irValueGlobal(struct Expr *expr, struct Arena *arena);

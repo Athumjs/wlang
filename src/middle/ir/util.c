@@ -54,66 +54,6 @@ struct IRType resolveTypeIR(struct Type *type, struct Arena *arena) {
   return t;
 }
 
-void resolvePhi(struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena) {
-  for (int i = 0; i < func->defs_len; i++) {
-    struct IRDef *def = getCurrentDef(func->ssa, &func->defs[i]->name, block, arena);
-    uint8_t equal = 1;
-
-    for (int j = 0; j < block->prevs_len; j++) {
-      struct IRDef *pdef = getCurrentDef(func->ssa, &func->defs[i]->name, block->prevs[j], arena);
-      if (pdef == NULL) break;
-      if (pdef == def) continue;
-      equal = 0;
-      break;
-    }
-
-    if (equal) continue;
-    struct IRInstruction *inst = newInst(OPCODE_PHI, 1, block->prevs_len, block, arena);
-    for (int j = 0; j < block->prevs_len; j++) {
-      struct IRDef *pdef = getCurrentDef(func->ssa, &func->defs[i]->name, block->prevs[j], arena);
-      if (pdef->isParam) addOperandPhi(pdef->param->vl, pdef->param->type, pdef->block, inst);
-      else addOperandPhi(pdef->inst->vl, pdef->inst->operands[0].op_type, pdef->block, inst);
-    }
-    setCurrentDef(func->ssa, &func->defs[i]->name, 0, inst, block, arena);
-  }
-}
-
-void resolvePhiIncompletes(struct IRFunction *func, struct IRBasicBlock *block, struct Arena *arena, struct IRInstruction ***phis) {
-  for (int i = 0; i < func->defs_len; i++) {
-    struct IRDef *def = getCurrentDef(func->ssa, &func->defs[i]->name, block, arena);
-    uint8_t equal = 1;
-
-    for (int j = 0; j < block->prevs_len; j++) {
-      struct IRDef *pdef = getCurrentDef(func->ssa, &func->defs[i]->name, block->prevs[j], arena);
-      if (pdef == NULL) break;
-      if (pdef == def) continue;
-      equal = 0;
-      break;
-    }
-
-    if (equal) continue;
-    struct IRInstruction *phi = (*phis)[i];
-    for (int j = 0; j < block->prevs_len; j++) {
-      struct IRDef *pdef = getCurrentDef(func->ssa, &func->defs[i]->name, block->prevs[j], arena);
-      if (pdef->isParam) phi->operands[phi->operands_len - 1].phi.value = pdef->param->vl;
-      else phi->operands[phi->operands_len - 1].phi.value = pdef->inst->vl;
-      phi->operands[phi->operands_len - 1].phi.block = pdef->block;
-    }
-  }
-}
-
-void addPhiImcompletes(struct IRFunction *func, struct IRBasicBlock *prevBlock, struct IRBasicBlock *block, struct IRBasicBlock *nextBlock, struct Arena *arena, struct IRInstruction ***phis) {
-  for (int i = 0; i < func->defs_len; i++) {
-    struct IRInstruction *inst = newInst(OPCODE_PHI, 1, block->prevs_len, block, arena);
-    struct IRDef *def = getCurrentDef(func->ssa, &func->defs[i]->name, prevBlock, arena);
-    if (def->isParam) addOperandPhi(def->param->vl, def->param->type, def->block, inst);
-    else addOperandPhi(def->inst->vl, def->inst->operands[0].op_type, def->block, inst);
-    addOperandPhi(-1, IRTYPE_NULL, nextBlock, inst);
-    setCurrentDef(func->ssa, &func->defs[i]->name, 0, inst, block, arena);
-    (*phis)[i] = inst;
-  }
-}
-
 struct IRDef *setCurrentDef(struct Hashmap *hmap, struct String *str, uint8_t isParam, void *ptr, struct IRBasicBlock *block, struct Arena *arena) {
   struct String name = getName(str, block->index, arena);
   struct IRDef *def = arena_alloc(arena, sizeof(struct IRDef));
@@ -133,35 +73,104 @@ struct IRDef *setCurrentDef(struct Hashmap *hmap, struct String *str, uint8_t is
 struct IRDef *getCurrentDef(struct Hashmap *hmap, struct String *str, struct IRBasicBlock *block, struct Arena *arena) {
   struct String name = getName(str, block->index, arena);
   struct IRDef *def = hashmap_get(hmap, &name);
+  return def;
+}
 
-  if (def == NULL) {
-    if (block->prevs_len == 0) return def;
+struct Phi {
+  struct IRInstruction *inst;
+  int64_t index;
+};
 
-    if (block->prevs_len == 1)
-      return getCurrentDef(hmap, str, block->prevs[0], arena);
-
-    if (block->term) return def;
-
-    struct IRInstruction *inst = NULL;
-
-    for (int i = 0; i < block->prevs_len; i++) {
-      struct IRDef *pdef = getCurrentDef(hmap, str, block->prevs[i], arena);
-      if (pdef == NULL) return NULL;
-
-      if (!pdef->isParam && pdef->inst->opcode == OPCODE_ALLOCA)
-        return pdef;
-
-      if (i == 0)
-        inst = newInst(OPCODE_PHI, 1, block->prevs_len, block, arena);
-
-      if (pdef->isParam) addOperandPhi(pdef->param->vl, pdef->param->type, pdef->block, inst);
-      else addOperandPhi(pdef->inst->vl, pdef->inst->operands[0].op_type, pdef->block, inst);
-    }
-
-    return setCurrentDef(hmap, str, 0, inst, block, arena);
+struct Phi addPhi(size_t operands_len, struct IRBasicBlock *block, struct Arena *arena) {
+  if (block->instructions_len == block->instructions_cap) {
+    size_t oldCap = block->instructions_cap;
+    block->instructions_cap *= 2;
+    struct IRInstruction *temp = arena_alloc(arena, block->instructions_cap * sizeof(struct IRInstruction));
+    memcpy(temp, block->instructions, oldCap * sizeof(struct IRInstruction));
+    block->instructions = temp;
   }
 
-  return def;
+  int index = 0;
+
+  while (index < block->instructions_len && block->instructions[index].opcode == OPCODE_PHI)
+    index++;
+
+  if (index < block->instructions_len)
+    memmove(&block->instructions[index + 1], &block->instructions[index], (block->instructions_len - index) * sizeof(struct IRInstruction));
+
+  block->instructions[index] = (struct IRInstruction){
+    .opcode = OPCODE_PHI,
+    .vl = (*block->reg)++,
+    .operands = arena_alloc(arena, operands_len * sizeof(struct IROperand)),
+    .operands_len = 0
+  };
+
+  block->instructions_len++;
+  return (struct Phi){
+    .inst = &block->instructions[index],
+    .index = index
+  };
+}
+
+struct IRDef *readVariable(struct Hashmap *hmap, struct String *str, struct IRType type, struct IRBasicBlock *block, struct Arena *arena) {
+  struct IRDef *def = getCurrentDef(hmap, str, block, arena);
+  if (def != NULL) return def;
+
+  if (!block->sealed) {
+    struct Phi phi = addPhi(1, block, arena);
+    struct IRInstruction *inst = phi.inst;
+    inst->operands[0].op_type = type;
+    struct IRDef *new_def = setCurrentDef(hmap, str, 0, inst, block, arena);
+    if (block->imcomplete_phis_len == block->imcomplete_phis_cap) {
+      size_t oldCap = block->imcomplete_phis_cap;
+      block->imcomplete_phis_cap *= 2;
+      struct IRImcompletePhi *temp = arena_alloc(arena, block->imcomplete_phis_cap * sizeof(struct IRImcompletePhi));
+      memcpy(temp, block->imcomplete_phis, oldCap * sizeof(struct IRImcompletePhi));
+      block->imcomplete_phis = temp;
+    }
+    block->imcomplete_phis[block->imcomplete_phis_len++] = (struct IRImcompletePhi){
+      .name = str,
+      .type = type,
+      .index = phi.index
+    };
+    return new_def;
+  }
+
+  struct IRInstruction *inst = addPhi(block->prevs_len, block, arena).inst;
+  struct IRDef *new_def = setCurrentDef(hmap, str, 0, inst, block, arena);
+
+  if (block->prevs_len == 1) {
+    struct IRDef *def = readVariable(hmap, str, type, block->prevs[0], arena);
+    if (def->isParam)
+      addOperandPhi(def->param->vl, def->param->type, block->prevs[0], inst);
+    else addOperandPhi(def->inst->vl, type, block->prevs[0], inst);
+    return new_def;
+  }
+
+  for (int i = 0; i < block->prevs_len; i++) {
+    struct IRDef *def = readVariable(hmap, str, type, block->prevs[i], arena);
+    if (def->isParam)
+      addOperandPhi(def->param->vl, def->param->type, block->prevs[i], inst);
+    else addOperandPhi(def->inst->vl, type, block->prevs[i], inst);
+  }
+
+  return new_def;
+}
+
+void sealBlock(struct Hashmap *hmap, struct IRBasicBlock *block, struct Arena *arena) {
+  block->sealed = 1;
+
+  for (int i = 0; i < block->imcomplete_phis_len; i++) {
+    struct IRInstruction *phi = &block->instructions[block->imcomplete_phis[i].index];
+    phi->operands = arena_alloc(arena, block->prevs_len * sizeof(struct IROperand));
+    for (int j = 0; j < block->prevs_len; j++) {
+      struct IRDef *def = readVariable(hmap, block->imcomplete_phis[i].name, block->imcomplete_phis[i].type, block->prevs[j], arena);
+      if (def->isParam)
+        addOperandPhi(def->param->vl, def->param->type, block->prevs[j], phi);
+      else addOperandPhi(def->inst->vl, def->inst->operands[0].op_type, block->prevs[j], phi);
+    }
+  }
+  block->imcomplete_phis_len = 0;
 }
 
 struct String getName(struct String *str, int block_index, struct Arena *arena) {

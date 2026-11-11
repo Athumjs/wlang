@@ -169,8 +169,8 @@ void showIR(struct IRModule *ir) {
       if (j == 0) printf("entry:\n    ");
       else printf("b%d:\n    ", j); 
 
-      for (int k = 0; k < ir->functions[i].blocks[j].instructions_len; k++)
-        printInst(&ir->functions[i].blocks[j].instructions[k]);
+      for (int k = 0; k < ir->functions[i].blocks[j]->instructions_len; k++)
+        printInst(&ir->functions[i].blocks[j]->instructions[k]);
 
       printf("\n  ");
     }

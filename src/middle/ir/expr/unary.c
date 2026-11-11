@@ -125,7 +125,7 @@ struct IRExpr irUnary(struct Expr *expr, struct MIRContext *ctx) {
     };
 
     if (!expr->expr_unary.prefix) {
-      struct IRDef *def = getCurrentDef(ctx->func->ssa, &expr->expr_unary.arg->expr_identifier.name, ctx->block, ctx->arena);
+      struct IRDef *def = readVariable(ctx->func->ssa, &expr->expr_unary.arg->expr_identifier.name, resolveTypeIR(expr->expr_unary.arg->expr_identifier.symbol->type, ctx->arena), ctx->block, ctx->arena);
       if (def->isParam)
         res.ref = def->param->vl;
       else res.ref = def->inst->vl;

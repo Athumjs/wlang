@@ -80,28 +80,28 @@ void liveness(struct Live *live, struct IRFunction *func, struct Arena *arena) {
   size_t calls_cap = 1; 
   size_t calls_len = 0; 
   for (int i = 0; i < func->blocks_len; i++) {
-    for (int j = 0; j < func->blocks[i].instructions_len; j++) {
+    for (int j = 0; j < func->blocks[i]->instructions_len; j++) {
       pos++;
-      for (int k = 0; k < func->blocks[i].instructions[j].operands_len; k++)
-        resolveOperands(&def[i * nw], &use[i * nw], &func->blocks[i].instructions[j].operands[k]);
+      for (int k = 0; k < func->blocks[i]->instructions[j].operands_len; k++)
+        resolveOperands(&def[i * nw], &use[i * nw], &func->blocks[i]->instructions[j].operands[k]);
 
-      if (func->blocks[i].instructions[j].vl == -1) continue;
-      bit_set(&def[i * nw], func->blocks[i].instructions[j].vl);
+      if (func->blocks[i]->instructions[j].vl == -1) continue;
+      bit_set(&def[i * nw], func->blocks[i]->instructions[j].vl);
       uint8_t size = 0;
-      struct IRType *type = &func->blocks[i].instructions[j].operands[0].op_type;
-      struct IROperand *lastoperand = &func->blocks[i].instructions[j].operands[func->blocks[i].instructions[j].operands_len - 1];
+      struct IRType *type = &func->blocks[i]->instructions[j].operands[0].op_type;
+      struct IROperand *lastoperand = &func->blocks[i]->instructions[j].operands[func->blocks[i]->instructions[j].operands_len - 1];
       if (lastoperand->kind == Operand_Type)
         type = &lastoperand->type;
-      live->intervals[func->blocks[i].instructions[j].vl] = (struct Interval){
-        .vreg = func->blocks[i].instructions[j].vl,
+      live->intervals[func->blocks[i]->instructions[j].vl] = (struct Interval){
+        .vreg = func->blocks[i]->instructions[j].vl,
         .reg = -1,
         .start = pos,
         .end = pos,
-        .spill_force = func->blocks[i].instructions[j].opcode == OPCODE_ALLOCA,
+        .spill_force = func->blocks[i]->instructions[j].opcode == OPCODE_ALLOCA,
         .is_float = type->kind == IRTYPEK_OTHER && (type->other == IRTYPE_f32 || type->other == IRTYPE_f64),
       };
-      if (func->blocks[i].instructions[j].opcode != OPCODE_CALL) continue;
-      live->intervals[func->blocks[i].instructions[j].vl].reg = 0;
+      if (func->blocks[i]->instructions[j].opcode != OPCODE_CALL) continue;
+      live->intervals[func->blocks[i]->instructions[j].vl].reg = 0;
       if (calls_len == calls_cap) {
         calls_cap *= 2;
         calls = realloc(calls, calls_cap * sizeof(int));
@@ -120,7 +120,7 @@ void liveness(struct Live *live, struct IRFunction *func, struct Arena *arena) {
     for (int i = func->blocks_len - 1; i >= 0; i--) {
       memset(newIn, 0, nw * sizeof(uint64_t));
       memset(newOut, 0, nw * sizeof(uint64_t));
-      struct IRInstruction *inst = &func->blocks[i].instructions[func->blocks[i].instructions_len - 1];
+      struct IRInstruction *inst = &func->blocks[i]->instructions[func->blocks[i]->instructions_len - 1];
 
       if (inst->opcode == OPCODE_BR) {
         bit_copy(newOut, &liveIn[inst->operands[1].ref * nw], nw);
@@ -146,10 +146,10 @@ void liveness(struct Live *live, struct IRFunction *func, struct Arena *arena) {
   free(newOut);
   pos = 0;
   for (int i = 0; i < func->blocks_len; i++) {
-    for (int j = 0; j < func->blocks[i].instructions_len; j++) {
+    for (int j = 0; j < func->blocks[i]->instructions_len; j++) {
       pos++;
-      for (int k = 0; k < func->blocks[i].instructions[j].operands_len; k++)
-        verifyOperands(live, &func->blocks[i].instructions[j].operands[k], pos);
+      for (int k = 0; k < func->blocks[i]->instructions[j].operands_len; k++)
+        verifyOperands(live, &func->blocks[i]->instructions[j].operands[k], pos);
     }
   }
 

@@ -84,15 +84,15 @@ void irFunc(struct Decl *decl, struct IRModule *module, struct Arena *arena) {
   struct MIRContext ctx = {
     module,
     func,
-    &func->blocks[0],
+    func->blocks[0],
     arena
   };
 
   irStmt(decl->decl_function.body, &ctx);
 
-  if (!func->blocks[func->blocks_len - 1].term) {
-    struct IRInstruction *inst = newInst(OPCODE_RET, 0, 0, &func->blocks[func->blocks_len - 1], arena);
-    func->blocks[func->blocks_len - 1].term = 1;
+  if (!func->blocks[func->blocks_len - 1]->term) {
+    struct IRInstruction *inst = newInst(OPCODE_RET, 0, 0, func->blocks[func->blocks_len - 1], arena);
+    func->blocks[func->blocks_len - 1]->term = 1;
   }
 }
 
@@ -148,25 +148,25 @@ void irStruct(struct Decl *decl, struct IRModule *module, struct Arena *arena) {
     };
     func->params[0].vl = func->reg++;
     newDef(decl->decl_struct.symbol, func, arena);
-    setCurrentDef(func->ssa, &decl->decl_struct.symbol->name, 1, &func->params[0], &func->blocks[0], arena);
+    setCurrentDef(func->ssa, &decl->decl_struct.symbol->name, 1, &func->params[0], func->blocks[0], arena);
     for (int j = 1; j < func->params_len; j++) {
       func->params[j].type = resolveTypeIR(method->params[j].type, arena);
       func->params[j].vl = func->reg++;
       newDef(method->params[j].symbol, func, arena);
-      setCurrentDef(func->ssa, &method->params[j].name, 1, &func->params[j], &func->blocks[0], arena);
+      setCurrentDef(func->ssa, &method->params[j].name, 1, &func->params[j], func->blocks[0], arena);
     }
 
     struct MIRContext ctx = {
       module,
       func,
-      &func->blocks[0],
+      func->blocks[0],
       arena
     };
 
     irStmt(method->body, &ctx);
-    if (!func->blocks[func->blocks_len - 1].term) {
-      struct IRInstruction *inst = newInst(OPCODE_RET, 0, 0, &func->blocks[func->blocks_len - 1], arena);
-      func->blocks[func->blocks_len - 1].term = 1;
+    if (!func->blocks[func->blocks_len - 1]->term) {
+      struct IRInstruction *inst = newInst(OPCODE_RET, 0, 0, func->blocks[func->blocks_len - 1], arena);
+      func->blocks[func->blocks_len - 1]->term = 1;
     }
   }
 }

@@ -25,10 +25,17 @@ void showLIR(struct LIRFunction *funcs, size_t funcs_len);
 // ssa_destruction.c
 void ssa_destruction(struct IRFunction *func, struct Arena *arena);
 
+// post_order.c
+void post_order(struct IRFunction *func, struct Arena *arena);
 
 struct FindInst {
   int64_t block_index;
   int64_t inst_index;
+};
+
+struct Successors {
+  int64_t *blocks;
+  size_t length;
 };
 
 // util.c
@@ -38,3 +45,4 @@ size_t sizeOf(struct IRType *type);
 size_t alignOf(struct IRType *type);
 struct IRInstruction *getInst(struct IRFunction *func, int64_t vl);
 struct FindInst findInst(struct IRFunction *func, int64_t vl);
+struct Successors get_successors(struct IRBasicBlock *block);

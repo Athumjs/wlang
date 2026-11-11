@@ -19,6 +19,7 @@ char *backs(struct IRModule *ir, struct Program *program, const char *folder_nam
 
   for (int i = 0; i < ir->functions_len; i++) {
     ssa_destruction(&ir->functions[i], program->arena);
+    post_order(&ir->functions[i], program->arena);
     struct Live live = {0};
     liveness(&live, &ir->functions[i], program->arena);
     register_allocation(&live, &arch);

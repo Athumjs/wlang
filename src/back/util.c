@@ -62,9 +62,9 @@ size_t alignOf(struct IRType *type) {
 
 struct IRInstruction *getInst(struct IRFunction *func, int64_t vl) {
   for (int i = 0; i < func->blocks_len; i++) {
-    for (int j = 0; j < func->blocks[i].instructions_len; j++) {
-      if (func->blocks[i].instructions[j].vl != vl) continue;
-      return &func->blocks[i].instructions[j];
+    for (int j = 0; j < func->blocks[i]->instructions_len; j++) {
+      if (func->blocks[i]->instructions[j].vl != vl) continue;
+      return &func->blocks[i]->instructions[j];
     }
   }
   return NULL;
@@ -72,8 +72,8 @@ struct IRInstruction *getInst(struct IRFunction *func, int64_t vl) {
 
 struct FindInst findInst(struct IRFunction *func, int64_t vl) {
     for (int i = 0; i < func->blocks_len; i++) {
-    for (int j = 0; j < func->blocks[i].instructions_len; j++) {
-      if (func->blocks[i].instructions[j].vl != vl) continue;
+    for (int j = 0; j < func->blocks[i]->instructions_len; j++) {
+      if (func->blocks[i]->instructions[j].vl != vl) continue;
       return (struct FindInst){
         i,
         j
@@ -84,4 +84,22 @@ struct FindInst findInst(struct IRFunction *func, int64_t vl) {
     -1,
     -1
   };
+}
+
+struct Successors get_successors(struct IRBasicBlock *block) {
+  struct Successors sucs = {0};
+  struct IRInstruction *last_inst = &block->instructions[block->instructions_len - 1];
+
+  if (last_inst->opcode == OPCODE_BR) {
+    sucs.blocks = malloc(2 * sizeof(int64_t));
+    sucs.length = 2;
+    sucs.blocks[0] = last_inst->operands[1].ref;
+    sucs.blocks[1] = last_inst->operands[2].ref;
+  } else if (last_inst->opcode == OPCODE_JMP) {
+    sucs.blocks = malloc(sizeof(int64_t));
+    sucs.length = 1;
+    sucs.blocks[0] = last_inst->operands[0].ref;
+  }
+
+  return sucs;
 }

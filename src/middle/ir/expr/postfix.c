@@ -106,7 +106,7 @@ struct IRExpr irCall(struct Expr *expr, struct MIRContext *ctx) {
 
     operand.call.args = arena_alloc(ctx->arena, (expr->expr_call.args_len + 1) * sizeof(struct IROperand));
     operand.call.args_len++;
-    struct IRDef *def = getCurrentDef(ctx->func->ssa, &expr->expr_call.callee->expr_member.obj->expr_identifier.name, ctx->block, ctx->arena);
+    struct IRDef *def = readVariable(ctx->func->ssa, &expr->expr_call.callee->expr_member.obj->expr_identifier.name, resolveTypeIR(expr->expr_call.callee->expr_member.obj->expr_identifier.symbol->type, ctx->arena), ctx->block, ctx->arena);
     operand.call.args[0] = (struct IROperand){
       .kind = Operand_Register,
       .op_type = def->inst->operands[0].op_type,

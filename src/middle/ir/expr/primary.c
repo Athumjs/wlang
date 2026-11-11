@@ -121,7 +121,7 @@ struct IRExpr irId(struct Expr *expr, struct MIRContext *ctx) {
     vl = inst->vl;
     type = inst->operands[0].op_type;
   } else {
-    struct IRDef *def = getCurrentDef(ctx->func->ssa, &symbol->name, ctx->block, ctx->arena);
+    struct IRDef *def = readVariable(ctx->func->ssa, &symbol->name, resolveTypeIR(symbol->type, ctx->arena), ctx->block, ctx->arena);
 
     if (def->isParam) {
       vl = def->param->vl;

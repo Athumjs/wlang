@@ -212,6 +212,16 @@ struct IRBasicBlock {
   struct IRBasicBlock **prevs;
   size_t prevs_len;
   size_t prevs_cap;
+
+  struct IRImcompletePhi {
+    struct String *name;
+    struct IRType type;
+    int64_t index;
+  } *imcomplete_phis;
+  size_t imcomplete_phis_len;
+  size_t imcomplete_phis_cap;
+
+  uint8_t sealed;
   int64_t *reg;
 };
 
@@ -228,7 +238,7 @@ struct IRLoopContext {
 
 struct IRFunction {
   struct String *name;
-  struct IRBasicBlock *blocks;
+  struct IRBasicBlock **blocks;
   size_t blocks_len;
   size_t blocks_cap;
   struct IRParameter *params;

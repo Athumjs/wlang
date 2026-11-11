@@ -267,7 +267,7 @@ void lircmp(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct L
   liroperand(&inst->operands[1], &irinst->operands[1], ctx);
 
   struct FindInst find = findInst(ctx->func, irinst->vl);
-  struct IRBasicBlock *b = &ctx->func->blocks[find.block_index];
+  struct IRBasicBlock *b = ctx->func->blocks[find.block_index];
 
   if (b->instructions[find.inst_index + 1].opcode != OPCODE_BR) {
     struct LIRInstruction *inst = lir_newInst(LIR_SETCC, 2, block, ctx->arena);

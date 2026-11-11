@@ -1,7 +1,8 @@
-set main(num: int): int {
-  for (var i = 0; num > 0 && num < 100; i++) {
-    num -= 1;
-  }
+set main(): int {
+  var num = 0;
 
-  return 0;
+  for (var i = 0; num < 100; i++)
+    num++;
+
+  return num;
 }

@@ -53,8 +53,8 @@ void lirgen(struct LIRFunction *func, struct Arch *arch, struct IRFunction *irfu
   }
 
   func->stack_size = saved_regs * 8;
-  func->blocks[0].instructions = arena_alloc(arena, irfunc->blocks[0].instructions_len * sizeof(struct LIRInstruction));
-  func->blocks[0].instructions_cap = irfunc->blocks[0].instructions_len;
+  func->blocks[0].instructions = arena_alloc(arena, irfunc->blocks[0]->instructions_len * sizeof(struct LIRInstruction));
+  func->blocks[0].instructions_cap = irfunc->blocks[0]->instructions_len;
   func->blocks[0].instructions_len = 0;
 
   for (int i = 0; i < irfunc->params_len; i++) {
@@ -83,13 +83,13 @@ void lirgen(struct LIRFunction *func, struct Arch *arch, struct IRFunction *irfu
 
   for (int i = 0; i < irfunc->blocks_len; i++) {
     if (i > 0) {
-      func->blocks[i].instructions = arena_alloc(arena, irfunc->blocks[i].instructions_len * sizeof(struct LIRInstruction));
-      func->blocks[i].instructions_cap = irfunc->blocks[i].instructions_len;
+      func->blocks[i].instructions = arena_alloc(arena, irfunc->blocks[i]->instructions_len * sizeof(struct LIRInstruction));
+      func->blocks[i].instructions_cap = irfunc->blocks[i]->instructions_len;
       func->blocks[i].instructions_len = 0;
     } 
-    for (int j = 0; j < irfunc->blocks[i].instructions_len; j++) {
-      resolve_floats(floats, &irfunc->blocks[i].instructions[j]);
-      lirinst(&func->blocks[i], &irfunc->blocks[i].instructions[j], &ctx);
+    for (int j = 0; j < irfunc->blocks[i]->instructions_len; j++) {
+      resolve_floats(floats, &irfunc->blocks[i]->instructions[j]);
+      lirinst(&func->blocks[i], &irfunc->blocks[i]->instructions[j], &ctx);
       ctx.pos++;
     }
   }

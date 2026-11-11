@@ -5,12 +5,13 @@ int64_t newBlock(struct IRFunction *func, struct Arena *arena) {
   if (func->blocks_len == func->blocks_cap) {
     size_t oldCap = func->blocks_cap;
     func->blocks_cap *= 2;
-    struct IRBasicBlock *temp = arena_alloc(arena, func->blocks_cap * sizeof(struct IRBasicBlock));
-    memcpy(temp, func->blocks, oldCap * sizeof(struct IRBasicBlock));
+    struct IRBasicBlock **temp = arena_alloc(arena, func->blocks_cap * sizeof(struct IRBasicBlock *));
+    memcpy(temp, func->blocks, oldCap * sizeof(struct IRBasicBlock *));
     func->blocks = temp;
   }
 
-  func->blocks[func->blocks_len++] = (struct IRBasicBlock){
+  func->blocks[func->blocks_len] = arena_alloc(arena, sizeof(struct IRBasicBlock)); 
+  *func->blocks[func->blocks_len++] = (struct IRBasicBlock){
     .index = func->blocks_len - 1,
     .instructions_cap = 1,
     .instructions = arena_alloc(arena, sizeof(struct IRInstruction)),
@@ -19,6 +20,10 @@ int64_t newBlock(struct IRFunction *func, struct Arena *arena) {
     .prevs = arena_alloc(arena, sizeof(struct IRBasicBlock *)),
     .prevs_len = 0,
     .reg = &func->reg,
+    .imcomplete_phis_cap = 1,
+    .imcomplete_phis = arena_alloc(arena, sizeof(struct IRImcompletePhi)),
+    .imcomplete_phis_len = 0,
+    .sealed = 0,
     .term = 0
   };
 
@@ -66,10 +71,10 @@ struct IRFunction *newFunc(struct String *name, size_t params_len, struct Param 
     func.params[i].type = resolveTypeIR(param->type, arena);
     func.params[i].vl = func.reg++;
     newDef(param->symbol, &func, arena);
-    setCurrentDef(func.ssa, &param->name, 1, &func.params[i], &func.blocks[iBlock], arena);
+    setCurrentDef(func.ssa, &param->name, 1, &func.params[i], func.blocks[iBlock], arena);
   }
 
-  struct IRBasicBlock *block = &func.blocks[iBlock];
+  struct IRBasicBlock *block = func.blocks[iBlock];
   module->functions[module->functions_len++] = func;
   block->reg = &module->functions[module->functions_len - 1].reg;
   return &module->functions[module->functions_len - 1];

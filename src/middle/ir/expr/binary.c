@@ -27,7 +27,7 @@ struct IRExpr irAssign(struct Expr *expr, struct MIRContext *ctx) {
       struct IRGlobal *global = &ctx->module->globals[expr->expr_binary.left->expr_identifier.symbol->index];
       addOperandGlobal(global->name, global->value.op_type, inst);
 		} else {
-      struct IRDef *def = getCurrentDef(ctx->func->ssa, &expr->expr_binary.left->expr_identifier.name, ctx->block, ctx->arena);
+      struct IRDef *def = readVariable(ctx->func->ssa, &expr->expr_binary.left->expr_identifier.name, resolveTypeIR(expr->expr_binary.left->expr_identifier.symbol->type, ctx->arena), ctx->block, ctx->arena);
 
       if (!def->isParam && def->inst->opcode == OPCODE_ALLOCA) {
         struct IRInstruction *inst = newInst(OPCODE_STORE, 0, 2, ctx->block, ctx->arena);
@@ -106,8 +106,8 @@ struct IRExpr irLogical(struct Expr *expr, struct MIRContext *ctx) {
   int64_t nBlock = newBlock(ctx->func, ctx->arena);
   int64_t mBlock = newBlock(ctx->func, ctx->arena);
 
-  struct IRBasicBlock *newBlock = &ctx->func->blocks[nBlock];
-  struct IRBasicBlock *mergeBlock = &ctx->func->blocks[mBlock];
+  struct IRBasicBlock *newBlock = ctx->func->blocks[nBlock];
+  struct IRBasicBlock *mergeBlock = ctx->func->blocks[mBlock];
   addPrevBlock(ctx->block, newBlock, ctx->arena);
   addPrevBlock(ctx->block, mergeBlock, ctx->arena);
 
