@@ -19,7 +19,8 @@
   X(TOKEN_ENUM, "enum") \
   X(TOKEN_STRUCT, "struct") \
   X(TOKEN_THIS, "this") \
-  X(TOKEN_AS, "as")
+  X(TOKEN_AS, "as") \
+  X(TOKEN_EXTERN, "extern")
 
 #define ASSIGNMENTS \
   X(TOKEN_ASSIGN, "=") \

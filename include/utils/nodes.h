@@ -208,6 +208,7 @@ struct Decl {
       size_t params_cap;
       struct Stmt *body;
       struct Scope *scope;
+      uint8_t is_extern;
     } decl_function;
 
     struct {

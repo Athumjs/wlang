@@ -24,10 +24,20 @@ struct Args *resolveArgs(int argc, char **argv, struct Arena *arena)
       {"version", no_argument, 0, 'v'},
       {"output", required_argument, 0, 'o'},
       {"no-entry", no_argument, 0, NO_ENTRY},
+      {NULL, required_argument, 0, 'L'},
+      {NULL, required_argument, 0, 'l'},
       {0, 0, 0, 0} //
   };
 
-  while ((current_op = getopt_long(argc, argv, "hvo:Sc", options, NULL)) != -1)
+  char **libs = malloc(sizeof(char *));
+  size_t libs_cap = 1;
+  size_t libs_len = 0;
+  
+  char **libs_path = malloc(sizeof(char *));
+  size_t libs_path_cap = 1;
+  size_t libs_path_len = 0;
+
+  while ((current_op = getopt_long(argc, argv, "hvol:L:Sc", options, NULL)) != -1)
   {
     switch (current_op)
     {
@@ -40,6 +50,8 @@ struct Args *resolveArgs(int argc, char **argv, struct Arena *arena)
       printf("\t--only-obj or -c: generate only the object code.\n");
       printf("\t--show=[mir|lir]: show specific intermediate representation.\n");
       printf("\t--no-entry: tells the compiler that there is no entry function.\n");
+      printf("\t-l<lib>: links against the specified library.\n");
+      printf("\t-L<dir>: adds a directory to the library search path.\n");
       exit(0);
       break;
     case 'o':
@@ -58,6 +70,27 @@ struct Args *resolveArgs(int argc, char **argv, struct Arena *arena)
       printf("Compiler: v%s\n", WCOMPILER_VERSION_STR);
       exit(0);
       break; 
+
+    case 'l':
+      if (strcmp(optarg, "c") == 0) {
+        args->use_libc = 1;
+        break;
+      }
+
+      if (libs_len == libs_cap) {
+        libs_cap *= 2;
+        libs = realloc(libs, libs_cap * sizeof(char *));
+      }
+      libs[libs_len++] = optarg;
+      break;
+
+    case 'L':
+      if (libs_path_len == libs_path_cap) {
+        libs_path_cap *= 2;
+        libs_path = realloc(libs_path, libs_path_cap * sizeof(char *));
+      }
+      libs_path[libs_path_len++] = optarg;
+      break;
 
     case OPT_SHOW: {
       char *show_arg = strdup(optarg);
@@ -98,10 +131,22 @@ struct Args *resolveArgs(int argc, char **argv, struct Arena *arena)
     }
   }
 
+  args->obj_files = arena_alloc(arena, sizeof(char *) * (argc - optind));
+  args->obj_files_len = 0;
+  
   if (optind < argc)
   {
     char *file_path = argv[optind];
-    args->input_file = file_path;
+    size_t len = strlen(file_path);
+
+    if (len > 2 && (strcmp(file_path + len - 2, ".o") == 0 || strcmp(file_path + len - 2, ".a") == 0))
+      args->obj_files[args->obj_files_len++] = file_path;
+    else {
+      if (args->input_file != NULL && !args->only_asm && !args->only_obj)
+        errorGeneric("multiple source files are not supported.");
+
+      args->input_file = file_path;
+    }
   }
   else
   {
@@ -113,5 +158,9 @@ struct Args *resolveArgs(int argc, char **argv, struct Arena *arena)
   else if (args->only_asm || args->only_obj)
     errorGeneric("cannot specify '-o' with '-S' or '-c'.");
 
+  args->libs = libs;
+  args->libs_len = libs_len;
+  args->libs_path = libs_path;
+  args->libs_path_len = libs_path_len;
   return args;
 }

@@ -90,6 +90,12 @@ struct Decl *declVariable(int *i, struct Tokens *tokens, struct Program *program
 
 struct Decl *declFunction(int *i, struct Tokens *tokens, struct Program *program) {
   struct Decl *decl = newDecl(i, tokens, program, Decl_Function);
+
+  if (PEEK() == TOKEN_EXTERN) {
+    CONSUME(TOKEN_EXTERN);
+    decl->decl_function.is_extern = 1;
+  }
+
   CONSUME(TOKEN_SET);
   decl->decl_function.name = CONSUME(IDENTIFIER).string;
   CONSUME(TOKEN_LPAREN);
@@ -128,6 +134,11 @@ struct Decl *declFunction(int *i, struct Tokens *tokens, struct Program *program
     CONSUME(TOKEN_COLON);
     decl->decl_function.retType = parseType(i, tokens, program);
   } else decl->decl_function.retType = NULL;
+
+  if (decl->decl_function.is_extern) {
+    CONSUME(TOKEN_SEMICOLON);
+    return decl;
+  }
 
   decl->decl_function.body = parseStmt(i, tokens, program);
   return decl;
@@ -288,7 +299,7 @@ struct Decl *parseDecl(int *i, struct Tokens *tokens, struct Program *program) {
   if (PEEK() == TOKEN_IMPORT) return declImport(i, tokens, program);
   else if (PEEK() == TOKEN_PUBLIC) return declPublic(i, tokens, program);
   else if (PEEK() == TOKEN_CONST || PEEK() == TOKEN_VAR) return declVariable(i, tokens, program);
-  else if (PEEK() == TOKEN_SET) return declFunction(i, tokens, program);
+  else if (PEEK() == TOKEN_SET || PEEK() == TOKEN_EXTERN) return declFunction(i, tokens, program);
   else if (PEEK() == TOKEN_ENUM) return declEnum(i, tokens, program);
   else if (PEEK() == TOKEN_STRUCT) return declStruct(i, tokens, program);
 

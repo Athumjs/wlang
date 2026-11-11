@@ -23,6 +23,7 @@ struct LIRInstruction *lir_newInst(enum LIROpcodes opcode, int operands_len, str
 
 void lirop_reg(struct LIROperand *operand, struct Interval *interval, struct IRType *type, struct LIRContext *ctx) {
   operand->size = sizeOf(type);
+  if (operand->size > 8) operand->size = 8;
 
   if (interval->reg != -1) {
     operand->kind = LIR_Register;

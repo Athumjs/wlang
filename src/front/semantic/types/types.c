@@ -8,6 +8,7 @@ uint8_t flowNever(struct Flow *flow) {
 }
 
 void typeFunc(struct SymbolTable *table, struct Decl *decl) {
+  if (decl->decl_function.is_extern) return;
   table->scope = decl->decl_function.scope;
   struct Flow flow = typeStmt(table, decl->decl_function.body);
 

@@ -20,13 +20,13 @@ void lirstore(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct
     struct LIRInstruction *inst = lir_newInst(LIR_LOAD, 2, block, ctx->arena);
     liroperand(&inst->operands[0], &irinst->operands[0], ctx);
     lirop_reg(&inst->operands[1], &ctx->live->intervals[irinst->vl], &irinst->operands[0].op_type, ctx);
-    struct LIRInstruction *op = lir_newInst(LIR_STORE, 2, block, ctx->arena);
+    struct LIRInstruction *op = lir_newInst(LIR_COPY, 2, block, ctx->arena);
     lirop_reg(&op->operands[0], &ctx->live->intervals[irinst->vl], &irinst->operands[0].op_type, ctx);
     liroperand(&op->operands[1], &irinst->operands[1], ctx);
     return;
   }
 
-  struct LIRInstruction *inst = lir_newInst(LIR_STORE, 2, block, ctx->arena);
+  struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena);
   liroperand(&inst->operands[0], &irinst->operands[0], ctx);
   liroperand(&inst->operands[1], &irinst->operands[1], ctx);
 }
@@ -398,6 +398,7 @@ void lircall(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct 
     struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena);
     liroperand(&inst->operands[0], operand, ctx);
     inst->operands[1].size = sizeOf(&operand->op_type);
+    if (inst->operands[1].size > 8) inst->operands[1].size = 8;
     if (operand->op_type.kind == IRTYPEK_OTHER && (operand->op_type.other == IRTYPE_f32 || operand->op_type.other == IRTYPE_f64)) {
       if (i >= ctx->arch->arg_fregisters_len) {
         inst->operands[1].kind = LIR_Address;

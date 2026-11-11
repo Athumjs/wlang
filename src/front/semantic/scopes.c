@@ -19,6 +19,7 @@ void addSymbolParam(struct SymbolTable *table, struct Param *param, uint8_t isCo
 }
 
 void resolveFunc(struct SymbolTable *table, struct Decl *decl) {
+  if (decl->decl_function.is_extern) return;
   struct Symbol *symbol = findSymbol(table->scope, &decl->decl_function.name);
   enterScope(table);
   table->scope->expectType = decl->decl_function.retType;

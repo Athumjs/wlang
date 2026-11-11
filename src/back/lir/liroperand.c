@@ -54,6 +54,7 @@ void op_global(struct LIROperand *operand, struct String *str, struct LIRContext
 
 void liroperand(struct LIROperand *operand, struct IROperand *iroperand, struct LIRContext *ctx) {
   operand->size = sizeOf(&iroperand->op_type);
+  if (operand->size > 8) operand->size = 8;
 
   if (iroperand->kind == Operand_Constant)
     op_const(operand, &iroperand->constant, ctx);

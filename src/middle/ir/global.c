@@ -79,6 +79,7 @@ void irVar(struct Decl *decl, struct IRModule *module, struct Arena *arena) {
 }
 
 void irFunc(struct Decl *decl, struct IRModule *module, struct Arena *arena) {
+  if (decl->decl_function.is_extern) return;
   struct IRFunction *func = newFunc(&decl->decl_function.name, decl->decl_function.params_len, &decl->decl_function.params, module, arena);
 
   struct MIRContext ctx = {

@@ -5,7 +5,6 @@
 
 #define LIROPCODES \
   X(LIR_COPY, "copy") \
-  X(LIR_STORE, "store") \
   X(LIR_LOAD, "load") \
   X(LIR_ADD, "add") \
   X(LIR_SUB, "sub") \
