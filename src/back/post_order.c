@@ -27,6 +27,7 @@ void post_order(struct IRFunction *func, struct Arena *arena) {
     old_to_new[index] = write_index;
     write_index++;
   }
+  func->blocks_len = order_len;
   for (int i = 0; i < func->blocks_len; i++) {
     struct IRBasicBlock *block = func->blocks[i];
     struct IRInstruction *inst = &block->instructions[block->instructions_len - 1];

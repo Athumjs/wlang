@@ -34,7 +34,7 @@ static struct Flow stmtWhile(struct SymbolTable *table, struct Stmt *stmt) {
 static struct Flow stmtFor(struct SymbolTable *table, struct Stmt *stmt) {
   table->scope = stmt->stmt_for.scope;
   if (stmt->stmt_for.init != NULL) typeDecl(table, stmt->stmt_for.init);
-  typeExpr(table, stmt->stmt_for.condition);
+  if (stmt->stmt_for.condition != NULL) typeExpr(table, stmt->stmt_for.condition);
   if (stmt->stmt_for.update != NULL) typeExpr(table, stmt->stmt_for.update);
   struct Flow flow = typeStmt(table, stmt->stmt_for.body);
 

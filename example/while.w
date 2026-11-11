@@ -1,7 +1,7 @@
 set main(): int {
-  var num = 0;
+  var num = 51;
 
-  while (num < 100)
+  while (num > 50 && num < 100)
     num++;
 
   return num;

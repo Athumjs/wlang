@@ -77,11 +77,7 @@ struct Stmt *stmtFor(int *i, struct Tokens *tokens, struct Program *program) {
   }
 
   if (PEEK() != TOKEN_SEMICOLON) stmt->stmt_for.condition = parseExpr(i, tokens, program);
-  else {
-    stmt->stmt_for.condition = newExpr(i, tokens, program, Expr_Literal);
-    stmt->stmt_for.condition->expr_literal.kind = LITERAL_BOOLEAN;
-    stmt->stmt_for.condition->expr_literal.literal.numInt = 1;
-  }
+  else stmt->stmt_for.condition = NULL;
 
   CONSUME(TOKEN_SEMICOLON);
   if (PEEK() != TOKEN_RPAREN) stmt->stmt_for.update = parseExpr(i, tokens, program);

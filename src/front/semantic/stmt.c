@@ -21,7 +21,7 @@ static void stmtFor(struct SymbolTable *table, struct Stmt *stmt) {
   enterScope(table);
   stmt->stmt_for.scope = table->scope;
   if (stmt->stmt_for.init != NULL) resolveDecl(table, stmt->stmt_for.init);
-  resolveExpr(table, stmt->stmt_for.condition);
+  if (stmt->stmt_for.condition != NULL) resolveExpr(table, stmt->stmt_for.condition);
   if (stmt->stmt_for.update != NULL) resolveExpr(table, stmt->stmt_for.update);
   resolveStmt(table, stmt->stmt_for.body);
   if (stmt->stmt_for.body->kind != Stmt_Block) exitScope(table);

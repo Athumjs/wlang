@@ -109,6 +109,7 @@ struct IRExpr irLogical(struct Expr *expr, struct MIRContext *ctx) {
   struct IRBasicBlock *newBlock = ctx->func->blocks[nBlock];
   struct IRBasicBlock *mergeBlock = ctx->func->blocks[mBlock];
   addPrevBlock(ctx->block, newBlock, ctx->arena);
+  sealBlock(ctx->func->ssa, newBlock, ctx->arena);
   addPrevBlock(ctx->block, mergeBlock, ctx->arena);
 
   if (expr->expr_binary.op == TOKEN_AND) {
@@ -125,6 +126,7 @@ struct IRExpr irLogical(struct Expr *expr, struct MIRContext *ctx) {
   ctx->block = block;
   newBlock = expr_r.block;
   addPrevBlock(newBlock, mergeBlock, ctx->arena);
+  sealBlock(ctx->func->ssa, mergeBlock, ctx->arena);
 
   struct IRInstruction *jmp = newInst(OPCODE_JMP, 0, 1, newBlock, ctx->arena);
   addOperandRef(1, mBlock, IRTYPE_NULL, jmp);

@@ -1,8 +1,8 @@
-import "b";
-
 set main() {
-  var x = 10;
-  var y = 15;
-  var z = 5;
-  return sum(10, 20) + x + y - z + brv;
+  var num = 0;
+  for (;;) {
+    if (num >= 10)
+      return num;
+    num++;
+  }
 }
