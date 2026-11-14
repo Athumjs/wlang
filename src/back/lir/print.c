@@ -12,19 +12,21 @@ static void printOpcode(enum LIROpcodes opcode) {
 static void printOperand(struct LIROperand *op) {
   if (op->kind == LIR_Immediate)
     printf("%ld", op->imm);
+  else if (op->kind == LIR_Vreg)
+    printf("Vr%ld", op->reg);
   else if (op->kind == LIR_Register)
     printf("R%ld", op->reg);
-  else if (op->kind == LIR_Label || LIR_Global)
+  else if (op->kind == LIR_Label || op->kind == LIR_Global)
     printf("%s", op->label);
 
   else if (op->kind == LIR_Float)
     printf("float_%ld(R%ld)", op->mem.disp, op->mem.base_reg);
 
   else if (op->kind == LIR_Address) {
-    printf("%ld(R%ld", op->mem.disp, op->mem.base_reg);
+    printf("%ld(%s%ld", op->mem.disp, op->mem.is_base_vreg ? "Vr" : "R", op->mem.base_reg);
 
     if (op->mem.index_reg != -1) {
-      printf(", R%ld", op->mem.index_reg);
+      printf(", %s%ld", op->mem.is_index_vreg ? "Vr" : "R", op->mem.index_reg);
 
       if (op->mem.scale > 1)
         printf(", %d", op->mem.scale);

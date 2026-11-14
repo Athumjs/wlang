@@ -2,7 +2,6 @@
 
 #include <back/backs.h>
 #include <back/lir.h>
-#include <back/reg_alloc.h>
 #include <stdio.h>
 
 struct Floats {
@@ -19,7 +18,7 @@ void x86_64_linux_define(struct Arch *arch);
 void x86_64_linux_code(struct IRGlobal *globals, size_t globals_len, struct LIRFunction *funcs, size_t funcs_len, struct Floats *floats, FILE *file, struct Arch *arch, uint8_t main_file);
 
 // lir
-void lirgen(struct LIRFunction *func, struct Arch *arch, struct IRFunction *irfunc, struct Arena *arena, struct Live *live, struct Floats *floats);
+void lirgen(struct LIRFunction *func, struct Arch *arch, struct IRFunction *irfunc, struct Arena *arena, struct Floats *floats);
 void showLIR(struct LIRFunction *funcs, size_t funcs_len);
 
 // ssa_destruction.c
@@ -27,6 +26,25 @@ void ssa_destruction(struct IRFunction *func, struct Arena *arena);
 
 // post_order.c
 void post_order(struct IRFunction *func, struct Arena *arena);
+
+struct Interval {
+  int64_t reg;
+  int start, end;
+  int64_t spill_slot;
+  uint8_t crosses_call;
+  uint8_t is_float;
+};
+
+struct Live {
+  struct Interval *intervals;
+  size_t length;
+};
+
+// liveness.c
+void liveness(struct Live *live, struct LIRFunction *func, struct Arena *arena);
+
+// reg_alloc.c
+void register_allocation(struct Live *live, struct LIRFunction *func, struct Arch *arch, struct Arena *arena);
 
 struct FindInst {
   int64_t block_index;

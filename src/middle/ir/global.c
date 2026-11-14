@@ -148,13 +148,11 @@ void irStruct(struct Decl *decl, struct IRModule *module, struct Arena *arena) {
       .other = IRTYPE_ptr
     };
     func->params[0].vl = func->reg++;
-    newDef(decl->decl_struct.symbol, func, arena);
     setCurrentDef(func->ssa, &decl->decl_struct.symbol->name, 1, &func->params[0], func->blocks[0], arena);
     for (int j = 1; j < func->params_len; j++) {
-      func->params[j].type = resolveTypeIR(method->params[j].type, arena);
+      func->params[j].type = resolveTypeIR(method->params[j - 1].type, arena);
       func->params[j].vl = func->reg++;
-      newDef(method->params[j].symbol, func, arena);
-      setCurrentDef(func->ssa, &method->params[j].name, 1, &func->params[j], func->blocks[0], arena);
+      setCurrentDef(func->ssa, &method->params[j - 1].name, 1, &func->params[j], func->blocks[0], arena);
     }
 
     struct MIRContext ctx = {

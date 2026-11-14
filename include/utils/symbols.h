@@ -32,6 +32,7 @@ struct Symbol {
     struct {
       struct Param *params;
       size_t params_len;
+      uint8_t is_extern;
     } symbol_function;
 
     struct {

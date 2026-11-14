@@ -35,6 +35,3 @@ target_include_directories(wl
 )
 
 target_link_libraries(wl PRIVATE m)
-
-install(FILES ${RT_OBJ} DESTINATION lib/wlang)
-install(TARGETS wl DESTINATION bin)

@@ -22,13 +22,16 @@ struct Arch {
 
   uint8_t is_3_operands;
 
-  int64_t ret_register;
+  int64_t ret_iregister;
+  int64_t ret_fregister;
   int64_t stack_top_register;
   int64_t stack_base_register;
   int64_t inst_register;
   int64_t div_register;
   int64_t rem_register;
   int64_t shift_register;
+  int64_t tmp_iregister;
+  int64_t tmp_fregister;
 };
 
 char *backs(struct IRModule *ir, struct Program *program, const char *folder_name, uint8_t only_asm, uint8_t show_lir, uint8_t main_file);

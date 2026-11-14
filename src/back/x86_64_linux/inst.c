@@ -16,9 +16,10 @@ void x86_64_linux_inst(struct LIRInstruction *inst, FILE *file, struct Arch *arc
   else if (inst->opcode == LIR_FCMP) fprintf(file, "  comi");
   
   else if (inst->opcode == LIR_COPY) {
-    if (inst->operands[0].kind == LIR_Global)
+    if (inst->operands[0].kind == LIR_Global) {
       fprintf(file, "  lea");
-    else fprintf(file, "  mov");
+      inst->operands[inst->operands_len - 1].size = 8;
+    } else fprintf(file, "  mov");
   }
 
   else if (inst->opcode == LIR_CALL) {

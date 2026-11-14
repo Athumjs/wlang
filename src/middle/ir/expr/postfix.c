@@ -10,6 +10,7 @@ struct IRExpr irMember(struct Expr *expr, struct MIRContext *ctx) {
   if (ctx->block->instructions[ctx->block->instructions_len - 1].opcode == OPCODE_LOAD) {
     (*ctx->block->reg)--;
     expr_o.operand.ref = ctx->block->instructions[ctx->block->instructions_len - 1].operands[0].ref;
+    expr_o.operand.op_type = IRTYPE_PTR;
     ctx->block->instructions_len--;
   }
 
@@ -42,7 +43,6 @@ struct IRExpr irMember(struct Expr *expr, struct MIRContext *ctx) {
   return (struct IRExpr){
     .operand = (struct IROperand){
       .kind = Operand_Register,
-      .op_type = load->operands[0].op_type,
       .ref = load->vl
     }
   };
@@ -55,6 +55,7 @@ struct IRExpr irIndex(struct Expr *expr, struct MIRContext *ctx) {
   if (ctx->block->instructions[ctx->block->instructions_len - 1].opcode == OPCODE_LOAD) {
     (*ctx->block->reg)--;
     expr_b.operand.ref = ctx->block->instructions[ctx->block->instructions_len - 1].operands[0].ref;
+    expr_b.operand.op_type = IRTYPE_PTR;
     ctx->block->instructions_len--;
   }
 
@@ -80,7 +81,6 @@ struct IRExpr irIndex(struct Expr *expr, struct MIRContext *ctx) {
   return (struct IRExpr){
     .operand = (struct IROperand){
       .kind = Operand_Register,
-      .op_type = load->operands[0].op_type,
       .ref = load->vl
     }
   };
@@ -93,7 +93,8 @@ struct IRExpr irCall(struct Expr *expr, struct MIRContext *ctx) {
     .call = (struct IRCall){
       .operand = arena_alloc(ctx->arena, sizeof(struct IROperand)),
       .args = NULL,
-      .args_len = 0
+      .args_len = 0,
+      .is_extern = expr->expr_call.is_extern
     }
   };
 
@@ -138,7 +139,6 @@ struct IRExpr irCall(struct Expr *expr, struct MIRContext *ctx) {
     .inst = inst,
     .operand = (struct IROperand){
       .kind = Operand_Register,
-      .op_type = inst->operands[0].op_type,
       .ref = inst->vl
     }
   };

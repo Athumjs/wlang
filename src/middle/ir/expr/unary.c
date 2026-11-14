@@ -50,7 +50,6 @@ struct IRExpr irCast(struct Expr *expr, struct MIRContext *ctx) {
     .inst = inst,
     .operand = (struct IROperand){
       .kind = Operand_Register,
-      .op_type = inst->operands[0].op_type,
       .ref = inst->vl
     }
   };
@@ -77,7 +76,6 @@ struct IRExpr irUnary(struct Expr *expr, struct MIRContext *ctx) {
       .inst = inst,
       .operand = (struct IROperand){
         .kind = Operand_Register,
-        .op_type = inst->operands[0].op_type,
         .ref = inst->vl
       }
     };
@@ -91,10 +89,18 @@ struct IRExpr irUnary(struct Expr *expr, struct MIRContext *ctx) {
       .inst = inst,
       .operand = (struct IROperand){
         .kind = Operand_Register,
-        .op_type = inst->operands[0].op_type,
         .ref = inst->vl
       }
     };
+  }
+
+  else if (expr->expr_unary.op == TOKEN_BIT_AND) {
+    if (ctx->block->instructions[ctx->block->instructions_len - 1].opcode == OPCODE_LOAD) {
+      (*ctx->block->reg)--;
+      expr_o.operand.ref = ctx->block->instructions[ctx->block->instructions_len - 1].operands[0].ref;
+      expr_o.operand.op_type = IRTYPE_PTR;
+      ctx->block->instructions_len--;
+    }
   }
 
   else if (expr->expr_unary.op == TOKEN_MINUS) {
@@ -120,7 +126,6 @@ struct IRExpr irUnary(struct Expr *expr, struct MIRContext *ctx) {
 
     struct IROperand res = (struct IROperand){
       .kind = Operand_Register,
-      .op_type = inst->operands[0].op_type,
       .ref = inst->vl
     };
 

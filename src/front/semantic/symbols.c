@@ -76,6 +76,7 @@ void funcSymbol(struct SymbolTable *table, struct Decl *decl, uint8_t isPublic) 
   struct Symbol *symbol = newSymbol(table, Symbol_Function, decl->line, decl->column, decl->decl_function.name, type);
   symbol->symbol_function.params = decl->decl_function.params;
   symbol->symbol_function.params_len = decl->decl_function.params_len;
+  symbol->symbol_function.is_extern = decl->decl_function.is_extern;
   addSymbol(table, symbol);
   if (isPublic) hashmap_set(table->exports, &decl->decl_function.name, symbol, table->program->arena);
 }

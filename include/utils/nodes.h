@@ -123,6 +123,7 @@ struct Expr {
       struct Expr **args;
       size_t args_len;
       size_t args_cap;
+      uint8_t is_extern;
     } expr_call;
 
     struct {

@@ -60,16 +60,6 @@ size_t alignOf(struct IRType *type) {
   return sizeOf(type);
 }
 
-struct IRInstruction *getInst(struct IRFunction *func, int64_t vl) {
-  for (int i = 0; i < func->blocks_len; i++) {
-    for (int j = 0; j < func->blocks[i]->instructions_len; j++) {
-      if (func->blocks[i]->instructions[j].vl != vl) continue;
-      return &func->blocks[i]->instructions[j];
-    }
-  }
-  return NULL;
-}
-
 struct FindInst findInst(struct IRFunction *func, int64_t vl) {
     for (int i = 0; i < func->blocks_len; i++) {
     for (int j = 0; j < func->blocks[i]->instructions_len; j++) {
@@ -84,6 +74,16 @@ struct FindInst findInst(struct IRFunction *func, int64_t vl) {
     -1,
     -1
   };
+}
+
+struct IRInstruction *getInst(struct IRFunction *func, int64_t vl) {
+  for (int i = 0; i < func->blocks_len; i++) {
+    for (int j = 0; j < func->blocks[i]->instructions_len; j++) {
+      if (func->blocks[i]->instructions[j].vl != vl) continue;
+      return &func->blocks[i]->instructions[j];
+    }
+  }
+  return NULL;
 }
 
 struct Successors get_successors(struct IRBasicBlock *block) {

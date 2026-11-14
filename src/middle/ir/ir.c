@@ -60,9 +60,6 @@ struct IRFunction *newFunc(struct String *name, size_t params_len, struct Param 
     .params_len = params_len,
     .reg = 0,
     .ssa = hashmap_new(arena, 8),
-    .defs_cap = 1,
-    .defs = arena_alloc(arena, sizeof(struct String *)),
-    .defs_len = 0
   };
 
   int64_t iBlock = newBlock(&func, arena);
@@ -70,7 +67,6 @@ struct IRFunction *newFunc(struct String *name, size_t params_len, struct Param 
     struct Param *param = &(*params)[i];
     func.params[i].type = resolveTypeIR(param->type, arena);
     func.params[i].vl = func.reg++;
-    newDef(param->symbol, &func, arena);
     setCurrentDef(func.ssa, &param->name, 1, &func.params[i], func.blocks[iBlock], arena);
   }
 
@@ -78,18 +74,6 @@ struct IRFunction *newFunc(struct String *name, size_t params_len, struct Param 
   module->functions[module->functions_len++] = func;
   block->reg = &module->functions[module->functions_len - 1].reg;
   return &module->functions[module->functions_len - 1];
-}
-
-void newDef(struct Symbol *symbol, struct IRFunction *func, struct Arena *arena) {
-  if (func->defs_len == func->defs_cap) {
-    size_t oldCap = func->defs_cap;
-    func->defs_cap *= 2;
-    struct Symbol **temp = arena_alloc(arena, func->defs_cap * sizeof(struct Symbol *));
-    memcpy(temp, func->defs, oldCap * sizeof(struct Symbol *));
-    func->defs = temp;
-  }
-
-  func->defs[func->defs_len++] = symbol;
 }
 
 struct IRInstruction *newInst(enum IROpcode opcode, uint8_t isVl, size_t operands_len, struct IRBasicBlock *block, struct Arena *arena) {

@@ -13,10 +13,10 @@ struct Symbol *resolveExprCall(struct SymbolTable *table, struct Expr *expr) {
     errorLang(table->program->filename, expr->line, expr->column, "this expression is not callable");
   }
 
-  for (int i = 0; i < expr->expr_call.args_len; i++) {
+  for (int i = 0; i < expr->expr_call.args_len; i++)
     resolveExpr(table, expr->expr_call.args[i]);
-  }
 
+  expr->expr_call.is_extern = callee->symbol_function.is_extern;
   return callee;
 }
 

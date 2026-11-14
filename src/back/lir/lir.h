@@ -1,26 +1,27 @@
 #pragma once
 
-#include <back/lir.h>
-#include <back/backs.h>
-#include <back/reg_alloc.h>
+#include "../backs.h"
 
 struct LIRContext {
+  size_t stack_len;
+  size_t vregs_len;
+  size_t floats_len;
   struct Arch *arch;
-  struct Live *live;
   struct Arena *arena;
-  size_t *stack_size;
-  size_t *floats_len;
   struct IRFunction *func;
-  int pos;
   uint8_t has_call;
 };
 
-// lirinst.c
-void lirinst(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx);
+// lir.c
+struct LIRInstruction *lir_newInst(enum LIROpcodes opcode, size_t operands_len, struct LIRBasicBlocks *block, struct Arena *arena);
+void lir_addOperandReg(uint8_t isVreg, int64_t reg, struct IRType *type, uint8_t is_float, struct LIRInstruction *inst, struct LIRContext *ctx);
+void lir_addOperandAddress(uint8_t type, int64_t base_reg, uint8_t is_base_vreg, int64_t index_reg, uint8_t is_index_vreg, int64_t disp, uint8_t scale, struct IRType *op_type, struct LIRInstruction *inst, struct LIRContext *ctx);
+void lir_addOperandConst(int64_t value, struct IRType *type, struct LIRInstruction *inst);
+void lir_addOperandLabel(uint8_t type, struct String *str, struct IRType *op_type, struct LIRInstruction *inst);
+uint8_t is_float(struct IRType *type);
 
-// liroperand.c
-void liroperand(struct LIROperand *operand, struct IROperand *iroperand, struct LIRContext *ctx);
+// inst.c
+void lir_inst(struct LIRBasicBlocks *block, struct IRInstruction *inst, struct LIRContext *ctx);
 
-// lirutil.c
-struct LIRInstruction *lir_newInst(enum LIROpcodes opcode, int operands_len, struct LIRBasicBlocks *block, struct Arena *arena);
-void lirop_reg(struct LIROperand *operand, struct Interval *interval, struct IRType *type, struct LIRContext *ctx);
+// operand.c
+void lir_operand(struct LIRInstruction *inst, struct IROperand *operand, struct LIRContext *ctx);

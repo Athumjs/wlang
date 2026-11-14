@@ -29,7 +29,6 @@ struct IRExpr {
 int64_t newBlock(struct IRFunction *func, struct Arena *arena);
 void addPrevBlock(struct IRBasicBlock *prevBlock, struct IRBasicBlock *block, struct Arena *arena);
 struct IRFunction *newFunc(struct String *name, size_t params_len, struct Param **params, struct IRModule *module, struct Arena *arena);
-void newDef(struct Symbol *symbol, struct IRFunction *func, struct Arena *arena);
 struct IRInstruction *newInst(enum IROpcode opcode, uint8_t isVl, size_t operands_len, struct IRBasicBlock *block, struct Arena *arena);
 void addOperandRef(uint8_t type, int64_t ref, struct IRType op_type, struct IRInstruction *inst);
 void addOperandGlobal(struct String *name, struct IRType type, struct IRInstruction *inst);

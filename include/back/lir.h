@@ -48,6 +48,7 @@ enum LIROpcodes {
 };
 
 enum LIROperandKind {
+  LIR_Vreg,
   LIR_Register,
   LIR_Immediate,
   LIR_Address,
@@ -59,6 +60,7 @@ enum LIROperandKind {
 struct LIROperand {
   enum LIROperandKind kind;
   uint8_t size;
+  uint8_t is_float;
 
   union {
     int64_t reg;
@@ -70,6 +72,8 @@ struct LIROperand {
       int64_t index_reg;
       uint8_t scale;
       int64_t disp;
+      uint8_t is_base_vreg;
+      uint8_t is_index_vreg;
     } mem;
   };
 };
@@ -86,6 +90,9 @@ struct LIRBasicBlocks {
   struct LIRInstruction *instructions;
   size_t instructions_cap;
   size_t instructions_len;
+
+  int64_t *sucs;
+  size_t sucs_len;
 };
 
 struct LIRFunction {
@@ -96,4 +103,5 @@ struct LIRFunction {
   uint64_t saved_regs;
   uint8_t has_call;
   uint8_t public;
+  size_t vregs_len;
 };

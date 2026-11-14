@@ -90,6 +90,7 @@ struct IRType {
 };
 
 #define IRTYPE_NULL (struct IRType){ IRTYPEK_NULL }
+#define IRTYPE_PTR (struct IRType){ .kind = IRTYPEK_OTHER, .other = IRTYPE_ptr }
 
 enum IRCMPKind {
   CMP_INT,
@@ -160,6 +161,7 @@ struct IRCall {
   struct IROperand *args;
   size_t args_len;
   struct IROperand *operand;
+  uint8_t is_extern;
 };
 
 enum IROperandKind {
@@ -245,9 +247,6 @@ struct IRFunction {
   size_t params_len;
   int64_t reg;
   struct Hashmap *ssa;
-  struct Symbol **defs;
-  size_t defs_len;
-  size_t defs_cap;
   struct IRLoopContext *loop;
   uint8_t public;
 };

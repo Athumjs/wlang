@@ -57,7 +57,7 @@ void x86_64_linux_globals(struct IRGlobal *globals, size_t globals_len, FILE *fi
   }
 
   if (bss) {
-    fprintf(file, ".section .bss");
+    fprintf(file, ".section .bss\n");
 
     for (int i = 0; i < globals_len; i++) {
       if (globals[i].value.constant.kind != Value_Int || globals[i].value.constant.i != 0) continue;

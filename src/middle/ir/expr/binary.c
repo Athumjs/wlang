@@ -12,7 +12,8 @@ struct IRExpr irAssign(struct Expr *expr, struct MIRContext *ctx) {
 
       if (ctx->block->instructions[ctx->block->instructions_len - 1].opcode == OPCODE_LOAD) {
         (*ctx->block->reg)--;
-        expr_r.operand.ref = ctx->block->instructions[ctx->block->instructions_len - 1].operands[0].ref;
+        expr_l.operand.ref = ctx->block->instructions[ctx->block->instructions_len - 1].operands[0].ref;
+        expr_l.operand.op_type = IRTYPE_PTR;
         ctx->block->instructions_len--;
       }
 
@@ -32,7 +33,7 @@ struct IRExpr irAssign(struct Expr *expr, struct MIRContext *ctx) {
       if (!def->isParam && def->inst->opcode == OPCODE_ALLOCA) {
         struct IRInstruction *inst = newInst(OPCODE_STORE, 0, 2, ctx->block, ctx->arena);
         inst->operands[inst->operands_len++] = expr_r.operand;
-        addOperandRef(2, def->inst->vl, def->inst->operands[0].type, inst);
+        addOperandRef(2, def->inst->vl, def->inst->operands[0].op_type, inst);
         return (struct IRExpr){0};
       }
 
@@ -142,7 +143,6 @@ struct IRExpr irLogical(struct Expr *expr, struct MIRContext *ctx) {
 
   irexpr.operand = (struct IROperand){
     .kind = Operand_Register,
-    .op_type = phi->operands[0].op_type,
     .ref = phi->vl
   };
   irexpr.block = mergeBlock;
@@ -212,7 +212,6 @@ struct IRExpr irCompare(struct Expr *expr, struct MIRContext *ctx) {
     .inst = inst,
     .operand = (struct IROperand){
       .kind = Operand_Register,
-      .op_type = inst->operands[0].op_type,
       .ref = inst->vl
     }
   };
@@ -282,7 +281,6 @@ struct IRExpr irBinary(struct Expr *expr, struct MIRContext *ctx) {
     .inst = inst,
     .operand = (struct IROperand){
       .kind = Operand_Register,
-      .op_type = inst->operands[0].op_type,
       .ref = inst->vl
     }
   };

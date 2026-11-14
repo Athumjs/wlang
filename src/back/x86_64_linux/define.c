@@ -37,12 +37,15 @@ void x86_64_linux_define(struct Arch *arch) {
 
     .is_3_operands = 0,
 
-    .ret_register = 0,
+    .ret_iregister = 0,
+    .ret_fregister = 16,
     .stack_top_register = 7,
     .stack_base_register = 6,
     .inst_register = 100,
     .div_register = 0,
     .rem_register = 3,
-    .shift_register = 2
+    .shift_register = 2,
+    .tmp_iregister = 10,
+    .tmp_fregister = 30
   };
 }
