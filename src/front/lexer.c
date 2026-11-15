@@ -297,6 +297,24 @@ void lexer(const char *filename, const char *code, struct Tokens *tokens,
         NEXT();
       }
 
+      if (memcmp(code + index, "ll", 2) == 0 || memcmp(code + index, "LL", 2) == 0) {
+        NEXT(); NEXT(); NEXT();
+        buffer[i] = '\0';
+        type = LITERAL_LONG;
+        addTokenNum(tokens, arena, type, buffer, i, base, line,
+                  col - (index - start));
+        continue;
+      }
+
+      if (memcmp(code + index, "ull", 3) == 0 || memcmp(code + index, "ULL", 3) == 0) {
+        NEXT(); NEXT(); NEXT();
+        buffer[i] = '\0';
+        type = LITERAL_ULONG;
+        addTokenNum(tokens, arena, type, buffer, i, base, line,
+                  col - (index - start));
+        continue;
+      }
+
       if (code[index] == '_') {
         errorLang(filename, line, col, "unexpected '_' character");
       }

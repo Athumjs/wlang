@@ -41,6 +41,7 @@ struct Type {
   union {
     struct {
       enum PrimitiveType type;
+      uint8_t is_constant;
     } type_primitive;
 
     struct {

@@ -53,8 +53,11 @@ static struct Flow stmtReturn(struct SymbolTable *table, struct Stmt *stmt) {
     table->scope->retType->type_primitive.type = Primitive_Void;
   } else table->scope->retType = typeExpr(table, stmt->stmt_return);
 
-  if (table->scope->expectType->kind == Type_Auto)
+  if (table->scope->expectType->kind == Type_Auto) {
     table->scope->expectType = table->scope->retType;
+    if (table->scope->expectType->kind == Type_Primitive)
+      table->scope->expectType->type_primitive.is_constant = 0;
+  }
 
   if (!cmpTT(table->scope->retType, table->scope->expectType)) {
     if (!canImplicitConvert(table->scope->retType, table->scope->expectType)) {

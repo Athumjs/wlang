@@ -74,7 +74,9 @@
 
 #define OTHERS \
   X(LITERAL_INTEGER, "literal") \
+  X(LITERAL_LONG, "literal") \
   X(LITERAL_UINTEGER, "literal") \
+  X(LITERAL_ULONG, "literal") \
   X(LITERAL_FLOAT, "literal") \
   X(LITERAL_DOUBLE, "literal") \
   X(LITERAL_CHAR, "literal") \

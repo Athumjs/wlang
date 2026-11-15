@@ -183,8 +183,9 @@ struct Expr *exprPrimary(int *i, struct Tokens *tokens, struct Program *program)
     return expr;
   }
 
-  else if (PEEK() == LITERAL_INTEGER || PEEK() == LITERAL_UINTEGER || PEEK() == LITERAL_FLOAT || PEEK() == LITERAL_DOUBLE ||
-      PEEK() == LITERAL_CHAR || PEEK() == LITERAL_STRING || PEEK() == LITERAL_BOOLEAN) {
+  else if (PEEK() == LITERAL_INTEGER || PEEK() == LITERAL_LONG || PEEK() == LITERAL_UINTEGER || PEEK() == LITERAL_ULONG ||
+      PEEK() == LITERAL_FLOAT || PEEK() == LITERAL_DOUBLE || PEEK() == LITERAL_CHAR || PEEK() == LITERAL_STRING ||
+      PEEK() == LITERAL_BOOLEAN) {
     struct Expr *expr = newExpr(i, tokens, program, Expr_Literal);
     expr->expr_literal.kind = PEEK();
     expr->expr_literal.literal = CONSUME(PEEK());

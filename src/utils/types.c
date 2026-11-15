@@ -149,7 +149,10 @@ uint8_t cmpTT(struct Type *t1, struct Type *t2) {
 
   if (t1->kind != t2->kind) return 0;
 
-  if (t1->kind == Type_Primitive) return t1->type_primitive.type == t2->type_primitive.type;
+  if (t1->kind == Type_Primitive) {
+    if (t1->type_primitive.is_constant || t2->type_primitive.is_constant) return 1;
+    return t1->type_primitive.type == t2->type_primitive.type;
+  }
 
   if (t1->kind == Type_Named && t1->type_named.name.length == t2->type_named.name.length &&
         memcmp(t1->type_named.name.start, t2->type_named.name.start, t2->type_named.name.length) == 0) return 1; 

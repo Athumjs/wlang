@@ -6,7 +6,8 @@ extern set free(mem: char*);
 
 set main() {
   var x;
-  x = malloc(strlen("Hello World") + (1 as ulong));
+  var y = 1ULL;
+  x = malloc(strlen("Hello World") + y);
   strcpy(x, "Hello World");
   printf("%s\n", x);
   free(x);

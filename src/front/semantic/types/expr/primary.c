@@ -121,11 +121,23 @@ struct Type *typeExprArray(struct SymbolTable *table, struct Expr *expr) {
 struct Type *typeExprLiteral(struct SymbolTable *table, struct Expr *expr) {
   if (expr->expr_literal.kind == LITERAL_INTEGER) {
     expr->type = typePrimitive(table, Primitive_Integer);
+    expr->type->type_primitive.is_constant = 1;
+    return expr->type;
+  }
+
+  if (expr->expr_literal.kind == LITERAL_LONG) {
+    expr->type = typePrimitive(table, Primitive_Long);
     return expr->type;
   }
 
   else if (expr->expr_literal.kind == LITERAL_UINTEGER) {
     expr->type = typePrimitive(table, Primitive_Uinteger);
+    expr->type->type_primitive.is_constant = 1;
+    return expr->type;
+  }
+
+  else if (expr->expr_literal.kind == LITERAL_ULONG) {
+    expr->type = typePrimitive(table, Primitive_Ulong);
     return expr->type;
   }
 

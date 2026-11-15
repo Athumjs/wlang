@@ -87,8 +87,7 @@ struct Type *typeExprBinary(struct SymbolTable *table, struct Expr *expr) {
       struct String s2 = getType(right, table->program->arena);
       errorLang(table->program->filename, expr->line, expr->column, "operator '%s' cannot be applied to types '%.*s' and '%.*s'",
           tk_names[expr->expr_binary.op], s1.length, s1.start, s2.length, s2.start);
-  }
-
+  } 
 
   if (!cmpTT(right, left)) {
     struct Expr *exp = arena_alloc(table->program->arena, sizeof(struct Expr));

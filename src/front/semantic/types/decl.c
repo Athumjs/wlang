@@ -16,6 +16,8 @@ void typeVar(struct SymbolTable *table, struct Decl *decl) {
       
       if (var->type->kind == Type_Auto) {
         struct Symbol *lvalue = findSymbol(table->scope, &var->name);
+        if (ret->kind == Type_Primitive)
+          ret->type_primitive.is_constant = 0;
         lvalue->type = ret;
         var->type = ret;
       }
