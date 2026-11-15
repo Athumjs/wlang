@@ -22,10 +22,15 @@ struct LIRInstruction *lir_newInst(enum LIROpcodes opcode, size_t operands_len, 
 }
 
 void lir_addOperandReg(uint8_t isVreg, int64_t reg, struct IRType *type, uint8_t is_float, struct LIRInstruction *inst, struct LIRContext *ctx) {
+  size_t size = sizeOf(type);
+
+  if (size != 1 && size != 2 && size != 4 && size != 8)
+    size = 8;
+
   inst->operands[inst->operands_len++] = (struct LIROperand){
     .kind = isVreg ? LIR_Vreg : LIR_Register,
     .reg = isVreg && reg == -1 ? ctx->vregs_len++ : reg,
-    .size = sizeOf(type),
+    .size = size,
     .is_float = is_float
   };
 }
@@ -34,6 +39,11 @@ void lir_addOperandReg(uint8_t isVreg, int64_t reg, struct IRType *type, uint8_t
  * type = 1 : Float | type = 2 Global | type >= 3 Address
 **/
 void lir_addOperandAddress(uint8_t type, int64_t base_reg, uint8_t is_base_vreg, int64_t index_reg, uint8_t is_index_vreg, int64_t disp, uint8_t scale, struct IRType *op_type, struct LIRInstruction *inst, struct LIRContext *ctx) {
+  size_t size = sizeOf(op_type);
+
+  if (size != 1 && size != 2 && size != 4 && size != 8)
+    size = 8;
+
   struct LIROperand operand = (struct LIROperand){
     .mem.base_reg = base_reg,
     .mem.is_base_vreg = is_base_vreg,
@@ -41,7 +51,7 @@ void lir_addOperandAddress(uint8_t type, int64_t base_reg, uint8_t is_base_vreg,
     .mem.is_index_vreg = is_index_vreg,
     .mem.disp = disp,
     .mem.scale = scale,
-    .size = sizeOf(op_type)
+    .size = size
   };
 
   if (type == 1) {

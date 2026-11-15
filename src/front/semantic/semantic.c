@@ -27,5 +27,4 @@ void semantic(struct SymbolTable *table, struct Module *modules, uint8_t main_fi
   resolveImports(table, modules);
   resolveScopes(table);
   resolveTypes(table);
-  resolveTypes(table);
 }

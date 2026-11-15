@@ -1,7 +1,7 @@
 #include "x86_64_linux.h"
 
 static void emit_prologue(struct LIRFunction *func, FILE *file, struct Arch *arch) { 
-  if (func->stack_size > 0 || func->has_call) {
+  if (func->stack_size > 0 || func->has_call || func->saved_regs != 0) {
     fprintf(file, "  pushq %%rbp\n");
     fprintf(file, "  movq %%rsp, %%rbp\n");
   }
@@ -26,8 +26,8 @@ static void emit_epilogue(struct LIRFunction *func, FILE *file, struct Arch *arc
     else fprintf(file, "  popq %%%s\n", reg_names[reg][8]);
   }
 
-  if (func->stack_size > 0 || func->has_call) {
-    if (func->stack_size >= 120 || func->has_call) fprintf(file, "  leave\n");
+  if (func->stack_size > 0 || func->has_call || func->saved_regs != 0) {
+    if (func->stack_size >= 120 || func->has_call || func->saved_regs != 0) fprintf(file, "  leave\n");
     else fprintf(file, "  popq %%rbp\n");
   }
 }
