@@ -256,3 +256,6 @@ struct IRGlobal {
   struct IROperand value;
   uint8_t public;
 };
+
+size_t sizeOf(struct IRType *type);
+size_t alignOf(struct IRType *type);
