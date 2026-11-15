@@ -9,7 +9,7 @@ void typeVar(struct SymbolTable *table, struct Decl *decl) {
     if (var->expr != NULL) {
       struct Type *ret = typeExpr(table, var->expr);
 
-      if (var->type->kind == Type_Pointer) {
+      if (var->type->kind == Type_Pointer || var->type->kind == Type_Array) {
         struct Symbol *lvalue = findSymbol(table->scope, &var->name);
         lvalue->isPtr = 1;
       }

@@ -19,13 +19,13 @@ struct IRType resolveTypeIR(struct Type *type, struct Arena *arena) {
       t.other = IRTYPE_i1;
     else if (cmpTP(type, Primitive_Char))
       t.other = IRTYPE_i8;
-    else if (cmpTP(type, Primitive_Byte))
+    else if (cmpTP(type, Primitive_Byte) || cmpTP(type, Primitive_Ubyte))
       t.other = IRTYPE_i8;
-    else if (cmpTP(type, Primitive_Short))
+    else if (cmpTP(type, Primitive_Short) || cmpTP(type, Primitive_Ushort))
       t.other = IRTYPE_i16;
-    else if (cmpTP(type, Primitive_Integer))
+    else if (cmpTP(type, Primitive_Integer) || cmpTP(type, Primitive_Uinteger))
       t.other = IRTYPE_i32;
-    else if (cmpTP(type, Primitive_Long))
+    else if (cmpTP(type, Primitive_Long) || cmpTP(type, Primitive_Ulong))
       t.other = IRTYPE_i64;
     else if (cmpTP(type, Primitive_Float))
       t.other = IRTYPE_f32;

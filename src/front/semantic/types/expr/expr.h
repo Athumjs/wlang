@@ -80,6 +80,12 @@ static inline uint8_t canImplicitConvert(struct Type *t1, struct Type *t2) {
   if (isPointer(t1) && isPointer(t2))
     return canImplicitConvert(t1->type_pointer.base, t2->type_pointer.base);
 
+  if (isArray(t1) && isPointer(t2))
+    return canImplicitConvert(t1->type_array.base, t2->type_pointer.base);
+  
+  if (isPointer(t1) && isArray(t2))
+    return canImplicitConvert(t1->type_pointer.base, t2->type_array.base);
+
   if (isSignedInteger(t1) && isSignedInteger(t2))
     return rankType(t1) <= rankType(t2);
 

@@ -102,8 +102,18 @@ void lir_cast(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct
   if (irinst->opcode == OPCODE_FPTRUNC || irinst->opcode == OPCODE_FPEXT || irinst->opcode == OPCODE_SI2FP || irinst->opcode == OPCODE_UI2FP)
     is_float = 1;
 
+  int64_t vl = -1;
+  if (irinst->operands[0].kind != Operand_Register) {
+    struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena);
+    lir_operand(inst, &irinst->operands[0], ctx);
+    lir_addOperandReg(1, -1, &irinst->operands[0].op_type, is_float, inst, ctx);
+    vl = inst->operands[1].reg;
+  }
+
   struct LIRInstruction *inst = lir_newInst(opc, 2, block, ctx->arena);
-  lir_operand(inst, &irinst->operands[0], ctx);
+  if (vl != -1)
+    lir_addOperandReg(1, vl, &irinst->operands[0].op_type, is_float, inst, ctx);
+  else lir_operand(inst, &irinst->operands[0], ctx);
   lir_addOperandReg(1, irinst->vl, &irinst->operands[1].type, is_float, inst, ctx);
   if (opc == LIR_TRUNC) inst->operands[0].size = inst->operands[1].size;
   if (irinst->opcode == OPCODE_ZEXT || irinst->opcode == OPCODE_UI2PTR) inst->is_unsigned = 1;
