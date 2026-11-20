@@ -35,7 +35,7 @@ int bit_equal(uint64_t *b1, uint64_t *b2, size_t nw) {
   return memcmp(b1, b2, nw * sizeof(uint64_t)) == 0;
 }
 
-void live_inst(struct Live *live, uint64_t *use, uint64_t *def, int **calls, size_t *calls_len, size_t *calls_cap, int pos, struct LIRInstruction *inst) {
+void live_inst(struct Live *live, struct Arch *arch, uint64_t *use, uint64_t *def, int **calls, size_t *calls_len, size_t *calls_cap, int pos, struct LIRInstruction *inst) {
   if (inst->operands_len == 0) return;
   int op = 0;
 
@@ -57,6 +57,13 @@ void live_inst(struct Live *live, uint64_t *use, uint64_t *def, int **calls, siz
         live->intervals[operand->mem.index_reg].start = min(start, pos);
         live->intervals[operand->mem.index_reg].end = max(end, pos);
       }
+    }
+
+    if (operand->kind == LIR_Register) {
+      int start = live->fixeds[operand->reg].start;
+      int end = live->fixeds[operand->reg].end;
+      live->fixeds[operand->reg].start = min(start, pos);
+      live->fixeds[operand->reg].end = max(end, pos);
     }
 
     if (operand->kind != LIR_Vreg) continue;
@@ -133,6 +140,24 @@ void live_inst(struct Live *live, uint64_t *use, uint64_t *def, int **calls, siz
     (*calls)[(*calls_len)++] = pos;
   }
 
+  else if (inst->opcode == LIR_DIV) {
+    int start = live->fixeds[arch->div_register].start;
+    int end = live->fixeds[arch->div_register].end;
+    live->fixeds[arch->div_register].start = min(start, pos);
+    live->fixeds[arch->div_register].end = min(end, pos);
+    start = live->fixeds[arch->rem_register].start;
+    end = live->fixeds[arch->rem_register].end;
+    live->fixeds[arch->rem_register].start = min(start, pos);
+    live->fixeds[arch->rem_register].end = min(end, pos);
+  }
+
+  if (operand->kind == LIR_Register) {
+    int start = live->fixeds[operand->reg].start;
+    int end = live->fixeds[operand->reg].end;
+    live->fixeds[operand->reg].start = min(start, pos);
+    live->fixeds[operand->reg].end = max(end, pos);
+  }
+
   if (operand->kind != LIR_Vreg) return;
   int start = live->intervals[operand->reg].start;
   int end = live->intervals[operand->reg].end;
@@ -141,9 +166,17 @@ void live_inst(struct Live *live, uint64_t *use, uint64_t *def, int **calls, siz
   live->intervals[operand->reg].is_float = operand->is_float;
 }
 
-void liveness(struct Live *live, struct LIRFunction *func, struct Arena *arena) {
+void liveness(struct Live *live, struct Arch *arch, struct LIRFunction *func, struct Arena *arena) {
   live->intervals = arena_alloc(arena, func->vregs_len * sizeof(struct Interval));
   live->length = func->vregs_len;
+  live->fixeds = arena_alloc(arena, (arch->iregisters_len + arch->fregisters_len) * sizeof(struct Fixed));
+
+  for (int i = 0; i < (arch->iregisters_len + arch->fregisters_len); i++) {
+    live->fixeds[i] = (struct Fixed){
+      .start = INT_MAX,
+      .end = 0
+    };
+  }
 
   for (int i = 0; i < live->length; i++) {
     live->intervals[i] = (struct Interval){
@@ -170,7 +203,7 @@ void liveness(struct Live *live, struct LIRFunction *func, struct Arena *arena) 
   for (int i = 0; i < func->blocks_len; i++) {
     firstPos[i] = pos + 1;
     for (int j = 0; j < func->blocks[i].instructions_len; j++)
-      live_inst(live, &use[i * nw], &def[i * nw], &calls, &calls_len, &calls_cap, ++pos, &func->blocks[i].instructions[j]);
+      live_inst(live, arch, &use[i * nw], &def[i * nw], &calls, &calls_len, &calls_cap, ++pos, &func->blocks[i].instructions[j]);
     lastPos[i] = pos;
   }
 

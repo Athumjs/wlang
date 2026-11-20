@@ -1,5 +1,6 @@
 #include "lir.h"
 #include <stdlib.h>
+#include <string.h>
 
 void operand_float(struct IROperand *operand, struct Floats *floats) {
   if (operand->kind != Operand_Constant) return;
@@ -43,6 +44,7 @@ void lirgen(struct LIRFunction *func, struct Arch *arch, struct IRFunction *irfu
   func->blocks = arena_alloc(arena, irfunc->blocks_len * sizeof(struct LIRBasicBlocks));
   func->blocks_len = irfunc->blocks_len;
   func->public = irfunc->public;
+  memset(func->blocks, 0, func->blocks_len * sizeof(struct LIRBasicBlocks));
 
   func->blocks[0].instructions = arena_alloc(arena, (irfunc->params_len + 1) * sizeof(struct LIRInstruction));
   func->blocks[0].instructions_cap = irfunc->params_len + 1;

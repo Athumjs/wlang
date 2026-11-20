@@ -17,11 +17,13 @@ void actives_clean(struct Interval **actives, size_t *actives_len, struct Interv
   }
 }
 
-void alloc_ireg(struct Interval **actives, size_t *actives_len, struct Interval *interval, uint8_t *free_regs, size_t regs_len, size_t *stack_size, uint64_t *saved_regs, struct Arch *arch) { 
+void alloc_ireg(struct Interval **actives, size_t *actives_len, struct Interval *interval, struct Fixed *fixeds, uint8_t *free_regs, size_t regs_len, size_t *stack_size, uint64_t *saved_regs, struct Arch *arch) { 
   if (interval->crosses_call) {
     for (size_t i = 0; i < arch->callee_saved_registers_len; i++) {
       int64_t reg = arch->callee_saved_registers[i];
       if (!free_regs[reg]) continue;
+      if (fixeds[reg].start != INT_MAX)
+        if (interval->start <= fixeds[reg].end || fixeds[reg].start <= interval->end) continue;
       free_regs[reg] = 0;
       interval->reg = reg;
       actives[(*actives_len)++] = interval;
@@ -36,6 +38,8 @@ void alloc_ireg(struct Interval **actives, size_t *actives_len, struct Interval 
 
   for (size_t i = 0; i < regs_len; i++) {
     if (!free_regs[i]) continue;
+    if (fixeds[i].start != INT_MAX)
+      if (interval->start <= fixeds[i].end || fixeds[i].start <= interval->end) continue;
     free_regs[i] = 0;
     interval->reg = i;
     actives[(*actives_len)++] = interval;
@@ -70,7 +74,7 @@ void alloc_ireg(struct Interval **actives, size_t *actives_len, struct Interval 
   }
 }
 
-void alloc_freg(struct Interval **actives, size_t *actives_len, struct Interval *interval, uint8_t *free_regs, size_t iregs_len, size_t fregs_len, size_t *stack_size) {
+void alloc_freg(struct Interval **actives, size_t *actives_len, struct Interval *interval, struct Fixed *fixeds, uint8_t *free_regs, size_t iregs_len, size_t fregs_len, size_t *stack_size) {
   if (interval->crosses_call) {
     interval->reg = -1;
     *stack_size += 8;
@@ -80,6 +84,8 @@ void alloc_freg(struct Interval **actives, size_t *actives_len, struct Interval 
 
   for (size_t i = iregs_len; i < iregs_len + fregs_len; i++) {
     if (!free_regs[i]) continue;
+    if (fixeds[i].start != INT_MAX)
+      if (interval->start <= fixeds[i].end && fixeds[i].start <= interval->end) continue;
     free_regs[i] = 0;
     interval->reg = i;
     actives[(*actives_len)++] = interval;
@@ -123,14 +129,14 @@ void register_allocation(struct Live *live, struct LIRFunction *func, struct Arc
 
   struct Interval **actives = calloc(arch->iregisters_len + arch->fregisters_len, sizeof(struct Interval *));
   size_t actives_len = 0;
-
+  
   for (int i = 0; i < live->length; i++) {
     actives_clean(actives, &actives_len, intervals[i], free_regs); 
     if (intervals[i]->start == INT_MAX) continue;
 
     if (intervals[i]->is_float)
-      alloc_freg(actives, &actives_len, intervals[i], free_regs, arch->iregisters_len, arch->fregisters_len, &func->stack_size);
-    else alloc_ireg(actives, &actives_len, intervals[i], free_regs, arch->iregisters_len, &func->stack_size, &func->saved_regs, arch); 
+      alloc_freg(actives, &actives_len, intervals[i], live->fixeds, free_regs, arch->iregisters_len, arch->fregisters_len, &func->stack_size);
+    else alloc_ireg(actives, &actives_len, intervals[i], live->fixeds, free_regs, arch->iregisters_len, &func->stack_size, &func->saved_regs, arch); 
   }
 
   for (int i = 0; i < func->blocks_len; i++) {

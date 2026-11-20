@@ -5,19 +5,16 @@
 
 struct IRExpr irStructExpr(struct Expr *expr, struct MIRContext *ctx) {
   struct IRType type = ctx->module->globals[expr->expr_struct.symbol->index].value.type;
-  struct IRInstruction *inst = newInst(OPCODE_ALLOCA, 1, 1, ctx->block, ctx->arena);
-  inst->operands[inst->operands_len].op_type = IRTYPE_PTR;
-  inst->operands[inst->operands_len].kind = Operand_Type;
-  inst->operands[inst->operands_len++].type = type;
+  struct IRInstruction *inst = newInst(OPCODE_ALLOCA, NULL, 1, 0, ctx->block, ctx->arena);
+  inst->elem_type = type;
 
   for (int i = 0; i < expr->expr_struct.fields_len; i++) {
-    struct IRInstruction *field = newInst(OPCODE_GEP, 1, 3, ctx->block, ctx->arena);
-    addOperandRef(2, inst->vl, inst->operands[0].op_type, field);
+    struct IRInstruction *field = newInst(OPCODE_GEP, NULL, 1, 3, ctx->block, ctx->arena);
+    field->elem_type = type;
+    addOperandRef(2, inst->vl, inst->elem_type, field);
 
     field->operands[field->operands_len++] = (struct IROperand){
       .kind = Operand_Constant,
-      .op_type.kind = IRTYPEK_OTHER,
-      .op_type.other = IRTYPE_i32,
       .constant = (struct IRValue){
         .kind = Value_Int,
         .i = 0
@@ -27,7 +24,6 @@ struct IRExpr irStructExpr(struct Expr *expr, struct MIRContext *ctx) {
     struct Symbol *symbol = hashmap_get(expr->expr_struct.symbol->symbol_struct.items, &expr->expr_struct.fields[i].name);
     field->operands[field->operands_len++] = (struct IROperand){
       .kind = Operand_Constant,
-      .op_type = resolveTypeIR(symbol->type, ctx->arena),
       .constant = (struct IRValue){
         .kind = Value_Int,
         .i = expr->expr_struct.fields[i].index
@@ -36,9 +32,9 @@ struct IRExpr irStructExpr(struct Expr *expr, struct MIRContext *ctx) {
 
     struct IRExpr expr_o = irExpr(expr->expr_struct.fields[i].expr, ctx);
     ctx->block = expr_o.block;
-    struct IRInstruction *store = newInst(OPCODE_STORE, 0, 2, ctx->block, ctx->arena);
+    struct IRInstruction *store = newInst(OPCODE_STORE, NULL, 0, 2, ctx->block, ctx->arena);
     store->operands[store->operands_len++] = expr_o.operand;
-    addOperandRef(2, field->vl, field->operands[0].op_type, store);
+    addOperandRef(2, field->vl, field->type, store);
   }
 
   return (struct IRExpr){
@@ -52,13 +48,12 @@ struct IRExpr irStructExpr(struct Expr *expr, struct MIRContext *ctx) {
 
 void fillArray(int64_t vl, struct IRType *type, struct Expr *expr, struct MIRContext *ctx) {
   for (int i = 0; i < expr->expr_array.exprs_len; i++) {
-    struct IRInstruction *gep = newInst(OPCODE_GEP, 1, 3, ctx->block, ctx->arena);
-    addOperandRef(2, vl, *type, gep);
+    struct IRInstruction *gep = newInst(OPCODE_GEP, NULL, 1, 3, ctx->block, ctx->arena);
+    gep->elem_type = resolveTypeIR(expr->type, ctx->arena);
+    addOperandRef(2, vl, gep->elem_type, gep);
 
     gep->operands[gep->operands_len++] = (struct IROperand){
       .kind = Operand_Constant,
-      .op_type.kind = IRTYPEK_OTHER,
-      .op_type.other = IRTYPE_i32,
       .constant = (struct IRValue){
         .kind = Value_Int,
         .i = 0
@@ -67,8 +62,6 @@ void fillArray(int64_t vl, struct IRType *type, struct Expr *expr, struct MIRCon
 
     gep->operands[gep->operands_len++] = (struct IROperand){
       .kind = Operand_Constant,
-      .op_type.kind = IRTYPEK_OTHER,
-      .op_type.other = IRTYPE_i32,
       .constant = (struct IRValue){
         .kind = Value_Int,
         .i = i
@@ -78,18 +71,17 @@ void fillArray(int64_t vl, struct IRType *type, struct Expr *expr, struct MIRCon
     if (expr->expr_array.exprs[i]->kind != Expr_Array) {
       struct IRExpr expr_o = irExpr(expr->expr_array.exprs[i], ctx);
       ctx->block = expr_o.block;
-      struct IRInstruction *store = newInst(OPCODE_STORE, 0, 2, ctx->block, ctx->arena);
+      struct IRInstruction *store = newInst(OPCODE_STORE, NULL, 0, 2, ctx->block, ctx->arena);
       store->operands[store->operands_len++] = expr_o.operand;
-      addOperandRef(2, gep->vl, gep->operands[0].op_type, store);
-    } else fillArray(gep->vl, &gep->operands[0].op_type, expr->expr_array.exprs[i], ctx);
+      addOperandRef(2, gep->vl, gep->elem_type, store);
+    } else fillArray(gep->vl, &gep->type, expr->expr_array.exprs[i], ctx);
   }
 }
 
 struct IRExpr irArray(struct Expr *expr, struct MIRContext *ctx) {
-  struct IRInstruction *inst = newInst(OPCODE_ALLOCA, 1, 0, ctx->block, ctx->arena); 
-  addOperandType(expr->type, inst, ctx->arena);
-  inst->operands[0].op_type = IRTYPE_PTR;
-  fillArray(inst->vl, &inst->operands[0].op_type, expr, ctx);
+  struct IRInstruction *inst = newInst(OPCODE_ALLOCA, NULL, 1, 0, ctx->block, ctx->arena); 
+  inst->elem_type = resolveTypeIR(expr->type, ctx->arena);
+  fillArray(inst->vl, &inst->elem_type, expr, ctx);
   return (struct IRExpr){
     .inst = inst,
     .operand = (struct IROperand){
@@ -113,8 +105,8 @@ struct IRExpr irId(struct Expr *expr, struct MIRContext *ctx) {
   }
 
   if (symbol->isGlobal) {
-    struct IRInstruction *inst = newInst(OPCODE_LOAD, 1, 1, ctx->block, ctx->arena);
-    addOperandGlobal(&symbol->name, resolveTypeIR(symbol->type, ctx->arena), inst);
+    struct IRInstruction *inst = newInst(OPCODE_LOAD, symbol->type, 1, 1, ctx->block, ctx->arena);
+    addOperandGlobal(&symbol->name, inst->type, inst);
     vl = inst->vl;
   } else {
     struct IRDef *def = readVariable(ctx->func->ssa, &symbol->name, resolveTypeIR(symbol->type, ctx->arena), ctx->block, ctx->arena);
@@ -122,9 +114,10 @@ struct IRExpr irId(struct Expr *expr, struct MIRContext *ctx) {
     if (def->isParam) {
       vl = def->param->vl;
     } else {
-      if (def->inst->opcode == OPCODE_ALLOCA && symbol->type->kind != Type_Array) {
-        struct IRInstruction *inst = newInst(OPCODE_LOAD, 1, 1, ctx->block, ctx->arena);
-        addOperandRef(2, def->inst->vl, def->inst->operands[0].type, inst);
+      if (def->inst->opcode == OPCODE_ALLOCA && def->inst->elem_type.kind != IRTYPEK_STRUCT && def->inst->elem_type.kind != IRTYPEK_ARRAY) {
+        struct IRInstruction *inst = newInst(OPCODE_LOAD, NULL, 1, 1, ctx->block, ctx->arena);
+        addOperandRef(2, def->inst->vl, def->inst->elem_type, inst);
+        inst->type = def->inst->elem_type;
         vl = inst->vl;
       } else vl = def->inst->vl;
     }
@@ -139,13 +132,12 @@ struct IRExpr irId(struct Expr *expr, struct MIRContext *ctx) {
 }
 
 struct IRExpr irThis(struct Expr *expr, struct MIRContext *ctx) {
-  struct IRInstruction *inst = newInst(OPCODE_GEP, 1, 3, ctx->block, ctx->arena);
-  addOperandRef(2, 0, ctx->func->params[0].type, inst);
+  struct IRInstruction *inst = newInst(OPCODE_GEP, NULL, 1, 3, ctx->block, ctx->arena);
+  inst->elem_type = ctx->module->globals[expr->expr_this.symbol->index].type;
+  addOperandRef(2, 0, inst->elem_type, inst);
 
   inst->operands[inst->operands_len++] = (struct IROperand){
     .kind = Operand_Constant,
-    .op_type.kind = IRTYPEK_OTHER,
-    .op_type.other = IRTYPE_i32,
     .constant = (struct IRValue){
       .kind = Value_Int,
       .i = 0
@@ -156,15 +148,14 @@ struct IRExpr irThis(struct Expr *expr, struct MIRContext *ctx) {
 
   inst->operands[inst->operands_len++] = (struct IROperand){
     .kind = Operand_Constant,
-    .op_type = resolveTypeIR(symbol->type, ctx->arena),
     .constant = (struct IRValue){
       .kind = Value_Int,
       .i = symbol->index
     }
   };
 
-  struct IRInstruction *load = newInst(OPCODE_LOAD, 1, 1, ctx->block, ctx->arena);
-  addOperandRef(2, inst->vl, inst->operands[0].op_type, load);
+  struct IRInstruction *load = newInst(OPCODE_LOAD, symbol->type, 1, 1, ctx->block, ctx->arena);
+  addOperandRef(2, inst->vl, inst->elem_type, load);
 
   return (struct IRExpr){
     .operand = (struct IROperand){
@@ -202,9 +193,9 @@ struct IRExpr irLiteral(struct Expr *expr, struct MIRContext *ctx) {
 
     struct IRGlobal global = (struct IRGlobal){
       .name = name,
+      .type = type,
       .value = (struct IROperand){
         .kind = Operand_Constant,
-        .op_type = type,
         .constant = (struct IRValue){
           .kind = Value_String,
           .s = &expr->expr_literal.literal.string

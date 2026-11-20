@@ -22,7 +22,7 @@ char *backs(struct IRModule *ir, struct Program *program, const char *folder_nam
     struct LIRFunction func = {0};
     lirgen(&func, &arch, &ir->functions[i], program->arena, &floats);
     struct Live live = {0};
-    liveness(&live, &func, program->arena);
+    liveness(&live, &arch, &func, program->arena);
     register_allocation(&live, &func, &arch, program->arena);
     functions[i] = func;
   }

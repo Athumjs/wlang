@@ -119,7 +119,7 @@ struct IRDef *readVariable(struct Hashmap *hmap, struct String *str, struct IRTy
   if (!block->sealed) {
     struct Phi phi = addPhi(1, block, arena);
     struct IRInstruction *inst = phi.inst;
-    inst->operands[0].op_type = type;
+    inst->type = type;
     struct IRDef *new_def = setCurrentDef(hmap, str, 0, inst, block, arena);
     if (block->imcomplete_phis_len == block->imcomplete_phis_cap) {
       size_t oldCap = block->imcomplete_phis_cap;
@@ -137,13 +137,14 @@ struct IRDef *readVariable(struct Hashmap *hmap, struct String *str, struct IRTy
   }
 
   struct IRInstruction *inst = addPhi(block->prevs_len, block, arena).inst;
+  inst->type = type;
   struct IRDef *new_def = setCurrentDef(hmap, str, 0, inst, block, arena);
 
   if (block->prevs_len == 1) {
     struct IRDef *def = readVariable(hmap, str, type, block->prevs[0], arena);
     if (def->isParam)
       addOperandPhi(def->param->vl, def->param->type, block->prevs[0], inst);
-    else addOperandPhi(def->inst->vl, type, block->prevs[0], inst);
+    else addOperandPhi(def->inst->vl, def->inst->type, block->prevs[0], inst);
     return new_def;
   }
 
@@ -151,7 +152,7 @@ struct IRDef *readVariable(struct Hashmap *hmap, struct String *str, struct IRTy
     struct IRDef *def = readVariable(hmap, str, type, block->prevs[i], arena);
     if (def->isParam)
       addOperandPhi(def->param->vl, def->param->type, block->prevs[i], inst);
-    else addOperandPhi(def->inst->vl, type, block->prevs[i], inst);
+    else addOperandPhi(def->inst->vl, def->inst->type, block->prevs[i], inst);
   }
 
   return new_def;
@@ -167,7 +168,7 @@ void sealBlock(struct Hashmap *hmap, struct IRBasicBlock *block, struct Arena *a
       struct IRDef *def = readVariable(hmap, block->imcomplete_phis[i].name, block->imcomplete_phis[i].type, block->prevs[j], arena);
       if (def->isParam)
         addOperandPhi(def->param->vl, def->param->type, block->prevs[j], phi);
-      else addOperandPhi(def->inst->vl, def->inst->operands[0].op_type, block->prevs[j], phi);
+      else addOperandPhi(def->inst->vl, def->inst->type, block->prevs[j], phi);
     }
   }
   block->imcomplete_phis_len = 0;

@@ -13,32 +13,31 @@ struct IRExpr irAssign(struct Expr *expr, struct MIRContext *ctx) {
       if (ctx->block->instructions[ctx->block->instructions_len - 1].opcode == OPCODE_LOAD) {
         (*ctx->block->reg)--;
         expr_l.operand.ref = ctx->block->instructions[ctx->block->instructions_len - 1].operands[0].ref;
-        expr_l.operand.op_type = IRTYPE_PTR;
         ctx->block->instructions_len--;
       }
 
-		  struct IRInstruction *inst = newInst(OPCODE_STORE, 0, 2, ctx->block, ctx->arena);
+		  struct IRInstruction *inst = newInst(OPCODE_STORE, NULL, 0, 2, ctx->block, ctx->arena);
 		  inst->operands[inst->operands_len++] = expr_r.operand;
       inst->operands[inst->operands_len++] = expr_l.operand;
     }
     
     else if (expr->expr_binary.left->expr_identifier.symbol->isGlobal) {
-		  struct IRInstruction *inst = newInst(OPCODE_STORE, 0, 2, ctx->block, ctx->arena);
+		  struct IRInstruction *inst = newInst(OPCODE_STORE, NULL, 0, 2, ctx->block, ctx->arena);
 		  inst->operands[inst->operands_len++] = expr_r.operand;
       struct IRGlobal *global = &ctx->module->globals[expr->expr_binary.left->expr_identifier.symbol->index];
-      addOperandGlobal(global->name, global->value.op_type, inst);
+      addOperandGlobal(global->name, global->type, inst);
 		} else {
       struct IRDef *def = readVariable(ctx->func->ssa, &expr->expr_binary.left->expr_identifier.name, resolveTypeIR(expr->expr_binary.left->expr_identifier.symbol->type, ctx->arena), ctx->block, ctx->arena);
 
       if (!def->isParam && def->inst->opcode == OPCODE_ALLOCA) {
-        struct IRInstruction *inst = newInst(OPCODE_STORE, 0, 2, ctx->block, ctx->arena);
+        struct IRInstruction *inst = newInst(OPCODE_STORE, NULL, 0, 2, ctx->block, ctx->arena);
         inst->operands[inst->operands_len++] = expr_r.operand;
-        addOperandRef(2, def->inst->vl, def->inst->operands[0].op_type, inst);
+        addOperandRef(2, def->inst->vl, def->inst->elem_type, inst);
         return (struct IRExpr){0};
       }
 
 			if (expr->expr_binary.right->kind == Expr_Literal) {
-			  struct IRInstruction *inst = newInst(OPCODE_CONST, 1, 1, ctx->block, ctx->arena);
+			  struct IRInstruction *inst = newInst(OPCODE_CONST, expr->type, 1, 1, ctx->block, ctx->arena);
 			  inst->operands[inst->operands_len++] = expr_r.operand;
 			}
 			
@@ -72,7 +71,7 @@ struct IRExpr irAssign(struct Expr *expr, struct MIRContext *ctx) {
   expr->kind = Expr_Assign;
 
   if (expr->expr_binary.left->expr_identifier.symbol->isGlobal) {
-		struct IRInstruction *inst = newInst(OPCODE_STORE, 0, 2, ctx->block, ctx->arena);
+		struct IRInstruction *inst = newInst(OPCODE_STORE, NULL, 0, 2, ctx->block, ctx->arena);
 		inst->operands[inst->operands_len++] = expr_r.operand;
 		expr_l.operand.kind = Operand_Global;
 		inst->operands[inst->operands_len++] = expr_l.operand;
@@ -90,17 +89,16 @@ struct IRExpr irLogical(struct Expr *expr, struct MIRContext *ctx) {
   struct IRExpr expr_l = irExpr(expr->expr_binary.left, ctx);
   ctx->block = expr_l.block;
 
-  struct IRInstruction *value = newInst(OPCODE_CONST, 1, 1, ctx->block, ctx->arena);
+  struct IRInstruction *value = newInst(OPCODE_CONST, expr->type, 1, 1, ctx->block, ctx->arena);
   value->operands[value->operands_len++] = (struct IROperand){
       .kind = Operand_Constant,
-      .op_type.kind = IRTYPEK_OTHER,
-      .op_type.other = IRTYPE_i1,
+      .op_type = resolveTypeIR(expr->type, ctx->arena),
       .constant = (struct IRValue){
         .kind = Value_Int
       }
   };
 
-  struct IRInstruction *inst = newInst(OPCODE_BR, 0, 3, ctx->block, ctx->arena);
+  struct IRInstruction *inst = newInst(OPCODE_BR, NULL, 0, 3, ctx->block, ctx->arena);
   inst->operands[inst->operands_len++] = expr_l.operand;
   ctx->block->term = 1;
 
@@ -129,7 +127,7 @@ struct IRExpr irLogical(struct Expr *expr, struct MIRContext *ctx) {
   addPrevBlock(newBlock, mergeBlock, ctx->arena);
   sealBlock(ctx->func->ssa, mergeBlock, ctx->arena);
 
-  struct IRInstruction *jmp = newInst(OPCODE_JMP, 0, 1, newBlock, ctx->arena);
+  struct IRInstruction *jmp = newInst(OPCODE_JMP, NULL, 0, 1, newBlock, ctx->arena);
   addOperandRef(1, mBlock, IRTYPE_NULL, jmp);
   newBlock->term = 1; 
 
@@ -137,8 +135,8 @@ struct IRExpr irLogical(struct Expr *expr, struct MIRContext *ctx) {
     value->operands[value->operands_len - 1].constant.i = 0;
   else value->operands[value->operands_len - 1].constant.i = 1;
 
-  struct IRInstruction *phi = newInst(OPCODE_PHI, 1, mergeBlock->prevs_len, mergeBlock, ctx->arena);
-  addOperandPhi(value->vl, value->operands[0].op_type, block, phi);
+  struct IRInstruction *phi = newInst(OPCODE_PHI, expr->type, 1, mergeBlock->prevs_len, mergeBlock, ctx->arena);
+  addOperandPhi(value->vl, value->type, block, phi);
   addOperandPhi(expr_r.operand.ref, expr_r.operand.op_type, newBlock, phi);
 
   irexpr.operand = (struct IROperand){
@@ -154,7 +152,7 @@ struct IRExpr irCompare(struct Expr *expr, struct MIRContext *ctx) {
   ctx->block = expr_l.block;
   struct IRExpr expr_r = irExpr(expr->expr_binary.right, ctx);
   ctx->block = expr_r.block;
-  struct IRInstruction *inst = newInst(OPCODE_ICMP, 1, 3, ctx->block, ctx->arena);
+  struct IRInstruction *inst = newInst(OPCODE_ICMP, expr->type, 1, 3, ctx->block, ctx->arena);
 
   if (isFloating(expr->expr_binary.left->type)) {
     inst->opcode = OPCODE_FCMP;
@@ -273,7 +271,7 @@ struct IRExpr irBinary(struct Expr *expr, struct MIRContext *ctx) {
   ctx->block = expr_l.block;
   struct IRExpr expr_r = irExpr(expr->expr_binary.right, ctx);
   ctx->block = expr_r.block;
-  struct IRInstruction *inst = newInst(opc, 1, 2, ctx->block, ctx->arena);
+  struct IRInstruction *inst = newInst(opc, expr->type, 1, 2, ctx->block, ctx->arena);
   inst->operands[inst->operands_len++] = expr_l.operand;
   inst->operands[inst->operands_len++] = expr_r.operand;
 

@@ -54,7 +54,7 @@ struct IRFunction *newFunc(struct String *name, size_t params_len, struct Param 
   struct IRFunction func = (struct IRFunction){
     .name = name,
     .blocks_cap = 1,
-    .blocks = arena_alloc(arena, sizeof(struct IRBasicBlock)),
+    .blocks = arena_alloc(arena, sizeof(struct IRBasicBlock *)),
     .blocks_len = 0,
     .params = arena_alloc(arena, params_len * sizeof(struct IRParameter)),
     .params_len = params_len,
@@ -76,7 +76,7 @@ struct IRFunction *newFunc(struct String *name, size_t params_len, struct Param 
   return &module->functions[module->functions_len - 1];
 }
 
-struct IRInstruction *newInst(enum IROpcode opcode, uint8_t isVl, size_t operands_len, struct IRBasicBlock *block, struct Arena *arena) {
+struct IRInstruction *newInst(enum IROpcode opcode, struct Type *type, uint8_t isVl, size_t operands_len, struct IRBasicBlock *block, struct Arena *arena) {
   if (block->instructions_len == block->instructions_cap) {
     size_t oldCap = block->instructions_cap;
     block->instructions_cap *= 2;
@@ -85,8 +85,11 @@ struct IRInstruction *newInst(enum IROpcode opcode, uint8_t isVl, size_t operand
     block->instructions = temp;
   }
 
+  struct IRType inst_type = resolveTypeIR(type, arena);
+  if (opcode == OPCODE_ALLOCA || opcode == OPCODE_GEP) inst_type = IRTYPE_PTR;
   block->instructions[block->instructions_len++] = (struct IRInstruction){
     .opcode = opcode,
+    .type = inst_type,
     .vl = isVl ? (*block->reg)++ : -1,
     .operands = arena_alloc(arena, operands_len * sizeof(struct IROperand)),
     .operands_len = 0
@@ -130,7 +133,7 @@ void addOperandPhi(int64_t value, struct IRType type, struct IRBasicBlock *block
   };
 }
 
-void addOperandICmp(enum IRICMP opcode, struct IRType type, struct IRInstruction *inst) {
+void addOperandICmp(enum IRICMP opcode, struct IRType type,  struct IRInstruction *inst) {
   inst->operands[inst->operands_len++] = (struct IROperand){
     .kind = Operand_Cmp,
     .op_type = type,
@@ -155,7 +158,7 @@ void addOperandFCmp(enum IRFCMP opcode, struct IRType type, struct IRInstruction
 void addOperandType(struct Type *type, struct IRInstruction *inst, struct Arena *arena) {
   inst->operands[inst->operands_len++] = (struct IROperand){
     .kind = Operand_Type,
-    .op_type = IRTYPE_NULL,
+    .op_type = resolveTypeIR(type, arena),
     .type = resolveTypeIR(type, arena)
   };
 }

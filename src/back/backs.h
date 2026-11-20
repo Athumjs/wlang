@@ -35,13 +35,18 @@ struct Interval {
   uint8_t is_float;
 };
 
+struct Fixed {
+  int start, end;
+};
+
 struct Live {
   struct Interval *intervals;
   size_t length;
+  struct Fixed *fixeds;
 };
 
 // liveness.c
-void liveness(struct Live *live, struct LIRFunction *func, struct Arena *arena);
+void liveness(struct Live *live, struct Arch *arch, struct LIRFunction *func, struct Arena *arena);
 
 // reg_alloc.c
 void register_allocation(struct Live *live, struct LIRFunction *func, struct Arch *arch, struct Arena *arena);

@@ -1,7 +1,8 @@
 #include "x86_64_linux.h"
 
 void x86_64_linux_inst(struct LIRInstruction *inst, FILE *file, struct Arch *arch) {
-  if (inst->opcode == LIR_LOAD) fprintf(file, "  lea");
+  if (inst->opcode == LIR_COPY) fprintf(file, "  mov");
+  else if (inst->opcode == LIR_LOAD) fprintf(file, "  lea");
   else if (inst->opcode == LIR_ADD) fprintf(file, "  add");
   else if (inst->opcode == LIR_SUB) fprintf(file, "  sub");
   else if (inst->opcode == LIR_MUL) fprintf(file, "  imul");
@@ -15,13 +16,6 @@ void x86_64_linux_inst(struct LIRInstruction *inst, FILE *file, struct Arch *arc
   else if (inst->opcode == LIR_CMP) fprintf(file, "  cmp");
   else if (inst->opcode == LIR_FCMP) fprintf(file, "  comi");
   
-  else if (inst->opcode == LIR_COPY) {
-    if (inst->operands[0].kind == LIR_Global) {
-      fprintf(file, "  lea");
-      inst->operands[inst->operands_len - 1].size = 8;
-    } else fprintf(file, "  mov");
-  }
-
   else if (inst->opcode == LIR_CALL) {
     fprintf(file, "  call ");
     x86_64_linux_operand(&inst->operands[0], file);

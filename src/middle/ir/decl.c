@@ -12,30 +12,27 @@ void irVarLocal(struct Decl *decl, struct MIRContext *ctx) {
         if (ctx->block->instructions[ctx->block->instructions_len - 1].opcode == OPCODE_LOAD) {
           (*ctx->block->reg)--;
           expr_v.operand.ref = ctx->block->instructions[ctx->block->instructions_len - 1].operands[0].ref;
-          expr_v.operand.op_type = IRTYPE_PTR;
           ctx->block->instructions_len--;
         }
 
-        struct IRInstruction *inst = newInst(OPCODE_ALLOCA, 1, 1, ctx->block, ctx->arena);
-        addOperandType(var->symbol->type, inst, ctx->arena);
-        inst->operands[0].op_type = IRTYPE_PTR;
-        struct IRInstruction *store = newInst(OPCODE_STORE, 0, 2, ctx->block, ctx->arena);
+        struct IRInstruction *inst = newInst(OPCODE_ALLOCA, NULL, 1, 0, ctx->block, ctx->arena);
+        inst->elem_type = resolveTypeIR(var->symbol->type, ctx->arena);
+        struct IRInstruction *store = newInst(OPCODE_STORE, NULL, 0, 2, ctx->block, ctx->arena);
         store->operands[store->operands_len++] = expr_v.operand;
-        addOperandRef(2, inst->vl, inst->operands[0].op_type, store);
+        addOperandRef(2, inst->vl, inst->elem_type, store);
         setCurrentDef(ctx->func->ssa, &var->name, 0, inst, ctx->block, ctx->arena);
         continue;
       }
       
       if (expr_v.operand.kind == Operand_Constant) {
-        struct IRInstruction *inst = newInst(OPCODE_CONST, 1, 1, ctx->block, ctx->arena);
+        struct IRInstruction *inst = newInst(OPCODE_CONST, var->symbol->type, 1, 1, ctx->block, ctx->arena);
         inst->operands[inst->operands_len++] = expr_v.operand;
         expr_v.inst = inst;
       }
 
       if (var->expr->kind == Expr_Literal && var->expr->expr_literal.kind == LITERAL_STRING) {
-        struct IRInstruction *inst = newInst(OPCODE_ALLOCA, 1, 1, ctx->block, ctx->arena);
-        addOperandType(var->symbol->type, inst, ctx->arena);
-        inst->operands[0].op_type = IRTYPE_PTR;
+        struct IRInstruction *inst = newInst(OPCODE_ALLOCA, NULL, 1, 0, ctx->block, ctx->arena);
+        inst->elem_type = resolveTypeIR(var->symbol->type, ctx->arena);
         
         if (var->symbol->type->kind == Type_Array) {
           // struct IRInstruction *memcpy = newInst(OPCODE_MEMCPY, NULL, 0, 3, block, arena);
@@ -50,9 +47,9 @@ void irVarLocal(struct Decl *decl, struct MIRContext *ctx) {
           //   }
           // };
         } else {
-          struct IRInstruction *store = newInst(OPCODE_STORE, 0, 2, ctx->block, ctx->arena);
+          struct IRInstruction *store = newInst(OPCODE_STORE, NULL, 0, 2, ctx->block, ctx->arena);
           store->operands[store->operands_len++] = expr_v.operand;
-          addOperandRef(2, inst->vl, inst->operands[0].op_type, store);
+          addOperandRef(2, inst->vl, inst->elem_type, store);
         }
 
         setCurrentDef(ctx->func->ssa, &var->name, 0, inst, ctx->block, ctx->arena);
@@ -66,9 +63,8 @@ void irVarLocal(struct Decl *decl, struct MIRContext *ctx) {
       continue;
     }
 
-    struct IRInstruction *inst = newInst(OPCODE_ALLOCA, 1, 1, ctx->block, ctx->arena);
-    addOperandType(var->symbol->type, inst, ctx->arena);
-    inst->operands[0].op_type = IRTYPE_PTR;
+    struct IRInstruction *inst = newInst(OPCODE_ALLOCA, NULL, 1, 0, ctx->block, ctx->arena);
+    inst->elem_type = resolveTypeIR(var->symbol->type, ctx->arena);
     setCurrentDef(ctx->func->ssa, &var->name, 0, inst, ctx->block, ctx->arena);
   }
 }

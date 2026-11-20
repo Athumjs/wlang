@@ -2,18 +2,18 @@
 #include <utils/numeric.h>
 #include <stdlib.h>
 
-void op_const(struct LIRInstruction *inst, struct IRValue *value, struct IRType *op_type, struct LIRContext *ctx) {
+void op_const(struct LIRInstruction *inst, struct IRValue *value, struct IRType *type, struct LIRContext *ctx) {
   if (value->kind == Value_Float || value->kind == Value_Double)
-    lir_addOperandAddress(1, ctx->arch->inst_register, 0, -1, 0, ctx->floats_len++, 0, op_type, inst, ctx);
-  else lir_addOperandConst(value->kind == Value_UInt ? value->u : value->i, op_type, inst);
+    lir_addOperandAddress(1, ctx->arch->inst_register, 0, -1, 0, ctx->floats_len++, 0, type, inst, ctx);
+  else lir_addOperandConst(value->kind == Value_UInt ? value->u : value->i, type, inst);
 }
 
-void op_block(struct LIRInstruction *inst, int64_t value, struct IRType *op_type, struct LIRContext *ctx) {
+void op_block(struct LIRInstruction *inst, int64_t value, struct IRType *type, struct LIRContext *ctx) {
   int len = getNumCase(value) + 4;
   inst->operands[inst->operands_len++] = (struct LIROperand){
     .kind = LIR_Label,
     .label = malloc(len),
-    .size = sizeOf(op_type)
+    .size = sizeOf(type)
   };
   snprintf(inst->operands[inst->operands_len - 1].label, len, ".Lb%ld", value);
 }

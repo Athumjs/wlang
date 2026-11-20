@@ -199,6 +199,8 @@ enum IROpcode {
 
 struct IRInstruction {
   enum IROpcode opcode;
+  struct IRType type;
+  struct IRType elem_type;
   int64_t vl;
   struct IROperand *operands;
   size_t operands_len;
@@ -253,6 +255,7 @@ struct IRFunction {
 
 struct IRGlobal {
   struct String *name;
+  struct IRType type;
   struct IROperand value;
   uint8_t public;
 };

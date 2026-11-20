@@ -19,7 +19,7 @@ void critic_edge(struct IRFunction *func, int64_t i_org_block, int64_t i_dst_blo
     .instructions = arena_alloc(arena, sizeof(struct IRInstruction)),
     .instructions_cap = 1,
     .instructions_len = 1,
-    .prevs = arena_alloc(arena, sizeof(struct IRBasicBlock)),
+    .prevs = arena_alloc(arena, sizeof(struct IRBasicBlock *)),
     .prevs_cap = 1,
     .prevs_len = 1,
     .reg = &func->reg,
@@ -97,6 +97,7 @@ void generate_inst(struct IRBasicBlock *block, int64_t dst_reg, struct IRType ty
   memmove(&block->instructions[block->instructions_len], &block->instructions[block->instructions_len - 1], (block->instructions_len - (block->instructions_len - 1)) * sizeof(struct IRInstruction));
   struct IRInstruction inst = (struct IRInstruction){
     .opcode = OPCODE_CONST,
+    .type = type,
     .vl = dst_reg,
     .operands = arena_alloc(arena, sizeof(struct IROperand)),
     .operands_len = 1

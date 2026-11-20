@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 void printType(struct IRType *type) {
+  if (type == NULL) return;
   if (type->kind == IRTYPEK_OTHER) {
 #define X(name, str) \
     if (name == type->other) \
@@ -66,6 +67,7 @@ static void printInst(struct IRInstruction *inst) {
 
   enum IROpcode opcode = inst->opcode;
   printOpcode(opcode);
+  printType(&inst->type);
 
   for (int l = 0; l < inst->operands_len; l++) {
     if (l > 0) printf(", ");
@@ -152,6 +154,7 @@ void showIR(struct IRModule *ir) {
   printf("MIR\n\n");
   for (int i = 0; i < ir->globals_len; i++) {
     printf("%.*s = ", ir->globals[i].name->length, ir->globals[i].name->start);
+    printType(&ir->globals[i].type);
     printOperand(&ir->globals[i].value);
     printf("\n");
   }

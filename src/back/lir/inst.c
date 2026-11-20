@@ -3,18 +3,18 @@
 void lir_lc(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
   struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena);
 
-  if (irinst->opcode == OPCODE_LOAD)
-    lir_addOperandAddress(3, irinst->operands[0].ref, 1, -1, 0, 0, 0, &irinst->operands[0].op_type, inst, ctx);
+  if (irinst->opcode == OPCODE_LOAD && irinst->operands[0].kind == Operand_Register)
+    lir_addOperandAddress(3, irinst->operands[0].ref, 1, -1, 0, 0, 0, &irinst->type, inst, ctx);
   else lir_operand(inst, &irinst->operands[0], ctx);
 
-  lir_addOperandReg(1, irinst->vl, &irinst->operands[0].op_type, is_float(&irinst->operands[0].op_type), inst, ctx);
+  lir_addOperandReg(1, irinst->vl, &irinst->type, is_float(&irinst->type), inst, ctx);
 }
 
 void lir_store(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
   int64_t vl = -1; 
   uint8_t isFloat = 0;
   if (irinst->operands[0].kind == Operand_Global || is_float(&irinst->operands[0].op_type)) {
-    struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena);
+    struct LIRInstruction *inst = lir_newInst(irinst->operands[0].kind == Operand_Global ? LIR_LOAD : LIR_COPY, 2, block, ctx->arena);
     lir_operand(inst, &irinst->operands[0], ctx);
     if (irinst->operands[0].kind != Operand_Global) isFloat = 1;
     lir_addOperandReg(1, -1, &irinst->operands[0].op_type, isFloat, inst, ctx);
@@ -46,23 +46,23 @@ void lir_asm(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct 
 
   struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena);
   lir_operand(inst, &irinst->operands[0], ctx);
-  lir_addOperandReg(1, irinst->vl, &irinst->operands[0].op_type, is_float, inst, ctx);
+  lir_addOperandReg(1, irinst->vl, &irinst->type, is_float, inst, ctx);
 
   struct LIRInstruction *op = lir_newInst(opc, 2, block, ctx->arena);
   lir_operand(op, &irinst->operands[1], ctx);
-  lir_addOperandReg(1, irinst->vl, &irinst->operands[0].op_type, is_float, op, ctx);
+  lir_addOperandReg(1, irinst->vl, &irinst->type, is_float, op, ctx);
 }
 
 void lir_div(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
   struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena);
   lir_operand(inst, &irinst->operands[0], ctx);
-  lir_addOperandReg(0, ctx->arch->div_register, &irinst->operands[0].op_type, 0, inst, ctx);
+  lir_addOperandReg(0, ctx->arch->div_register, &irinst->type, 0, inst, ctx);
 
   if (irinst->opcode != OPCODE_UDIV && irinst->opcode != OPCODE_UREM) {
  #if defined(__x86_64__) || defined(_M_X64)
   // EAX:EDX x86
   struct LIRInstruction *ext = lir_newInst(LIR_TARGET_SPECIFIC, 1, block, ctx->arena);
-  ext->operands[0].size = sizeOf(&irinst->operands[0].op_type);
+  ext->operands[0].size = sizeOf(&irinst->type);
   ext->target_extension = 0;
 #endif
   }
@@ -70,10 +70,10 @@ void lir_div(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct 
   if (irinst->operands[1].kind != Operand_Register) {
     struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena);
     lir_operand(inst, &irinst->operands[1], ctx);
-    lir_addOperandReg(1, -1, &irinst->operands[0].op_type, 0, inst, ctx);
+    lir_addOperandReg(1, -1, &irinst->type, 0, inst, ctx);
     struct LIRInstruction *div = lir_newInst(LIR_DIV, 1, block, ctx->arena);
     if (irinst->opcode == OPCODE_UDIV  || irinst->opcode == OPCODE_UREM) div->is_unsigned = 1;
-    lir_addOperandReg(1, inst->operands[1].reg, &irinst->operands[0].op_type, 0, div, ctx);
+    lir_addOperandReg(1, inst->operands[1].reg, &irinst->type, 0, div, ctx);
   } else {
     struct LIRInstruction *div = lir_newInst(LIR_DIV, 1, block, ctx->arena);
     if (irinst->opcode == OPCODE_UDIV  || irinst->opcode == OPCODE_UREM) div->is_unsigned = 1;
@@ -83,9 +83,9 @@ void lir_div(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct 
   struct LIRInstruction *op = lir_newInst(LIR_COPY, 2, block, ctx->arena);
 
   if (irinst->opcode == OPCODE_SREM || irinst->opcode == OPCODE_UREM)
-    lir_addOperandReg(0, ctx->arch->rem_register, &irinst->operands[0].op_type, 0, op, ctx);
-  else lir_addOperandReg(0, ctx->arch->div_register, &irinst->operands[0].op_type, 0, op, ctx);
-  lir_addOperandReg(1, irinst->vl, &irinst->operands[0].op_type, 0, op, ctx);
+    lir_addOperandReg(0, ctx->arch->rem_register, &irinst->type, 0, op, ctx);
+  else lir_addOperandReg(0, ctx->arch->div_register, &irinst->type, 0, op, ctx);
+  lir_addOperandReg(1, irinst->vl, &irinst->type, 0, op, ctx);
 }
 
 void lir_cast(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
@@ -115,7 +115,6 @@ void lir_cast(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct
     lir_addOperandReg(1, vl, &irinst->operands[0].op_type, is_float, inst, ctx);
   else lir_operand(inst, &irinst->operands[0], ctx);
   lir_addOperandReg(1, irinst->vl, &irinst->operands[1].type, is_float, inst, ctx);
-  if (opc == LIR_TRUNC) inst->operands[0].size = inst->operands[1].size;
   if (irinst->opcode == OPCODE_ZEXT || irinst->opcode == OPCODE_UI2PTR) inst->is_unsigned = 1;
 }
 
@@ -129,10 +128,10 @@ void lir_axo(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct 
 
   struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena);
   lir_operand(inst, &irinst->operands[0], ctx);
-  lir_addOperandReg(1, irinst->vl, &irinst->operands[0].op_type, 0, inst, ctx);
+  lir_addOperandReg(1, irinst->vl, &irinst->type, 0, inst, ctx);
   struct LIRInstruction *op = lir_newInst(opc, 2, block, ctx->arena);
   lir_operand(op, &irinst->operands[1], ctx);
-  lir_addOperandReg(1, irinst->vl, &irinst->operands[0].op_type, 0, op, ctx);
+  lir_addOperandReg(1, irinst->vl, &irinst->type, 0, op, ctx);
 }
 
 void lir_sal(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
@@ -145,32 +144,31 @@ void lir_sal(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct 
 
   struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena);
   lir_operand(inst, &irinst->operands[0], ctx);
-  lir_addOperandReg(1, irinst->vl, &irinst->operands[0].op_type, 0, inst, ctx);
+  lir_addOperandReg(1, irinst->vl, &irinst->type, 0, inst, ctx);
 
-  if (irinst->operands[1].kind != Operand_Register) {
-    struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena);
-    lir_operand(inst, &irinst->operands[1], ctx);
-    lir_addOperandReg(0, ctx->arch->shift_register, &irinst->operands[0].op_type, 0, inst, ctx);
-    inst->operands[1].size = 1;
-  }
+  struct LIRInstruction *cnt = lir_newInst(LIR_COPY, 2, block, ctx->arena);
+  lir_operand(cnt, &irinst->operands[1], ctx);
+  lir_addOperandReg(0, ctx->arch->shift_register, &irinst->type, 0, cnt, ctx);
+  if (cnt->operands[0].kind == LIR_Vreg)
+    cnt->operands[0].size = 1;
+  cnt->operands[1].size = 1;
 
   struct LIRInstruction *shift = lir_newInst(opc, 2, block, ctx->arena);
-  if (irinst->operands[1].kind != Operand_Register)
-    lir_addOperandReg(0, ctx->arch->shift_register, &irinst->operands[0].op_type, 0, shift, ctx);
-  else lir_operand(shift, &irinst->operands[1], ctx);
-  lir_addOperandReg(1, irinst->vl, &irinst->operands[0].op_type, 0, shift, ctx);
+  lir_addOperandReg(0, ctx->arch->shift_register, &irinst->type, 0, shift, ctx);
+  shift->operands[0].size = 1;
+  lir_addOperandReg(1, irinst->vl, &irinst->type, 0, shift, ctx);
 }
 
 void lir_alloca(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
-  ctx->stack_len += sizeOf(&irinst->operands[0].type);
+  ctx->stack_len += sizeOf(&irinst->elem_type);
   struct LIRInstruction *inst = lir_newInst(LIR_LOAD, 2, block, ctx->arena);
-  lir_addOperandAddress(3, ctx->arch->stack_base_register, 0, -1, 0, -ctx->stack_len, 0, &irinst->operands[0].op_type, inst, ctx);
-  lir_addOperandReg(1, irinst->vl, &irinst->operands[0].op_type, 0, inst, ctx);
+  lir_addOperandAddress(3, ctx->arch->stack_base_register, 0, -1, 0, -ctx->stack_len, 0, &irinst->elem_type, inst, ctx);
+  lir_addOperandReg(1, irinst->vl, &irinst->type, 0, inst, ctx);
 }
 
 void lir_cmp(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
   struct LIRInstruction *inst = lir_newInst(irinst->opcode == OPCODE_FCMP ? LIR_FCMP : LIR_CMP, 2, block, ctx->arena);
-  lir_operand(inst, &irinst->operands[0], ctx);
+  lir_operand(inst, &irinst->operands[2], ctx);
   lir_operand(inst, &irinst->operands[1], ctx);
 
   struct FindInst find = findInst(ctx->func, irinst->vl);
@@ -211,8 +209,8 @@ void lir_cmp(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct 
         cond = LIRCMP_ULe;
         break;
     }
-    lir_addOperandConst(cond, &irinst->operands[0].op_type, inst);
-    lir_addOperandReg(1, irinst->vl, &irinst->operands[0].op_type, 0, inst, ctx);
+    lir_addOperandConst(cond, &irinst->type, inst);
+    lir_addOperandReg(1, irinst->vl, &irinst->type, 0, inst, ctx);
   }
 }
 
@@ -280,7 +278,7 @@ void lir_br(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct L
     }
   }
 
-  lir_addOperandConst(cond, &irinst->operands[0].op_type, inst);
+  lir_addOperandConst(cond, &irinst->type, inst);
   lir_operand(inst, &irinst->operands[1], ctx);
   struct LIRInstruction *jmp = lir_newInst(LIR_JMP, 1, block, ctx->arena);
   lir_operand(jmp, &irinst->operands[2], ctx);
@@ -299,13 +297,13 @@ void lir_call(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct
   size_t ints_args = 0;
   for (int i = 0; i < irinst->operands[0].call.args_len; i++) {
     struct IROperand *operand = &irinst->operands[0].call.args[i];
-    struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena);
+    struct LIRInstruction *inst = lir_newInst(operand->kind == Operand_Global ? LIR_LOAD : LIR_COPY, 2, block, ctx->arena);
     lir_operand(inst, operand, ctx);
     if (operand->op_type.kind == IRTYPEK_OTHER && (operand->op_type.other == IRTYPE_f32 || operand->op_type.other == IRTYPE_f64)) {
       floats_args++;
       if ((floats_args - 1) >= ctx->arch->arg_fregisters_len) {
         ctx->stack_len += ((floats_args - 1) - ctx->arch->arg_fregisters_len) * 8;
-        lir_addOperandAddress(3, ctx->arch->stack_top_register, 0, -1, 0, -ctx->stack_len, 0, &operand->op_type, inst, ctx);
+        lir_addOperandAddress(3, ctx->arch->stack_top_register, 0, -1, 0, ctx->stack_len, 0, &operand->op_type, inst, ctx);
         continue;
       }
       lir_addOperandReg(0, ctx->arch->arg_registers[(floats_args - 1) + ctx->arch->arg_iregisters_len], &operand->op_type, 1, inst, ctx);
@@ -314,15 +312,15 @@ void lir_call(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct
     ints_args++;
     if ((ints_args - 1) >= ctx->arch->arg_iregisters_len) {
       ctx->stack_len += ((ints_args - 1) - ctx->arch->arg_iregisters_len) * 8;
-      lir_addOperandAddress(3, ctx->arch->stack_top_register, 0, -1, 0, -ctx->stack_len, 0, &operand->op_type, inst, ctx);
+      lir_addOperandAddress(3, ctx->arch->stack_top_register, 0, -1, 0, ctx->stack_len, 0, &operand->op_type, inst, ctx);
       continue;
     }
     lir_addOperandReg(0, ctx->arch->arg_registers[ints_args - 1], &operand->op_type, 0, inst, ctx);
   }
   if (irinst->operands[0].call.is_extern) {
     struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena);
-    lir_addOperandConst(floats_args, &irinst->operands[0].op_type, inst);
-    lir_addOperandReg(0, ctx->arch->ret_iregister, &irinst->operands[0].op_type, 0, inst, ctx);
+    lir_addOperandConst(floats_args, &irinst->type, inst);
+    lir_addOperandReg(0, ctx->arch->ret_iregister, &irinst->type, 0, inst, ctx);
     inst->operands[0].size = 4;
     inst->operands[1].size = 4;
   }
@@ -331,11 +329,11 @@ void lir_call(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct
   lir_operand(inst, irinst->operands[0].call.operand, ctx);
   ctx->has_call = 1;
   struct LIRInstruction *op = lir_newInst(LIR_COPY, 2, block, ctx->arena);
-  if (irinst->operands[0].call.operand->op_type.kind == IRTYPEK_OTHER &&
-      (irinst->operands[0].call.operand->op_type.other == IRTYPE_f32 || irinst->operands[0].call.operand->op_type.other == IRTYPE_f64))
-    lir_addOperandReg(0, ctx->arch->ret_fregister, &irinst->operands[0].call.operand->op_type, 1, op, ctx);
-  else lir_addOperandReg(0, ctx->arch->ret_iregister, &irinst->operands[0].call.operand->op_type, 0, op, ctx);
-  lir_addOperandReg(1, irinst->vl, &irinst->operands[0].call.operand->op_type, is_float(&irinst->operands[0].call.operand->op_type), op, ctx);
+  if (irinst->type.kind == IRTYPEK_OTHER &&
+      (irinst->type.other == IRTYPE_f32 || irinst->type.other == IRTYPE_f64))
+    lir_addOperandReg(0, ctx->arch->ret_fregister, &irinst->type, 1, op, ctx);
+  else lir_addOperandReg(0, ctx->arch->ret_iregister, &irinst->type, 0, op, ctx);
+  lir_addOperandReg(1, irinst->vl, &irinst->type, is_float(&irinst->type), op, ctx);
 }
 
 void lir_ret(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {

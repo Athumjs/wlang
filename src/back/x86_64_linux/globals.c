@@ -50,7 +50,7 @@ void x86_64_linux_globals(struct IRGlobal *globals, size_t globals_len, FILE *fi
     fprintf(file, "  %.*s: ", globals[i].name->length, globals[i].name->start);
     if (globals[i].value.constant.kind == Value_String)
       fprintf(file, ".asciz");
-    else resolveType_code(&globals[i].value.op_type, file);
+    else resolveType_code(&globals[i].type, file);
     fprintf(file, " ");
     resolveValue_code(&globals[i].value.constant, file);
     fprintf(file, "\n");
@@ -61,7 +61,7 @@ void x86_64_linux_globals(struct IRGlobal *globals, size_t globals_len, FILE *fi
 
     for (int i = 0; i < globals_len; i++) {
       if (globals[i].value.constant.kind != Value_Int || globals[i].value.constant.i != 0) continue;
-      fprintf(file, "  %.*s: .space %zu\n", globals[i].name->length, globals[i].name->start, sizeOf(&globals[i].value.op_type));
+      fprintf(file, "  %.*s: .space %zu\n", globals[i].name->length, globals[i].name->start, sizeOf(&globals[i].type));
     }
   }
 }
