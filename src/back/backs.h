@@ -64,6 +64,5 @@ struct Successors {
 // util.c
 FILE *create_as(const char *folder_name, const char *filename, char **name, int *name_len);
 char *run_assembler(const char *folder_name, const char *name, int name_len, FILE *file);
-struct IRInstruction *getInst(struct IRFunction *func, int64_t vl);
 struct FindInst findInst(struct IRFunction *func, int64_t vl);
 struct Successors get_successors(struct IRBasicBlock *block);

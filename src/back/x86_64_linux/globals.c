@@ -45,6 +45,7 @@ void x86_64_linux_globals(struct IRGlobal *globals, size_t globals_len, FILE *fi
       continue;
     }
 
+    if (globals[i].type.kind == IRTYPEK_STRUCT) continue;
     if (globals[i].public) fprintf(file, ".globl %.*s\n", globals[i].name->length, globals[i].name->start);
 
     fprintf(file, "  %.*s: ", globals[i].name->length, globals[i].name->start);

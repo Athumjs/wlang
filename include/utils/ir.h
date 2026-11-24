@@ -85,6 +85,9 @@ struct IRType {
     struct {
       struct IRType *types;
       size_t types_len;
+      size_t *offsets;
+      size_t alignment;
+      size_t size;
     } struct_;
   };
 };
@@ -262,3 +265,4 @@ struct IRGlobal {
 
 size_t sizeOf(struct IRType *type);
 size_t alignOf(struct IRType *type);
+struct IRInstruction *getInst(struct IRFunction *func, int64_t vl);

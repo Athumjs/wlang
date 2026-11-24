@@ -312,6 +312,9 @@ size_t sizeOf(struct IRType *type) {
   if (type->kind == IRTYPEK_ARRAY)
     return type->array.size * sizeOf(type->array.type);
 
+  if (type->kind == IRTYPEK_STRUCT)
+    return type->struct_.size;
+
   if (type->kind == IRTYPEK_OTHER) {
     switch (type->other) {
       case IRTYPE_i1:
@@ -337,5 +340,19 @@ size_t sizeOf(struct IRType *type) {
 size_t alignOf(struct IRType *type) {
   if (type->kind == IRTYPEK_ARRAY)
     return alignOf(type->array.type);
+
+  if (type->kind == IRTYPEK_STRUCT)
+    return type->struct_.alignment;
+
   return sizeOf(type);
+}
+
+struct IRInstruction *getInst(struct IRFunction *func, int64_t vl) {
+  for (int i = 0; i < func->blocks_len; i++) {
+    for (int j = 0; j < func->blocks[i]->instructions_len; j++) {
+      if (func->blocks[i]->instructions[j].vl != vl) continue;
+      return &func->blocks[i]->instructions[j];
+    }
+  }
+  return NULL;
 }

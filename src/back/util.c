@@ -44,16 +44,6 @@ struct FindInst findInst(struct IRFunction *func, int64_t vl) {
   };
 }
 
-struct IRInstruction *getInst(struct IRFunction *func, int64_t vl) {
-  for (int i = 0; i < func->blocks_len; i++) {
-    for (int j = 0; j < func->blocks[i]->instructions_len; j++) {
-      if (func->blocks[i]->instructions[j].vl != vl) continue;
-      return &func->blocks[i]->instructions[j];
-    }
-  }
-  return NULL;
-}
-
 struct Successors get_successors(struct IRBasicBlock *block) {
   struct Successors sucs = {0};
   struct IRInstruction *last_inst = &block->instructions[block->instructions_len - 1];

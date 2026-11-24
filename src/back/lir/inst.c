@@ -336,6 +336,25 @@ void lir_call(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct
   lir_addOperandReg(1, irinst->vl, &irinst->type, is_float(&irinst->type), op, ctx);
 }
 
+void lir_gep(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
+  if (irinst->elem_type.kind == IRTYPEK_STRUCT) {
+    int64_t disp = irinst->elem_type.struct_.offsets[irinst->operands[2].constant.i];
+    struct LIRInstruction *inst = lir_newInst(LIR_LOAD, 2, block, ctx->arena);
+    lir_addOperandAddress(3, irinst->operands[0].ref, 1, -1, 0, disp, 0, &irinst->type, inst, ctx);
+    lir_addOperandReg(1, irinst->vl, &irinst->type, 0, inst, ctx);
+  } else if (irinst->operands[irinst->operands_len - 1].kind == Operand_Constant) {
+    int64_t disp = (irinst->elem_type.kind == IRTYPEK_ARRAY ? sizeOf(irinst->elem_type.array.type) : sizeOf(&irinst->elem_type)) * irinst->operands[irinst->operands_len - 1].constant.i;
+    struct LIRInstruction *inst = lir_newInst(LIR_LOAD, 2, block, ctx->arena);
+    lir_addOperandAddress(3, irinst->operands[0].ref, 1, -1, 0, disp, 0, &irinst->type, inst, ctx);
+    lir_addOperandReg(1, irinst->vl, &irinst->type, 0, inst, ctx);
+  } else {
+    int64_t scale = irinst->elem_type.kind == IRTYPEK_ARRAY ? sizeOf(irinst->elem_type.array.type) : sizeOf(&irinst->elem_type);
+    struct LIRInstruction *inst = lir_newInst(LIR_LOAD, 2, block, ctx->arena);
+    lir_addOperandAddress(3, irinst->operands[0].ref, 1, irinst->operands[irinst->operands_len - 1].ref, 1, 0, scale, &irinst->type, inst, ctx);
+    lir_addOperandReg(1, irinst->vl, &irinst->type, 0, inst, ctx);
+  }
+}
+
 void lir_ret(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
   if (irinst->operands_len == 1) {
     struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena);
@@ -370,5 +389,6 @@ void lir_inst(struct LIRBasicBlocks *block, struct IRInstruction *inst, struct L
   else if (inst->opcode == OPCODE_BR) lir_br(block, inst, ctx);
   else if (inst->opcode == OPCODE_JMP) lir_jmp(block, inst, ctx);
   else if (inst->opcode == OPCODE_CALL) lir_call(block, inst, ctx);
+  else if (inst->opcode == OPCODE_GEP) lir_gep(block, inst, ctx);
   else if (inst->opcode == OPCODE_RET) lir_ret(block, inst, ctx);
 }

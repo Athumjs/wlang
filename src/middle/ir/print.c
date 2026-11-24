@@ -68,6 +68,7 @@ static void printInst(struct IRInstruction *inst) {
   enum IROpcode opcode = inst->opcode;
   printOpcode(opcode);
   printType(&inst->type);
+  printType(&inst->elem_type);
 
   for (int l = 0; l < inst->operands_len; l++) {
     if (l > 0) printf(", ");

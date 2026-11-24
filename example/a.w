@@ -1,15 +1,21 @@
-extern set printf(format: char*, c1: char*);
-extern set malloc(size: ulong): char*;
-extern set strlen(str: char*): ulong;
-extern set strcpy(dst: char*, src: char*);
-extern set free(mem: char*);
+extern set printf(format: char*, c1: char*, c2: int);
+
+struct People {
+  name: char*;
+  old: int;
+
+  set print() {
+    printf("%s with %d years.\n", this.name, this.old);
+    return 0;
+  }
+};
 
 set main() {
-  var x;
-  var y = 1ULL;
-  x = malloc(strlen("Hello World") + y);
-  strcpy(x, "Hello World");
-  printf("%s\n", x);
-  free(x);
+  var x: People = {
+    name: "Carlos",
+    old: 29
+  };
+
+  x.print();
   return 0;
 }

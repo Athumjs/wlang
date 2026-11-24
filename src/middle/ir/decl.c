@@ -8,7 +8,7 @@ void irVarLocal(struct Decl *decl, struct MIRContext *ctx) {
       struct IRExpr expr_v = irExpr(var->expr, ctx);
       ctx->block = expr_v.block;
 
-      if (var->symbol->isPtr) {
+      if (var->symbol->isPtr && var->symbol->type->kind != Type_Array) {
         if (ctx->block->instructions[ctx->block->instructions_len - 1].opcode == OPCODE_LOAD) {
           (*ctx->block->reg)--;
           expr_v.operand.ref = ctx->block->instructions[ctx->block->instructions_len - 1].operands[0].ref;

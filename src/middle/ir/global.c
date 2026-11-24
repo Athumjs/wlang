@@ -110,9 +110,28 @@ void irStruct(struct Decl *decl, struct IRModule *module, struct Arena *arena) {
   type.kind = IRTYPEK_STRUCT;
   type.struct_.types = arena_alloc(arena, decl->decl_struct.fields_len * sizeof(struct IRType));
   type.struct_.types_len = decl->decl_struct.fields_len;
+  type.struct_.offsets = arena_alloc(arena, decl->decl_struct.fields_len * sizeof(size_t));
+  type.struct_.alignment = 1;
 
   for (int i = 0; i < type.struct_.types_len; i++)
     type.struct_.types[i] = resolveTypeIR(decl->decl_struct.fields[i].type, arena);
+
+  for (int i = 0; i < type.struct_.types_len; i++) {
+    size_t size = sizeOf(&type.struct_.types[i]);
+    size_t align = alignOf(&type.struct_.types[i]);
+
+    if (align > type.struct_.alignment)
+      type.struct_.alignment = align;
+
+    if (type.struct_.size % align != 0)
+      type.struct_.size += align - (type.struct_.size % align);
+
+    type.struct_.offsets[i] = type.struct_.size;
+    type.struct_.size += size;
+  }
+
+  if (type.struct_.size % type.struct_.alignment != 0)
+    type.struct_.size += type.struct_.alignment - (type.struct_.size % type.struct_.alignment);
 
   int index = module->globals_len++;
   struct IRGlobal global = (struct IRGlobal){

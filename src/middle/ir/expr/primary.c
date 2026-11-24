@@ -15,15 +15,18 @@ struct IRExpr irStructExpr(struct Expr *expr, struct MIRContext *ctx) {
 
     field->operands[field->operands_len++] = (struct IROperand){
       .kind = Operand_Constant,
+      .op_type.kind = IRTYPEK_OTHER,
+      .op_type.other = IRTYPE_i32,
       .constant = (struct IRValue){
         .kind = Value_Int,
         .i = 0
       }
     };
 
-    struct Symbol *symbol = hashmap_get(expr->expr_struct.symbol->symbol_struct.items, &expr->expr_struct.fields[i].name);
     field->operands[field->operands_len++] = (struct IROperand){
       .kind = Operand_Constant,
+      .op_type.kind = IRTYPEK_OTHER,
+      .op_type.other = IRTYPE_i32,
       .constant = (struct IRValue){
         .kind = Value_Int,
         .i = expr->expr_struct.fields[i].index
@@ -54,6 +57,8 @@ void fillArray(int64_t vl, struct IRType *type, struct Expr *expr, struct MIRCon
 
     gep->operands[gep->operands_len++] = (struct IROperand){
       .kind = Operand_Constant,
+      .op_type.kind = IRTYPEK_OTHER,
+      .op_type.other = IRTYPE_i32,
       .constant = (struct IRValue){
         .kind = Value_Int,
         .i = 0
@@ -62,6 +67,8 @@ void fillArray(int64_t vl, struct IRType *type, struct Expr *expr, struct MIRCon
 
     gep->operands[gep->operands_len++] = (struct IROperand){
       .kind = Operand_Constant,
+      .op_type.kind = IRTYPEK_OTHER,
+      .op_type.other = IRTYPE_i32,
       .constant = (struct IRValue){
         .kind = Value_Int,
         .i = i
@@ -73,7 +80,7 @@ void fillArray(int64_t vl, struct IRType *type, struct Expr *expr, struct MIRCon
       ctx->block = expr_o.block;
       struct IRInstruction *store = newInst(OPCODE_STORE, NULL, 0, 2, ctx->block, ctx->arena);
       store->operands[store->operands_len++] = expr_o.operand;
-      addOperandRef(2, gep->vl, gep->elem_type, store);
+      addOperandRef(2, gep->vl, gep->type, store);
     } else fillArray(gep->vl, &gep->type, expr->expr_array.exprs[i], ctx);
   }
 }
@@ -138,6 +145,8 @@ struct IRExpr irThis(struct Expr *expr, struct MIRContext *ctx) {
 
   inst->operands[inst->operands_len++] = (struct IROperand){
     .kind = Operand_Constant,
+    .op_type.kind = IRTYPEK_OTHER,
+    .op_type.other = IRTYPE_i32,
     .constant = (struct IRValue){
       .kind = Value_Int,
       .i = 0
@@ -148,6 +157,8 @@ struct IRExpr irThis(struct Expr *expr, struct MIRContext *ctx) {
 
   inst->operands[inst->operands_len++] = (struct IROperand){
     .kind = Operand_Constant,
+    .op_type.kind = IRTYPEK_OTHER,
+    .op_type.other = IRTYPE_i32,
     .constant = (struct IRValue){
       .kind = Value_Int,
       .i = symbol->index

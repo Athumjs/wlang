@@ -172,8 +172,8 @@ void register_allocation(struct Live *live, struct LIRFunction *func, struct Arc
           if (!operand->mem.is_index_vreg) continue;
           interval = &live->intervals[operand->mem.index_reg];
           if (interval->reg != -1) {
-            operand->mem.base_reg = interval->reg;
-            operand->mem.is_base_vreg = 0;
+            operand->mem.index_reg = interval->reg;
+            operand->mem.is_index_vreg = 0;
           } else {
             struct LIRInstruction *op = lir_newInst(LIR_COPY, 2, &func->blocks[i], arena);
             op->operands[op->operands_len++] = (struct LIROperand){
