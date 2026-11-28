@@ -4,11 +4,10 @@ struct Test {
   num: int;
 };
 
-struct Tests {
-  tests: Test[2];
-};
-
 set main() {
+  struct Tests {
+    tests: Test[2];
+  };
   var num = 2;
   var x: Tests = {
     tests: [{ num }, { num: 20 }]

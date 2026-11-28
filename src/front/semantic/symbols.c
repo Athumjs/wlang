@@ -67,10 +67,6 @@ struct Type *newTypeFunc(struct SymbolTable *table, struct Type **t, int pl, str
 }
 
 void funcSymbol(struct SymbolTable *table, struct Decl *decl, uint8_t isPublic) {
-  if (table->scope->prev != NULL) {
-    errorLang(table->program->filename, decl->line, decl->column, "function definition is not allowed here");
-  }
-
   struct Type *type = newTypeFunc(table, &decl->decl_function.retType, decl->decl_function.params_len,
       decl->decl_function.params);
   struct Symbol *symbol = newSymbol(table, Symbol_Function, decl->line, decl->column, decl->decl_function.name, type);
@@ -178,8 +174,5 @@ void resolveSymbols(struct SymbolTable *table) {
 
 void resolveDecl(struct SymbolTable *table, struct Decl *decl) {
   if (decl->kind == Decl_Variable) varSymbol(table, decl, 0);
-  else if (decl->kind == Decl_Function) funcSymbol(table, decl, 0);
-  else if (decl->kind == Decl_Enum) enumSymbol(table, decl, 0);
-  else if (decl->kind == Decl_Struct) structSymbol(table, decl, 0);
   else errorLang(table->program->filename, decl->line, decl->column, "this declaration is not allowed in this scope");
 }
