@@ -1,12 +1,12 @@
 set main(): int {
   var x = sum(10, 10)();
-  return 0;
+  return x;
 }
 
-set sum(x: int, y: int): () => void {
+set sum(x: int, y: int): () => int {
   return func;
 }
 
-set func(): void {
-  return;
+set func(): int {
+  return 10;
 }

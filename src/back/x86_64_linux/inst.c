@@ -18,6 +18,8 @@ void x86_64_linux_inst(struct LIRInstruction *inst, FILE *file, struct Arch *arc
   
   else if (inst->opcode == LIR_CALL) {
     fprintf(file, "  call ");
+    if (inst->operands[0].kind == LIR_Register)
+      fprintf(file, "*");
     x86_64_linux_operand(&inst->operands[0], file);
     fprintf(file, "\n");
     return;

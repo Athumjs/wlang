@@ -357,7 +357,7 @@ void lir_gep(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct 
 
 void lir_ret(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
   if (irinst->operands_len == 1) {
-    struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena);
+    struct LIRInstruction *inst = lir_newInst(irinst->operands[0].kind == Operand_String ? LIR_LOAD : LIR_COPY, 2, block, ctx->arena);
     lir_operand(inst, &irinst->operands[0], ctx);
     if (irinst->operands[0].op_type.kind == IRTYPEK_OTHER && 
         (irinst->operands[0].op_type.other == IRTYPE_f32 || irinst->operands[0].op_type.other == IRTYPE_f64))
