@@ -1,20 +1,12 @@
 extern set printf(format: char*, c1: int);
 
-struct Test {
-  num: int;
-};
-
 set main() {
-  struct Tests {
-    tests: Test[2];
-  };
-  var num = 2;
-  var x: Tests = {
-    tests: [{ num }, { num: 20 }]
-  };
+  var x = [[10, 20], [30, 40]];
 
-  for (var i = 0; i < 2; i++)
-    printf("%d\n", x.tests[i].num);
+  for (var i = 0; i < 2; i++) {
+    for (var j = 0; j < 2; j++)
+      printf("%d\n", x[i][j]);
+  }
 
   return 0;
 }

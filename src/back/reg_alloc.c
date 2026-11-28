@@ -1,7 +1,7 @@
 #include "backs.h"
-#include "lir/lir.h"
 #include <limits.h>
 #include <stdlib.h>
+#include <string.h>
 
 int cmp_intervals_start(const void *x, const void *y) {
   return (*(struct Interval **)x)->start - (*(struct Interval **)y)->start;
@@ -115,6 +115,27 @@ void alloc_freg(struct Interval **actives, size_t *actives_len, struct Interval 
   }
 }
 
+struct LIRInstruction *add_inst(enum LIROpcodes opcode, size_t operands_len, struct LIRBasicBlocks *block, struct Arena *arena, int64_t index) {
+  if (block->instructions_len == block->instructions_cap) {
+    size_t oldCap = block->instructions_cap;
+    block->instructions_cap *= 2;
+    struct LIRInstruction *temp = arena_alloc(arena, block->instructions_cap * sizeof(struct LIRInstruction));
+    memcpy(temp, block->instructions, oldCap * sizeof(struct LIRInstruction));
+    block->instructions = temp;
+  }
+
+  memmove(&block->instructions[index + 1], &block->instructions[index], (block->instructions_len - index) * sizeof(struct LIRInstruction));
+  block->instructions[index] = (struct LIRInstruction){
+    opcode,
+    0,
+    arena_alloc(arena, operands_len * sizeof(struct LIROperand)),
+    0,
+    0
+  };
+  block->instructions_len++;
+  return &block->instructions[index];
+}
+
 void register_allocation(struct Live *live, struct LIRFunction *func, struct Arch *arch, struct Arena *arena) {
   if (live->length == 0) return;
   struct Interval *intervals[live->length];
@@ -145,37 +166,40 @@ void register_allocation(struct Live *live, struct LIRFunction *func, struct Arc
       for (int k = 0; k < inst->operands_len; k++) {
         struct LIROperand *operand = &inst->operands[k];
         if (operand->kind == LIR_Address) {
-          if (!operand->mem.is_base_vreg) continue;
-          struct Interval *interval = &live->intervals[operand->mem.base_reg];
-          if (interval->reg != -1) {
-            operand->mem.base_reg = interval->reg;
-            operand->mem.is_base_vreg = 0;
-          } else {
-            struct LIRInstruction *op = lir_newInst(LIR_COPY, 2, &func->blocks[i], arena);
-            op->operands[op->operands_len++] = (struct LIROperand){
-              .kind = LIR_Address,
-              .mem.base_reg = arch->stack_base_register,
-              .mem.is_base_vreg = 0,
-              .mem.index_reg = -1,
-              .mem.is_index_vreg = 0,
-              .mem.disp = -interval->spill_slot,
-              .mem.scale = 0
-            };
-            op->operands[op->operands_len++] = (struct LIROperand){
-              .kind = LIR_Register,
-              .reg = arch->tmp_iregister
-            };
-            operand->kind = LIR_Register;
-            operand->reg = arch->tmp_iregister;
-          }
+          if (operand->mem.is_base_vreg) {
+            struct Interval *interval = &live->intervals[operand->mem.base_reg];
+            if (interval->reg != -1) {
+              operand->mem.base_reg = interval->reg;
+              operand->mem.is_base_vreg = 0;
+            } else {
+              struct LIRInstruction *op = add_inst(LIR_COPY, 2, &func->blocks[i], arena, j);
+              op->operands[op->operands_len++] = (struct LIROperand){
+                .kind = LIR_Address,
+                .mem.base_reg = arch->stack_base_register,
+                .mem.is_base_vreg = 0,
+                .mem.index_reg = -1,
+                .mem.is_index_vreg = 0,
+                .mem.disp = -interval->spill_slot,
+                .mem.scale = 0,
+                .size = 8
+              };
+              op->operands[op->operands_len++] = (struct LIROperand){
+                .kind = LIR_Register,
+                .reg = arch->tmp_iregister,
+                .size = 8
+              };
+              operand->mem.base_reg = arch->tmp_iregister;
+              operand->mem.is_base_vreg = 0;
+            }
+          } 
           if (operand->mem.index_reg == -1) continue;
           if (!operand->mem.is_index_vreg) continue;
-          interval = &live->intervals[operand->mem.index_reg];
+          struct Interval *interval = &live->intervals[operand->mem.index_reg];
           if (interval->reg != -1) {
             operand->mem.index_reg = interval->reg;
             operand->mem.is_index_vreg = 0;
           } else {
-            struct LIRInstruction *op = lir_newInst(LIR_COPY, 2, &func->blocks[i], arena);
+            struct LIRInstruction *op = add_inst(LIR_COPY, 2, &func->blocks[i], arena, j);
             op->operands[op->operands_len++] = (struct LIROperand){
               .kind = LIR_Address,
               .mem.base_reg = arch->stack_base_register,
@@ -183,15 +207,18 @@ void register_allocation(struct Live *live, struct LIRFunction *func, struct Arc
               .mem.index_reg = -1,
               .mem.is_index_vreg = 0,
               .mem.disp = -interval->spill_slot,
-              .mem.scale = 0
+              .mem.scale = 0,
+              .size = 8
             };
             op->operands[op->operands_len++] = (struct LIROperand){
               .kind = LIR_Register,
-              .reg = arch->tmp_iregister
+              .reg = arch->tmp_iregister,
+              .size = 8
             };
-            operand->kind = LIR_Register;
-            operand->reg = arch->tmp_iregister;
+            operand->mem.index_reg = arch->tmp_iregister;
+            operand->mem.is_index_vreg = 0;
           }
+          continue;
         }
 
         if (operand->kind != LIR_Vreg) continue;

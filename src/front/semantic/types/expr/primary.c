@@ -102,6 +102,7 @@ struct Type *typeExprArray(struct SymbolTable *table, struct Expr *expr) {
       type->type_array.expr_resolved < expr->expr_array.exprs_len)
     errorLang(table->program->filename, expr->line, expr->column, "excess elements in array");
 
+  struct Type *prev = table->scope->varType;
   for (int i = 0; i < expr->expr_array.exprs_len; i++) {
     table->scope->varType = type->type_array.base;
     struct Type *value = typeExpr(table, expr->expr_array.exprs[i]);
@@ -112,7 +113,11 @@ struct Type *typeExprArray(struct SymbolTable *table, struct Expr *expr) {
       errorLang(table->program->filename, expr->line, expr->column, "type '%.*s' is not assignable to type '%.*s'",
           s1.length, s1.start, s2.length, s2.start);
     }
+
+    if (i == 0 && prev->kind != Type_Auto && type->type_array.base->kind == Type_Array)
+      type->type_array.base = value;
   }
+  table->scope->varType = prev;
 
   expr->type = type;
   return type;

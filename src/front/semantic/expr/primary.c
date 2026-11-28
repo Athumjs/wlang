@@ -83,13 +83,20 @@ struct Symbol *resolveExprStruct(struct SymbolTable *table, struct Expr *expr) {
 }
 
 struct Symbol *resolveExprArray(struct SymbolTable *table, struct Expr *expr) {
-  if (table->scope->varType->kind != Type_Auto && table->scope->varType->type_array.expr != NULL &&
-      table->scope->varType->type_array.expr->kind == Expr_Identifier)
-    errorLang(table->program->filename, expr->line, expr->column, "array size must be a constant expression");
+  struct Type *prev = table->scope->varType;
+ 
+  if (prev != NULL && prev->kind != Type_Auto) {
+    if (prev->kind == Type_Array) {
+      if (prev->type_array.expr->kind == Expr_Identifier)
+        errorLang(table->program->filename, expr->line, expr->column, "array size must be a constant expression");
+      table->scope->varType = prev->type_array.base;
+    }
+  }
 
-  table->scope->varType = table->scope->varType->type_array.base;
   for (int i = 0; i < expr->expr_array.exprs_len; i++)
     resolveExpr(table, expr->expr_array.exprs[i]);
+
+  table->scope->varType = prev;
   return NULL;
 }
 
