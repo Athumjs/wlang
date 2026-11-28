@@ -1,21 +1,21 @@
-extern set printf(format: char*, c1: char*, c2: int);
+extern set printf(format: char*, c1: int);
 
-struct People {
-  name: char*;
-  old: int;
+struct Test {
+  num: int;
+};
 
-  set print() {
-    printf("%s with %d years.\n", this.name, this.old);
-    return 0;
-  }
+struct Tests {
+  tests: Test[2];
 };
 
 set main() {
-  var x: People = {
-    name: "Carlos",
-    old: 29
+  var num = 2;
+  var x: Tests = {
+    tests: [{ num }, { num: 20 }]
   };
 
-  x.print();
+  for (var i = 0; i < 2; i++)
+    printf("%d\n", x.tests[i].num);
+
   return 0;
 }

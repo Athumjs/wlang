@@ -1,7 +1,7 @@
 #include "lir.h"
 
 void lir_lc(struct LIRBasicBlocks *block, struct IRInstruction *irinst, struct LIRContext *ctx) {
-  struct LIRInstruction *inst = lir_newInst(LIR_COPY, 2, block, ctx->arena);
+  struct LIRInstruction *inst = lir_newInst(irinst->operands[0].kind == Operand_Global ? LIR_LOAD : LIR_COPY, 2, block, ctx->arena);
 
   if (irinst->opcode == OPCODE_LOAD && irinst->operands[0].kind == Operand_Register)
     lir_addOperandAddress(3, irinst->operands[0].ref, 1, -1, 0, 0, 0, &irinst->type, inst, ctx);

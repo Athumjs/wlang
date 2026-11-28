@@ -65,7 +65,7 @@ struct IRFunction *newFunc(struct String *name, size_t params_len, struct Param 
   int64_t iBlock = newBlock(&func, arena);
   for (int i = 0; i < params_len; i++) {
     struct Param *param = &(*params)[i];
-    func.params[i].type = resolveTypeIR(param->type, arena);
+    func.params[i].type = resolveTypeIR(module, param->type, arena);
     func.params[i].vl = func.reg++;
     setCurrentDef(func.ssa, &param->name, 1, &func.params[i], func.blocks[iBlock], arena);
   }
@@ -76,22 +76,22 @@ struct IRFunction *newFunc(struct String *name, size_t params_len, struct Param 
   return &module->functions[module->functions_len - 1];
 }
 
-struct IRInstruction *newInst(enum IROpcode opcode, struct Type *type, uint8_t isVl, size_t operands_len, struct IRBasicBlock *block, struct Arena *arena) {
+struct IRInstruction *newInst(enum IROpcode opcode, struct Type *type, uint8_t isVl, size_t operands_len, struct IRBasicBlock *block, struct MIRContext *ctx) {
   if (block->instructions_len == block->instructions_cap) {
     size_t oldCap = block->instructions_cap;
     block->instructions_cap *= 2;
-    struct IRInstruction *temp = arena_alloc(arena, block->instructions_cap * sizeof(struct IRInstruction));
+    struct IRInstruction *temp = arena_alloc(ctx->arena, block->instructions_cap * sizeof(struct IRInstruction));
     memcpy(temp, block->instructions, oldCap * sizeof(struct IRInstruction));
     block->instructions = temp;
   }
 
-  struct IRType inst_type = resolveTypeIR(type, arena);
+  struct IRType inst_type = resolveTypeIR(ctx->module, type, ctx->arena);
   if (opcode == OPCODE_ALLOCA || opcode == OPCODE_GEP) inst_type = IRTYPE_PTR;
   block->instructions[block->instructions_len++] = (struct IRInstruction){
     .opcode = opcode,
     .type = inst_type,
     .vl = isVl ? (*block->reg)++ : -1,
-    .operands = arena_alloc(arena, operands_len * sizeof(struct IROperand)),
+    .operands = arena_alloc(ctx->arena, operands_len * sizeof(struct IROperand)),
     .operands_len = 0
   };
 
@@ -155,10 +155,10 @@ void addOperandFCmp(enum IRFCMP opcode, struct IRType type, struct IRInstruction
   };
 }
 
-void addOperandType(struct Type *type, struct IRInstruction *inst, struct Arena *arena) {
+void addOperandType(struct Type *type, struct IRInstruction *inst, struct MIRContext *ctx) {
   inst->operands[inst->operands_len++] = (struct IROperand){
     .kind = Operand_Type,
-    .op_type = resolveTypeIR(type, arena),
-    .type = resolveTypeIR(type, arena)
+    .op_type = resolveTypeIR(ctx->module, type, ctx->arena),
+    .type = resolveTypeIR(ctx->module, type, ctx->arena)
   };
 }

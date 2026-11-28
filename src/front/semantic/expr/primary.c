@@ -1,4 +1,5 @@
 #include "../semantic.h"
+#include <string.h>
 #include <utils/hashmap.h>
 #include <utils/error.h>
 
@@ -57,13 +58,26 @@ struct Symbol *resolveExprStruct(struct SymbolTable *table, struct Expr *expr) {
   for (int i = 0; i < expr->expr_struct.fields_len; i++) {
     struct Field *f1 = &expr->expr_struct.fields[i];
     struct Symbol *f2 = hashmap_get(type->symbol_struct.items, &f1->name);
-    f1->index = f2->index;
 
     if (f2 == NULL)
       errorLang(table->program->filename, f1->line, f1->column, "cannot find name '%.*s'",
           f1->name.length, f1->name.start);
 
-    resolveExpr(table, expr->expr_struct.fields[i].expr);
+    f1->index = f2->index;
+    if (f1->expr == NULL) {
+      f1->expr = arena_alloc(table->program->arena, sizeof(struct Expr));
+      memset(f1->expr, 0, sizeof(struct Expr));
+      f1->expr->kind = Expr_Identifier;
+      f1->expr->line = f1->line;
+      f1->expr->column = f2->column;
+      f1->expr->expr_identifier.symbol = f2;
+      f1->expr->expr_identifier.name = f1->name;
+    }
+
+    struct Type *prev = table->scope->varType;
+    table->scope->varType = f2->type;
+    resolveExpr(table, f1->expr);
+    table->scope->varType = prev;
   }
   return NULL;
 }
@@ -73,9 +87,9 @@ struct Symbol *resolveExprArray(struct SymbolTable *table, struct Expr *expr) {
       table->scope->varType->type_array.expr->kind == Expr_Identifier)
     errorLang(table->program->filename, expr->line, expr->column, "array size must be a constant expression");
 
-  for (int i = 0; i < expr->expr_array.exprs_len; i++) {
+  table->scope->varType = table->scope->varType->type_array.base;
+  for (int i = 0; i < expr->expr_array.exprs_len; i++)
     resolveExpr(table, expr->expr_array.exprs[i]);
-  }
   return NULL;
 }
 

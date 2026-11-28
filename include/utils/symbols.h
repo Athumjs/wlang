@@ -19,7 +19,7 @@ struct Symbol {
   struct String name;
   struct Type *type;
   uint8_t isGlobal;
-  uint8_t isPtr;
+  uint8_t needAlloca;
   int64_t index;
   int line;
   int column;

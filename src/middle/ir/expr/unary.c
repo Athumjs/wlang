@@ -42,9 +42,9 @@ struct IRExpr irCast(struct Expr *expr, struct MIRContext *ctx) {
 
   struct IRExpr expr_o = irExpr(expr->expr_cast.value, ctx);
   ctx->block = expr_o.block;
-  struct IRInstruction *inst = newInst(opc, expr->expr_cast.type, 1, 2, ctx->block, ctx->arena);
+  struct IRInstruction *inst = newInst(opc, expr->expr_cast.type, 1, 2, ctx->block, ctx);
   inst->operands[inst->operands_len++] = expr_o.operand;
-  addOperandType(expr->expr_cast.type, inst, ctx->arena);
+  addOperandType(expr->expr_cast.type, inst, ctx);
 
   return (struct IRExpr){
     .inst = inst,
@@ -60,7 +60,7 @@ struct IRExpr irUnary(struct Expr *expr, struct MIRContext *ctx) {
   ctx->block = expr_o.block;
 
   if (expr->expr_unary.op == TOKEN_NOT || expr->expr_unary.op == TOKEN_BIT_NOT) {
-    struct IRInstruction *inst = newInst(OPCODE_BIT_XOR, expr->type, 1, 2, ctx->block, ctx->arena);
+    struct IRInstruction *inst = newInst(OPCODE_BIT_XOR, expr->type, 1, 2, ctx->block, ctx);
     inst->operands[inst->operands_len++] = expr_o.operand;
     inst->operands[inst->operands_len++] = (struct IROperand){
       .kind = Operand_Constant,
@@ -80,7 +80,7 @@ struct IRExpr irUnary(struct Expr *expr, struct MIRContext *ctx) {
   }
 
   else if (expr->expr_unary.op == TOKEN_ASTERISK) {
-    struct IRInstruction *inst = newInst(OPCODE_LOAD, expr->type, 1, 1, ctx->block, ctx->arena);
+    struct IRInstruction *inst = newInst(OPCODE_LOAD, expr->type, 1, 1, ctx->block, ctx);
     inst->operands[inst->operands_len++] = expr_o.operand;
 
     return (struct IRExpr){
@@ -109,11 +109,11 @@ struct IRExpr irUnary(struct Expr *expr, struct MIRContext *ctx) {
   }
 
   else if (expr->expr_unary.op == TOKEN_INCREMENT || expr->expr_unary.op == TOKEN_DECREMENT) {
-    struct IRInstruction *inst = newInst(expr->expr_unary.op == TOKEN_INCREMENT ? OPCODE_ADD : OPCODE_SUB, expr->type, 1, 2, ctx->block, ctx->arena);
+    struct IRInstruction *inst = newInst(expr->expr_unary.op == TOKEN_INCREMENT ? OPCODE_ADD : OPCODE_SUB, expr->type, 1, 2, ctx->block, ctx);
     inst->operands[inst->operands_len++] = expr_o.operand;
     inst->operands[inst->operands_len++] = (struct IROperand){
       .kind = Operand_Constant,
-      .op_type = resolveTypeIR(expr->type, ctx->arena),
+      .op_type = resolveTypeIR(ctx->module, expr->type, ctx->arena),
       .constant = (struct IRValue){
         .kind = Value_Int,
         .i = 1
@@ -126,14 +126,14 @@ struct IRExpr irUnary(struct Expr *expr, struct MIRContext *ctx) {
     };
 
     if (!expr->expr_unary.prefix) {
-      struct IRDef *def = readVariable(ctx->func->ssa, &expr->expr_unary.arg->expr_identifier.name, resolveTypeIR(expr->expr_unary.arg->expr_identifier.symbol->type, ctx->arena), ctx->block, ctx->arena);
+      struct IRDef *def = readVariable(ctx->func->ssa, &expr->expr_unary.arg->expr_identifier.name, resolveTypeIR(ctx->module, expr->expr_unary.arg->expr_identifier.symbol->type, ctx->arena), ctx->block, ctx->arena);
       if (def->isParam)
         res.ref = def->param->vl;
       else res.ref = def->inst->vl;
     }
 
     if (expr->expr_unary.arg->expr_identifier.symbol->isGlobal) {
-      struct IRInstruction *store = newInst(OPCODE_STORE, NULL, 0, 2, ctx->block, ctx->arena);
+      struct IRInstruction *store = newInst(OPCODE_STORE, NULL, 0, 2, ctx->block, ctx);
       store->operands[store->operands_len++] = res;
       expr_o.operand.kind = Operand_Global;
       store->operands[store->operands_len++] = expr_o.operand;

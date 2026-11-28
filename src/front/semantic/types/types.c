@@ -1,4 +1,5 @@
 #include "../semantic.h"
+#include "expr/expr.h"
 #include <stdio.h>
 #include <utils/numeric.h>
 #include <utils/error.h>
@@ -29,6 +30,10 @@ void typeFunc(struct SymbolTable *table, struct Decl *decl) {
 
 void typeStruct(struct SymbolTable *table, struct Decl *decl) {
   for (int i = 0; i < decl->decl_struct.fields_len; i++) {
+    if (decl->decl_struct.fields[i].type->kind == Type_Array) {
+      decl->decl_struct.fields[i].type->type_array.expr_resolved = resolveSizeArray(decl->decl_struct.fields[i].type->type_array.expr);
+    }
+
     if (decl->decl_struct.fields[i].type->kind != Type_Named) continue;
     struct Symbol *symbol = findSymbol(table->scope, &decl->decl_struct.fields[i].type->type_named.name);
     decl->decl_struct.fields[i].type->type_named.type = symbol->type;

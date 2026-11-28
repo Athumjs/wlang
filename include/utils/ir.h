@@ -65,10 +65,10 @@ enum IRTypes {
 };
 
 enum IRTypeKind {
+  IRTYPEK_NULL,
   IRTYPEK_ARRAY,
   IRTYPEK_STRUCT,
-  IRTYPEK_OTHER,
-  IRTYPEK_NULL
+  IRTYPEK_OTHER
 };
 
 struct IRType {

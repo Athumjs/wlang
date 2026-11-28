@@ -70,7 +70,7 @@
   X(TOKEN_LBRACE, "{") \
   X(TOKEN_RBRACE, "}") \
   X(TOKEN_LBRACKET, "[") \
-  X(TOKEN_RBRACKET, "]") \
+  X(TOKEN_RBRACKET, "]")
 
 #define OTHERS \
   X(LITERAL_INTEGER, "literal") \

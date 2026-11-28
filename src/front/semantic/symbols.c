@@ -42,7 +42,7 @@ void varSymbol(struct SymbolTable *table, struct Decl *decl, uint8_t isPublic) {
 
       struct Symbol *symbol = resolveExpr(table, var->expr);
       if (symbol != NULL && !(var->expr->kind == Expr_Unary && var->expr->expr_unary.op == TOKEN_ASTERISK))
-        var->symbol->isPtr = symbol->isPtr;
+        var->symbol->needAlloca = symbol->needAlloca;
     }
     table->scope->varType = NULL;
   }

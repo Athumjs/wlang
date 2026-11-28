@@ -17,10 +17,10 @@ void irVar(struct Decl *decl, struct IRModule *module, struct Arena *arena) {
     int index = module->globals_len++;
     struct IRGlobal global = (struct IRGlobal){
       .name = &var->name,
-      .type = resolveTypeIR(var->symbol->type, arena),
+      .type = resolveTypeIR(module, var->symbol->type, arena),
       .value = (struct IROperand){
         .kind = Operand_Constant,
-        .op_type = resolveTypeIR(var->symbol->type, arena),
+        .op_type = resolveTypeIR(module, var->symbol->type, arena),
         .constant = 0
       }
     };
@@ -92,7 +92,7 @@ void irFunc(struct Decl *decl, struct IRModule *module, struct Arena *arena) {
   irStmt(decl->decl_function.body, &ctx);
 
   if (!func->blocks[func->blocks_len - 1]->term) {
-    struct IRInstruction *inst = newInst(OPCODE_RET, NULL, 0, 0, func->blocks[func->blocks_len - 1], arena);
+    struct IRInstruction *inst = newInst(OPCODE_RET, NULL, 0, 0, func->blocks[func->blocks_len - 1], &ctx);
     func->blocks[func->blocks_len - 1]->term = 1;
   }
 }
@@ -106,7 +106,7 @@ void irStruct(struct Decl *decl, struct IRModule *module, struct Arena *arena) {
     module->globals = temp;
   }
 
-  struct IRType type;
+  struct IRType type = {0};
   type.kind = IRTYPEK_STRUCT;
   type.struct_.types = arena_alloc(arena, decl->decl_struct.fields_len * sizeof(struct IRType));
   type.struct_.types_len = decl->decl_struct.fields_len;
@@ -114,7 +114,7 @@ void irStruct(struct Decl *decl, struct IRModule *module, struct Arena *arena) {
   type.struct_.alignment = 1;
 
   for (int i = 0; i < type.struct_.types_len; i++)
-    type.struct_.types[i] = resolveTypeIR(decl->decl_struct.fields[i].type, arena);
+    type.struct_.types[i] = resolveTypeIR(module, decl->decl_struct.fields[i].type, arena);
 
   for (int i = 0; i < type.struct_.types_len; i++) {
     size_t size = sizeOf(&type.struct_.types[i]);
@@ -169,7 +169,7 @@ void irStruct(struct Decl *decl, struct IRModule *module, struct Arena *arena) {
     func->params[0].vl = func->reg++;
     setCurrentDef(func->ssa, &decl->decl_struct.symbol->name, 1, &func->params[0], func->blocks[0], arena);
     for (int j = 1; j < func->params_len; j++) {
-      func->params[j].type = resolveTypeIR(method->params[j - 1].type, arena);
+      func->params[j].type = resolveTypeIR(module, method->params[j - 1].type, arena);
       func->params[j].vl = func->reg++;
       setCurrentDef(func->ssa, &method->params[j - 1].name, 1, &func->params[j], func->blocks[0], arena);
     }
@@ -183,7 +183,7 @@ void irStruct(struct Decl *decl, struct IRModule *module, struct Arena *arena) {
 
     irStmt(method->body, &ctx);
     if (!func->blocks[func->blocks_len - 1]->term) {
-      struct IRInstruction *inst = newInst(OPCODE_RET, NULL, 0, 0, func->blocks[func->blocks_len - 1], arena);
+      struct IRInstruction *inst = newInst(OPCODE_RET, NULL, 0, 0, func->blocks[func->blocks_len - 1], &ctx);
       func->blocks[func->blocks_len - 1]->term = 1;
     }
   }

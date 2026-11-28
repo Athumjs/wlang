@@ -7,8 +7,9 @@ struct IRExpr irMember(struct Expr *expr, struct MIRContext *ctx) {
   struct IRExpr expr_o = irExpr(expr->expr_member.obj, ctx);
   ctx->block = expr_o.block;
 
-  struct IRInstruction *inst = newInst(OPCODE_GEP, NULL, 1, 3, ctx->block, ctx->arena);
-  inst->elem_type = getInst(ctx->func, expr_o.operand.ref)->elem_type;
+  struct IRInstruction *inst = newInst(OPCODE_GEP, NULL, 1, 3, ctx->block, ctx);
+  struct IRInstruction *ptr_inst = getInst(ctx->func, expr_o.operand.ref);
+  inst->elem_type = ptr_inst->elem_type.kind == IRTYPEK_NULL ? ptr_inst->type : ptr_inst->elem_type;
   inst->operands[inst->operands_len++] = expr_o.operand;
 
   inst->operands[inst->operands_len++] = (struct IROperand){
@@ -31,7 +32,16 @@ struct IRExpr irMember(struct Expr *expr, struct MIRContext *ctx) {
     }
   };
 
-  struct IRInstruction *load = newInst(OPCODE_LOAD, expr->type, 1, 1, ctx->block, ctx->arena);
+  if (expr->type->kind == Type_Array || (expr->type->kind == Type_Named && expr->type->type_named.type == NULL)) {
+    return (struct IRExpr){
+      .operand = (struct IROperand){
+        .kind = Operand_Register,
+        .ref = inst->vl
+      }
+    };
+  }
+
+  struct IRInstruction *load = newInst(OPCODE_LOAD, expr->type, 1, 1, ctx->block, ctx);
   addOperandRef(2, inst->vl, inst->type, load);
 
   return (struct IRExpr){
@@ -49,14 +59,14 @@ struct IRExpr irIndex(struct Expr *expr, struct MIRContext *ctx) {
   struct IRExpr expr_i = irExpr(expr->expr_index.index, ctx);
   ctx->block = expr_i.block;
   uint8_t is_ptr = expr->expr_index.base->type->kind == Type_Pointer;
-  struct IRInstruction *inst = newInst(OPCODE_GEP, NULL, 1, is_ptr ? 2 : 3, ctx->block, ctx->arena);
+  struct IRInstruction *inst = newInst(OPCODE_GEP, NULL, 1, is_ptr ? 2 : 3, ctx->block, ctx);
 
   if (is_ptr) {
-    inst->elem_type = resolveTypeIR(expr->type, ctx->arena);
+    inst->elem_type = resolveTypeIR(ctx->module, expr->type, ctx->arena);
     inst->operands[inst->operands_len++] = expr_b.operand;
     inst->operands[inst->operands_len++] = expr_i.operand;
   } else {
-    inst->elem_type = resolveTypeIR(expr->expr_index.base->type, ctx->arena);
+    inst->elem_type = resolveTypeIR(ctx->module, expr->expr_index.base->type, ctx->arena);
     inst->operands[inst->operands_len++] = expr_b.operand;
 
     inst->operands[inst->operands_len++] = (struct IROperand){
@@ -71,8 +81,17 @@ struct IRExpr irIndex(struct Expr *expr, struct MIRContext *ctx) {
 
     inst->operands[inst->operands_len++] = expr_i.operand;
   }
+
+  if (expr->type->kind == Type_Array || (expr->type->kind == Type_Named && expr->type->type_named.type == NULL)) {
+    return (struct IRExpr){
+      .operand = (struct IROperand){
+        .kind = Operand_Register,
+        .ref = inst->vl
+      }
+    };
+  }
  
-  struct IRInstruction *load = newInst(OPCODE_LOAD, expr->type, 1, 1, ctx->block, ctx->arena);
+  struct IRInstruction *load = newInst(OPCODE_LOAD, expr->type, 1, 1, ctx->block, ctx);
   addOperandRef(2, inst->vl, inst->type, load);
 
   return (struct IRExpr){
@@ -86,7 +105,7 @@ struct IRExpr irIndex(struct Expr *expr, struct MIRContext *ctx) {
 struct IRExpr irCall(struct Expr *expr, struct MIRContext *ctx) {
   struct IROperand operand = (struct IROperand){
     .kind = Operand_Call,
-    .op_type = resolveTypeIR(expr->type, ctx->arena),
+    .op_type = resolveTypeIR(ctx->module, expr->type, ctx->arena),
     .call = (struct IRCall){
       .operand = arena_alloc(ctx->arena, sizeof(struct IROperand)),
       .args = NULL,
@@ -98,13 +117,13 @@ struct IRExpr irCall(struct Expr *expr, struct MIRContext *ctx) {
   if (expr->expr_call.callee->kind == Expr_Member) {
     *operand.call.operand = (struct IROperand){
       .kind = Operand_String,
-      .op_type = resolveTypeIR(expr->expr_call.callee->expr_member.member->expr_identifier.symbol->type, ctx->arena),
+      .op_type = resolveTypeIR(ctx->module, expr->expr_call.callee->expr_member.member->expr_identifier.symbol->type, ctx->arena),
       .string = &expr->expr_call.callee->expr_member.member->expr_identifier.symbol->name
     };
 
     operand.call.args = arena_alloc(ctx->arena, (expr->expr_call.args_len + 1) * sizeof(struct IROperand));
     operand.call.args_len++;
-    struct IRDef *def = readVariable(ctx->func->ssa, &expr->expr_call.callee->expr_member.obj->expr_identifier.name, resolveTypeIR(expr->expr_call.callee->expr_member.obj->expr_identifier.symbol->type, ctx->arena), ctx->block, ctx->arena);
+    struct IRDef *def = readVariable(ctx->func->ssa, &expr->expr_call.callee->expr_member.obj->expr_identifier.name, resolveTypeIR(ctx->module, expr->expr_call.callee->expr_member.obj->expr_identifier.symbol->type, ctx->arena), ctx->block, ctx->arena);
     operand.call.args[0] = (struct IROperand){
       .kind = Operand_Register,
       .op_type = def->inst->type,
@@ -124,12 +143,12 @@ struct IRExpr irCall(struct Expr *expr, struct MIRContext *ctx) {
   }
 
   if (cmpTP(expr->type, Primitive_Void)) {
-    struct IRInstruction *inst = newInst(OPCODE_CALL, expr->type, 0, 1, ctx->block, ctx->arena);
+    struct IRInstruction *inst = newInst(OPCODE_CALL, expr->type, 0, 1, ctx->block, ctx);
     inst->operands[inst->operands_len++] = operand;
     return (struct IRExpr){0};
   }
 
-  struct IRInstruction *inst = newInst(OPCODE_CALL, expr->type, 1, 1, ctx->block, ctx->arena);
+  struct IRInstruction *inst = newInst(OPCODE_CALL, expr->type, 1, 1, ctx->block, ctx);
   inst->operands[inst->operands_len++] = operand;
 
   return (struct IRExpr){

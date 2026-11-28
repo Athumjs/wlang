@@ -16,7 +16,7 @@ struct Symbol *resolveExprUnary(struct SymbolTable *table, struct Expr *expr) {
     }
 
     if (expr->expr_unary.op == TOKEN_BIT_AND) {
-      arg->isPtr = 1;
+      arg->needAlloca = 1;
       return arg;
     }
 

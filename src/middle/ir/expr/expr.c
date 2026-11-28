@@ -19,6 +19,6 @@ struct IRExpr irExpr(struct Expr *expr, struct MIRContext *ctx) {
   else if (expr->kind == Expr_Literal) ir_expr = irLiteral(expr, ctx);
 
   if (ir_expr.block == NULL) ir_expr.block = ctx->block;
-  ir_expr.operand.op_type = resolveTypeIR(expr->type, ctx->arena);
+  ir_expr.operand.op_type = resolveTypeIR(ctx->module, expr->type, ctx->arena);
   return ir_expr;
 }

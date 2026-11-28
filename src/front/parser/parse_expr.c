@@ -144,8 +144,12 @@ struct Expr *exprPrimary(int *i, struct Tokens *tokens, struct Program *program)
           .name = CONSUME(IDENTIFIER).string,
           .expr = NULL
         };
-        CONSUME(TOKEN_COLON);
-        field.expr = parseExpr(i, tokens, program);
+
+        if (PEEK() == TOKEN_COLON) {
+          CONSUME(TOKEN_COLON);
+          field.expr = parseExpr(i, tokens, program);
+        }
+
         expr->expr_struct.fields[expr->expr_struct.fields_len++] = field;
         if (PEEK() == TOKEN_COMMA) CONSUME(TOKEN_COMMA);
         else break;

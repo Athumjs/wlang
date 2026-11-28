@@ -2,7 +2,6 @@
 
 #include <utils/arena.h>
 #include <utils/tokens.h>
-#include <stddef.h>
 
 struct Tokens {
   struct Token *token;

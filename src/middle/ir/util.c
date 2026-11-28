@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-struct IRType resolveTypeIR(struct Type *type, struct Arena *arena) {
+struct IRType resolveTypeIR(struct IRModule *module, struct Type *type, struct Arena *arena) {
   struct IRType t = {0};
 
   if (type == NULL || type->kind == Type_Auto)
@@ -41,14 +41,20 @@ struct IRType resolveTypeIR(struct Type *type, struct Arena *arena) {
   else if (type->kind == Type_Array) {
     t.kind = IRTYPEK_ARRAY;
     t.array.type = arena_alloc(arena, sizeof(struct IRType));
-    *t.array.type = resolveTypeIR(type->type_array.base, arena);
+    *t.array.type = resolveTypeIR(module, type->type_array.base, arena);
     t.array.size = type->type_array.expr_resolved;
   }
 
   else if (type->kind == Type_Named) {
-    if (type->type_named.type == NULL)
-      t.kind = IRTYPEK_NULL;
-    else t = resolveTypeIR(type->type_named.type, arena);
+    if (type->type_named.type == NULL) {
+      t = IRTYPE_NULL;
+      for (int i = 0; i < module->globals_len; i++) {
+        if (module->globals[i].name->length != type->type_named.name.length) continue;
+        if (memcmp(module->globals[i].name->start, type->type_named.name.start, type->type_named.name.length) == 0)
+          t = module->globals[i].type;
+      }
+    }
+    else t = resolveTypeIR(module, type->type_named.type, arena);
   }
 
   return t;
