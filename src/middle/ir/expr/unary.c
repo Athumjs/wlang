@@ -29,7 +29,7 @@ struct IRExpr irCast(struct Expr *expr, struct MIRContext *ctx) {
   else if (expr->expr_cast.type->kind == Type_Pointer && isUnsignedInteger(expr->expr_cast.value->type))
     opc = OPCODE_UI2PTR;
 
-  else if (isInteger(expr->expr_cast.type) && isInteger(expr->expr_cast.value->type)) {
+  else if (isInteger(expr->expr_cast.type) && (isInteger(expr->expr_cast.value->type) || cmpTP(expr->expr_cast.value->type, Primitive_Char))) {
     int rank_src = rankType(expr->expr_cast.value->type);
     int rank_dst = rankType(expr->expr_cast.type);
 

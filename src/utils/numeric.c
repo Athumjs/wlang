@@ -10,6 +10,7 @@ uint8_t rankType(struct Type *type) {
   if (type->kind != Type_Primitive) return 0;
 
   switch (type->type_primitive.type) {
+    case Primitive_Char:
     case Primitive_Byte:
     case Primitive_Ubyte:
       return 1;
