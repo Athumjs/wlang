@@ -24,6 +24,7 @@ enum TypeKind {
   Type_Auto,
   Type_Primitive,
   Type_Named,
+  Type_Enum,
   Type_Array,
   Type_Pointer,
   Type_Function
@@ -45,11 +46,6 @@ struct Type {
     } type_primitive;
 
     struct {
-      struct String name;
-      struct Type *type;
-    } type_named;
-
-    struct {
       struct Type *base;
       struct Expr *expr;
       int64_t expr_resolved;
@@ -65,6 +61,14 @@ struct Type {
       size_t params_len;
       size_t params_cap;
     } type_function;
+
+    struct {
+      struct String name;
+      struct Symbol *symbol;
+      struct Type *type;
+    } type_enum;
+
+    struct String type_named;
   };
 };
 

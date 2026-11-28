@@ -33,7 +33,7 @@ struct Symbol *resolveExprMember(struct SymbolTable *table, struct Expr *expr) {
   struct Symbol *member = NULL;
   if (obj->kind == Symbol_Variable) {
     if (obj->type->kind != Type_Named) return obj;
-    struct Symbol *symbol = findSymbol(table->scope, &obj->type->type_named.name);
+    struct Symbol *symbol = findSymbol(table->scope, &obj->type->type_named);
     member = hashmap_get(symbol->symbol_struct.items, &expr->expr_member.member->expr_identifier.name);
   } else member = hashmap_get(obj->symbol_enum.items, &expr->expr_member.member->expr_identifier.name);
 

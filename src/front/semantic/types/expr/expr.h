@@ -95,6 +95,9 @@ static inline uint8_t canImplicitConvert(struct Type *t1, struct Type *t2) {
   if (isFloating(t1) && isFloating(t2))
     return rankType(t1) <= rankType(t2);
 
+  if (t1->kind == Type_Enum && isInteger(t2))
+    return 1;
+
   return 0;
 }
 

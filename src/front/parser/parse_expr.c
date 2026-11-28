@@ -7,7 +7,7 @@ struct Type *exprType(int *i, struct Tokens *tokens, struct Program *program) {
 
   if (PEEK() == IDENTIFIER) {
     type->kind = Type_Named;
-    type->type_named.name = CONSUME(IDENTIFIER).string;
+    type->type_named = CONSUME(IDENTIFIER).string;
 
     while (1) {
       if (PEEK() == TOKEN_LBRACKET) {

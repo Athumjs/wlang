@@ -43,12 +43,12 @@ struct Symbol *resolveExprStruct(struct SymbolTable *table, struct Expr *expr) {
   if (table->scope->varType->kind != Type_Named)
     errorLang(table->program->filename, expr->line, expr->column, "expected expression");
 
-  struct Symbol *type = findSymbol(table->scope, &table->scope->varType->type_named.name);
+  struct Symbol *type = findSymbol(table->scope, &table->scope->varType->type_named);
   expr->expr_struct.symbol = type;
 
   if (type == NULL)
     errorLang(table->program->filename, expr->line, expr->column, "cannot find name '%.*s'", 
-        table->scope->varType->type_named.name.length, table->scope->varType->type_named.name.start);
+        table->scope->varType->type_named.length, table->scope->varType->type_named.start);
 
   if (type->kind != Symbol_Struct) {
     struct String str = getType(table->scope->varType, table->program->arena);

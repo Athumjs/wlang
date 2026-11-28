@@ -80,7 +80,9 @@ struct String getType(struct Type *type, struct Arena *arena) {
     return str;
   }
 
-  if (type->kind == Type_Named) return type->type_named.name;
+  if (type->kind == Type_Named) return type->type_named;
+  if (type->kind == Type_Enum) return type->type_enum.name;
+
   if (type->kind == Type_Array) {
     struct String str = getType(type->type_array.base, arena);
     char *start = arena_alloc(arena, str.length + 3);
@@ -144,9 +146,6 @@ struct String getType(struct Type *type, struct Arena *arena) {
 uint8_t cmpTT(struct Type *t1, struct Type *t2) {
   if (t1->kind == Type_Auto || t2->kind == Type_Auto) return 1;
 
-  if (t1->kind == Type_Named && t1->type_named.type != NULL)
-    return cmpTT(t1->type_named.type, t2);
-
   if (t1->kind != t2->kind) return 0;
 
   if (t1->kind == Type_Primitive) {
@@ -154,8 +153,11 @@ uint8_t cmpTT(struct Type *t1, struct Type *t2) {
     return t1->type_primitive.type == t2->type_primitive.type;
   }
 
-  if (t1->kind == Type_Named && t1->type_named.name.length == t2->type_named.name.length &&
-        memcmp(t1->type_named.name.start, t2->type_named.name.start, t2->type_named.name.length) == 0) return 1; 
+  if (t1->kind == Type_Named && t1->type_named.length == t2->type_named.length &&
+        memcmp(t1->type_named.start, t2->type_named.start, t2->type_named.length) == 0) return 1; 
+
+  if (t1->kind == Type_Enum)
+    return t1->type_enum.symbol == t2->type_enum.symbol;
 
   if (t1->kind == Type_Array)
     return cmpTT(t1->type_array.base, t2->type_array.base);
@@ -181,7 +183,7 @@ uint8_t cmpTP(struct Type *t1, enum PrimitiveType t2) {
 }
 
 void resolveType(struct SymbolTable *table, struct Type **type) {
-  if (*type == NULL || ((*type)->kind == Type_Named && (*type)->type_named.name.length == 4 && memcmp((*type)->type_named.name.start, "auto", 4) == 0)) {
+  if (*type == NULL || ((*type)->kind == Type_Named && (*type)->type_named.length == 4 && memcmp((*type)->type_named.start, "auto", 4) == 0)) {
     *type = arena_alloc(table->program->arena, sizeof(struct Type));
     (*type)->kind = Type_Auto;
     return;
@@ -202,7 +204,7 @@ void resolveType(struct SymbolTable *table, struct Type **type) {
   }
 
 #define X(pName, str) \
-  else if ((*type)->type_named.name.length == sizeof(str) - 1 && memcmp((*type)->type_named.name.start, str, (*type)->type_named.name.length) == 0) { \
+  else if ((*type)->type_named.length == sizeof(str) - 1 && memcmp((*type)->type_named.start, str, (*type)->type_named.length) == 0) { \
     *(*type) = (struct Type) { \
       .kind = Type_Primitive, \
       .type_primitive = { \
@@ -213,4 +215,9 @@ void resolveType(struct SymbolTable *table, struct Type **type) {
   }
   PRIMITIVE_TYPES
 #undef X
+  else {
+    struct Symbol *symbol = findSymbol(table->scope, &(*type)->type_named);
+    if (symbol != NULL && symbol->kind == Symbol_Enum)
+      *type = symbol->type;
+  } 
 }

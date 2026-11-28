@@ -44,7 +44,7 @@ struct Type *typeExprMember(struct SymbolTable *table, struct Expr *expr) {
 
   struct Symbol *member = NULL;
   if (obj->kind == Symbol_Variable) {
-    struct Symbol *symbol = findSymbol(table->scope, &expr->expr_member.obj->type->type_named.name);
+    struct Symbol *symbol = findSymbol(table->scope, &expr->expr_member.obj->type->type_named);
     member = hashmap_get(symbol->symbol_struct.items, &expr->expr_member.member->expr_identifier.name);
   } else member = hashmap_get(obj->symbol_enum.items, &expr->expr_member.member->expr_identifier.name);
 

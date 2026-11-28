@@ -32,7 +32,7 @@ struct IRExpr irMember(struct Expr *expr, struct MIRContext *ctx) {
     }
   };
 
-  if (expr->type->kind == Type_Array || (expr->type->kind == Type_Named && expr->type->type_named.type == NULL)) {
+  if (expr->type->kind == Type_Array || expr->type->kind == Type_Named) {
     return (struct IRExpr){
       .operand = (struct IROperand){
         .kind = Operand_Register,
@@ -82,7 +82,7 @@ struct IRExpr irIndex(struct Expr *expr, struct MIRContext *ctx) {
     inst->operands[inst->operands_len++] = expr_i.operand;
   }
 
-  if (expr->type->kind == Type_Array || (expr->type->kind == Type_Named && expr->type->type_named.type == NULL)) {
+  if (expr->type->kind == Type_Array || expr->type->kind == Type_Named) {
     return (struct IRExpr){
       .operand = (struct IROperand){
         .kind = Operand_Register,

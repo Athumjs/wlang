@@ -47,7 +47,7 @@ struct Type *typeExprCallback(struct SymbolTable *table, struct Expr *expr) {
 }
 
 struct Type *typeExprStruct(struct SymbolTable *table, struct Expr *expr) { 
-  struct Symbol *type = findSymbol(table->scope, &table->scope->varType->type_named.name);
+  struct Symbol *type = findSymbol(table->scope, &table->scope->varType->type_named);
 
   for (int i = 0; i < expr->expr_struct.fields_len; i++) {
     struct Field *f1 = &expr->expr_struct.fields[i];

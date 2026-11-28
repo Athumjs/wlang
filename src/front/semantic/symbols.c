@@ -84,12 +84,14 @@ void funcSymbol(struct SymbolTable *table, struct Decl *decl, uint8_t isPublic) 
 struct Type *newTypeNamed(struct SymbolTable *table, struct String name) {
   struct Type *type = arena_alloc(table->program->arena, sizeof(struct Type));
   type->kind = Type_Named;
-  type->type_named.name = name;
+  type->type_named = name;
   return type;
 }
 
 void enumSymbol(struct SymbolTable *table, struct Decl *decl, uint8_t isPublic) {
-  struct Type *type = newTypeNamed(table, decl->decl_enum.name);
+  struct Type *type = arena_alloc(table->program->arena, sizeof(struct Type));
+  type->kind = Type_Enum;
+  type->type_enum.name = decl->decl_enum.name;
   struct Symbol *symbol = newSymbol(table, Symbol_Enum, decl->line, decl->column, decl->decl_enum.name, type);
   symbol->symbol_enum.items = hashmap_new(table->program->arena, 8);
   for (int i = 0; i < decl->decl_enum.elems_len; i++) {
@@ -120,6 +122,7 @@ void enumSymbol(struct SymbolTable *table, struct Decl *decl, uint8_t isPublic) 
   }
 
   decl->decl_enum.symbol = symbol;
+  symbol->type->type_enum.symbol = symbol;
   addSymbol(table, symbol);
   if (isPublic) hashmap_set(table->exports, &decl->decl_enum.name, symbol, table->program->arena);
 }

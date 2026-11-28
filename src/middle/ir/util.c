@@ -46,16 +46,16 @@ struct IRType resolveTypeIR(struct IRModule *module, struct Type *type, struct A
   }
 
   else if (type->kind == Type_Named) {
-    if (type->type_named.type == NULL) {
-      t = IRTYPE_NULL;
-      for (int i = 0; i < module->globals_len; i++) {
-        if (module->globals[i].name->length != type->type_named.name.length) continue;
-        if (memcmp(module->globals[i].name->start, type->type_named.name.start, type->type_named.name.length) == 0)
-          t = module->globals[i].type;
-      }
+    t = IRTYPE_NULL;
+    for (int i = 0; i < module->globals_len; i++) {
+      if (module->globals[i].name->length != type->type_named.length) continue;
+      if (memcmp(module->globals[i].name->start, type->type_named.start, type->type_named.length) == 0)
+        t = module->globals[i].type;
     }
-    else t = resolveTypeIR(module, type->type_named.type, arena);
   }
+
+  else if (type->kind == Type_Enum)
+    t = resolveTypeIR(module, type->type_enum.type, arena);
 
   return t;
 }

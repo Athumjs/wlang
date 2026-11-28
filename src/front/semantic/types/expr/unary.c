@@ -3,6 +3,8 @@
 #include <utils/error.h>
 
 static inline uint8_t canExplicitConvert(struct Type *t1, struct Type *t2) {
+  if (t1->kind == Type_Enum && isInteger(t2)) return 1;
+  if (t2->kind == Type_Enum && isInteger(t1)) return 1;
   if (isPointer(t1) && isPointer(t2)) return 1;
   if (isNumeric(t1) && isNumeric(t2)) return 1;
   if (isInteger(t1) && isChar(t2)) return 1;
